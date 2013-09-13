@@ -25,7 +25,7 @@ _sb2()
 	    return 0
 	    ;;
 	-m)
-	    local modes=$(find /usr/share/scratchbox2/modes -maxdepth 1 -type d -printf '%f\n')
+	    local modes=$(find /usr/share/scratchbox2/modes -maxdepth 1 -type d -printf '%f\n' -o -type l -printf '%f\n')
 	    COMPREPLY=( $(compgen -W "${modes}" -- ${cur}) )
 	    return 0
 	    ;;
