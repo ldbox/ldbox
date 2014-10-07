@@ -17,13 +17,13 @@ exec_policy_selection = {
 		{prefix = tools_prefix .. "/usr/bin/python",
 		 exec_policy_name = "Tools-python"},
 
+		{prefix = tools_root, exec_policy_name = "Tools"},
+
                 -- the toolchain, if not from Tools:
                 {dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
 
                 -- the home directory is expected to contain target binaries:
                 {dir = sbox_user_home_dir, exec_policy_name = "Target"},
-
-		{prefix = tools, exec_policy_name = "Tools"},
 
 		-- DEFAULT RULE (must exist):
 		{prefix = "/", exec_policy_name = "Host"}
