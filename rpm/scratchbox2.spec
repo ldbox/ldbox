@@ -7,7 +7,7 @@ Release:	14
 Source: 	%{name}-%{version}.tar.gz
 Prefix: 	/usr
 Group: 		Development/Tools
-ExclusiveArch:	%{ix86}
+ExclusiveArch:	%{ix86} x86_64
 BuildRequires:	make
 BuildRequires:	autoconf
 Requires:	fakeroot
@@ -29,10 +29,13 @@ Scratchbox2 preload library.
 %build
 ./autogen.sh
 ./configure; touch .configure
-make
+make regular
 
 %install
-make install prefix=%{buildroot}/usr
+make do-install prefix=%{buildroot}%{_prefix}
+if [ "%{_libdir}" != "%{_prefix}/lib" ]; then
+  mv "%{buildroot}%{_prefix}/lib" "%{buildroot}%{_libdir}"
+fi
 
 install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 
@@ -47,6 +50,3 @@ install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 %files -n libsb2
 %defattr(-,root,root)
 %{_libdir}/libsb2/*
-%ifarch x86_64
-/usr/lib32/libsb2/*
-%endif
