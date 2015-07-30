@@ -1,5 +1,5 @@
 /*
- * execgates -- exec*() GATEs for the scratchbox2 preload library
+ * execgates -- exec*() GATEs for the ldbox preload library
  * 		(also contains GATEs for the setrlimit() functions)
  *
  * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
@@ -31,13 +31,13 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <signal.h>
-#include "libsb2.h"
+#include "liblb.h"
 #include "exported.h"
 
 /* strchrnul(): Find the first occurrence of C in S or the final NUL byte.
- * This is not present on all systems, so we'll use our own version in sb2.
+ * This is not present on all systems, so we'll use our own version in ldbox.
 */
-static const char *sb2_strchrnul (const char *s, int c_in)
+static const char *lb_strchrnul (const char *s, int c_in)
 {
 	const char	*ptr = strchr(s, c_in);
 
@@ -63,51 +63,51 @@ static struct rlimit64 stack_limits64_for_exec;
 static int (*next_execve) (const char *filename, char *const argv [],
 			char *const envp[]) = NULL;
 
-int sb_next_execve(const char *file, char *const *argv, char *const *envp)
+int lb_next_execve(const char *file, char *const *argv, char *const *envp)
 {
 	if (next_execve == NULL) {
-		next_execve = sbox_find_next_symbol(1, "execve");
+		next_execve = ldbox_find_next_symbol(1, "execve");
 	}
 
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+	if (LB_LOG_IS_ACTIVE(LB_LOGLEVEL_DEBUG)) {
 		char *buf = strvec_to_string(argv);
 
 		if (buf) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "EXEC: file:%s argv:%s", file, buf);
+			LB_LOG(LB_LOGLEVEL_DEBUG, "EXEC: file:%s argv:%s", file, buf);
 			free(buf);
 		} else {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"EXEC: %s (failed to print argv)", file);
 		}
 	}
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
+	if (LB_LOG_IS_ACTIVE(LB_LOGLEVEL_NOISE)) {
 		char *buf = strvec_to_string(envp);
 
 		if (buf) {
-			SB_LOG(SB_LOGLEVEL_NOISE, "EXEC/env: %s", buf);
+			LB_LOG(LB_LOGLEVEL_NOISE, "EXEC/env: %s", buf);
 			free(buf);
 		} else {
-			SB_LOG(SB_LOGLEVEL_NOISE,
+			LB_LOG(LB_LOGLEVEL_NOISE,
 				"EXEC: (failed to print env)");
 		}
 	}
 
 	switch (restore_stack_before_exec) {
 	case 1:
-		SB_LOG(SB_LOGLEVEL_DEBUG, "EXEC: need to restore stack limit");
+		LB_LOG(LB_LOGLEVEL_DEBUG, "EXEC: need to restore stack limit");
 
 		if (setrlimit(RLIMIT_STACK, &stack_limits_for_exec) < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"setrlimit(stack) failed, "
 				"failed to restore limits before exec");
 		}
 		break;
 #ifndef __APPLE__
 	case 64:
-		SB_LOG(SB_LOGLEVEL_DEBUG, "EXEC: need to restore stack limit");
+		LB_LOG(LB_LOGLEVEL_DEBUG, "EXEC: need to restore stack limit");
 
 		if (setrlimit64(RLIMIT_STACK, &stack_limits64_for_exec) < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"setrlimit64(stack) failed, "
 				"failed to restore limits before exec");
 		}
@@ -115,12 +115,12 @@ int sb_next_execve(const char *file, char *const *argv, char *const *envp)
 #endif
 	}
 
-	/* NOTE: Following SB_LOG() call is used by the log
-	 *       postprocessor script "sb2logz". Do not change
+	/* NOTE: Following LB_LOG() call is used by the log
+	 *       postprocessor script "lblogz". Do not change
 	 *       without making a corresponding change to the script!
 	*/
-	SB_LOG(SB_LOGLEVEL_INFO, "EXEC: i_pid=%d file='%s'",
-		sb_log_initial_pid__, file);
+	LB_LOG(LB_LOGLEVEL_INFO, "EXEC: i_pid=%d file='%s'",
+		lb_log_initial_pid__, file);
 	return next_execve(file, argv, envp);
 }
 
@@ -145,7 +145,7 @@ static char **va_exec_args_to_argv(
 	argv[0] = (char*)arg0;
 	argv[1] = NULL;
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "%s/varargs: 0=%s", realfnname, arg0);
+	LB_LOG(LB_LOGLEVEL_NOISE, "%s/varargs: 0=%s", realfnname, arg0);
 
 	/* if there are any additional arguments, add them to argv
 	 * calling realloc() every time (depending on what king of allocator
@@ -163,7 +163,7 @@ static char **va_exec_args_to_argv(
 		argv[n_elem - 2] = next_arg;
 		argv[n_elem - 1] = NULL;
 
-		SB_LOG(SB_LOGLEVEL_NOISE, "%s/varargs: %d=%s", 
+		LB_LOG(LB_LOGLEVEL_NOISE, "%s/varargs: %d=%s",
 			realfnname, n_elem-2, next_arg);
 
 		next_arg = va_arg (args, char *);
@@ -352,7 +352,7 @@ static int do_execvep(
 			char *startp;
 
 			path = p;
-			p = sb2_strchrnul (path, ':');
+			p = lb_strchrnul (path, ':');
 
 			if (p == path) {
 				/* Two adjacent colons, or a colon at the beginning or the end
@@ -405,7 +405,7 @@ static int do_execvep(
 	return -1;
 }
 
-int sb_execvep(
+int lb_execvep(
 	const char *file,
 	char *const argv [],
 	char *const envp [])
@@ -454,14 +454,14 @@ int setrlimit_gate(
 {
 	int	result;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: res=%d cur=%ld max=%ld",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: res=%d cur=%ld max=%ld",
 		realfnname, resource, (long)rlp->rlim_cur, (long)rlp->rlim_max);
 
 	if ((resource == RLIMIT_STACK) && (rlp->rlim_cur == RLIM_INFINITY)) {
 		struct rlimit limit_now;
 
 		if (getrlimit(RLIMIT_STACK, &limit_now) < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"%s: getrlimit(stack) failed", realfnname);
 		} else {
 			if (limit_now.rlim_cur != RLIM_INFINITY) {
@@ -470,7 +470,7 @@ int setrlimit_gate(
 				stack_limits_for_exec = limit_now;
 				restore_stack_before_exec = 1;
 
-				SB_LOG(SB_LOGLEVEL_NOTICE,
+				LB_LOG(LB_LOGLEVEL_NOTICE,
 					"%s: Setting stack limit to infinity, "
 					"old limit stored for next exec",
 					realfnname);
@@ -494,14 +494,14 @@ int setrlimit64_gate(
 {
 	int	result;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: res=%d cur=%ld max=%ld",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: res=%d cur=%ld max=%ld",
 		realfnname, resource, (long)rlp->rlim_cur, (long)rlp->rlim_max);
 
 	if ((resource == RLIMIT_STACK) && (rlp->rlim_cur == RLIM64_INFINITY)) {
 		struct rlimit64 limit_now;
 
 		if (getrlimit64(RLIMIT_STACK, &limit_now) < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"%s: getrlimit64(stack) failed", realfnname);
 		} else {
 			if (limit_now.rlim_cur != RLIM64_INFINITY) {
@@ -510,7 +510,7 @@ int setrlimit64_gate(
 				stack_limits64_for_exec = limit_now;
 				restore_stack_before_exec = 64;
 
-				SB_LOG(SB_LOGLEVEL_NOTICE,
+				LB_LOG(LB_LOGLEVEL_NOTICE,
 					"%s: Setting stack limit to infinity, "
 					"old limit stored for next exec",
 					realfnname);
@@ -547,7 +547,7 @@ FILE *popen_gate(int *result_errno_ptr,
 	FILE	*res;
 
 	(void)realfnname;
-	SB_LOG(SB_LOGLEVEL_DEBUG, "popen(%s,%s)", command, type);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "popen(%s,%s)", command, type);
 
 	/* popen() uses our 'environ', so we'll have to make
 	 * temporary changes and restore the values after
@@ -566,14 +566,14 @@ FILE *popen_gate(int *result_errno_ptr,
 	if (popen_ld_preload) setenv("LD_PRELOAD", popen_ld_preload, 1);
 	else unsetenv("LD_PRELOAD");
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "popen: LD_LIBRARY_PATH=%s", popen_ld_lib_path);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "popen: LD_PRELOAD=%s", popen_ld_preload);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "popen: LD_LIBRARY_PATH=%s", popen_ld_lib_path);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "popen: LD_PRELOAD=%s", popen_ld_preload);
 
 	errno = *result_errno_ptr; /* restore to orig.value */
 	res = (*real_popen_ptr)(command, type);
 	*result_errno_ptr = errno;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "popen: restoring LD_PRELOAD and LD_LIBRARY_PATH");
+	LB_LOG(LB_LOGLEVEL_DEBUG, "popen: restoring LD_PRELOAD and LD_LIBRARY_PATH");
 
 	if (user_ld_lib_path) setenv("LD_LIBRARY_PATH", user_ld_lib_path, 1);
 	else unsetenv("LD_LIBRARY_PATH");

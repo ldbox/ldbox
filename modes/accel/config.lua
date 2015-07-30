@@ -23,19 +23,19 @@ exec_policy_selection = {
 	{prefix = tools, exec_policy_name = "Tools"},
 
 	-- ~/bin probably contains programs for the host OS:
-	{prefix = sbox_user_home_dir.."/bin",
+	{prefix = ldbox_user_home_dir.."/bin",
 	 exec_policy_name = "Host"},
 
 	-- Other places under the home directory are expected
 	-- to contain target binaries:
-	{prefix = sbox_user_home_dir, exec_policy_name = "Target"},
+	{prefix = ldbox_user_home_dir, exec_policy_name = "Target"},
 
 	-- Target binaries:
 	{prefix = target_root, exec_policy_name = "Target"},
 
 	-- the place where the session was created is expected
 	-- to contain target binaries:
-	{prefix = sbox_workdir, exec_policy_name = "Target"},
+	{prefix = ldbox_workdir, exec_policy_name = "Target"},
 
 	-- -----------------------------------------------
 	-- DEFAULT RULE (must exist):

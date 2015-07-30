@@ -3,7 +3,7 @@
 --
 -- Licensed under MIT license
 
--- This script is executed when SB2 session is created
+-- This script is executed when ldbox session is created
 -- (from init.lua) to load networking rules to the rule
 -- tree database.
 
@@ -13,16 +13,16 @@ net_rule_file_interface_version = nil
 net_rules = nil
 
 -- These must match #defines in rule_tree.h:
-local SB2_RULETREE_NET_RULETYPE_DENY  = 0
-local SB2_RULETREE_NET_RULETYPE_ALLOW = 1
-local SB2_RULETREE_NET_RULETYPE_RULES = 2
+local LB_RULETREE_NET_RULETYPE_DENY  = 0
+local LB_RULETREE_NET_RULETYPE_ALLOW = 1
+local LB_RULETREE_NET_RULETYPE_RULES = 2
 
 
 function load_and_check_network_rules(net_modename)
 	local network_rule_file_path = session_dir .. "/net_rules/" ..
 		net_modename .. "/net_rules.lua"
 
-	sblib.log("debug", "network_rule_file_path = "..network_rule_file_path)
+	lblib.log("debug", "network_rule_file_path = "..network_rule_file_path)
 
 	net_rule_file_interface_version = nil
 	net_rules = nil
@@ -52,7 +52,7 @@ function load_and_check_network_rules(net_modename)
 		net_rules = nil
 	end
 
-	sblib.log("debug", "network rules loaded.")
+	lblib.log("debug", "network rules loaded.")
 end
 
 local valid_keywords_in_net_rules = {
@@ -112,7 +112,7 @@ function add_one_net_rule(net_modename, chain_name, rule)
 				net_modename, chain_name))
 			rule_ok = false
 		end
-		ruletype = SB2_RULETREE_NET_RULETYPE_ALLOW
+		ruletype = LB_RULETREE_NET_RULETYPE_ALLOW
 	elseif rule.deny then
 		if rule.rules then
 			io.stderr:write(string.format(
@@ -120,9 +120,9 @@ function add_one_net_rule(net_modename, chain_name, rule)
 				net_modename, chain_name))
 			rule_ok = false
 		end
-		ruletype = SB2_RULETREE_NET_RULETYPE_DENY
+		ruletype = LB_RULETREE_NET_RULETYPE_DENY
 	elseif rule.rules and type(rule.rules) == "table" then
-		ruletype = SB2_RULETREE_NET_RULETYPE_RULES
+		ruletype = LB_RULETREE_NET_RULETYPE_RULES
 		subrules = add_net_rule_chain(net_modename, chain_name.."->rules", rule.rules)
 	else
 		io.stderr:write(string.format(
@@ -204,7 +204,7 @@ function add_network_rules(net_modename)
 --                for i = 1, table.maxn(all_exec_policies) do
 --                        local ep_name = all_exec_policies[i].name
 --			if ep_name then
---				sblib.log("debug", "Adding Exec policy "..ep_name)
+--				lblib.log("debug", "Adding Exec policy "..ep_name)
 --				for key,val in pairs(all_exec_policies[i]) do
 --					local required_type = valid_keywords_in_exec_policy[key]
 --					local t = type(val)
@@ -235,8 +235,8 @@ function add_network_rules(net_modename)
 --        end
 end
 
-local default_net_mode = os.getenv("SB2_DEFAULT_NETWORK_MODE")
-local all_net_modes_str = os.getenv("SB2_ALL_NET_MODES")
+local default_net_mode = os.getenv("LB_DEFAULT_NETWORK_MODE")
+local all_net_modes_str = os.getenv("LB_ALL_NET_MODES")
 
 all_net_modes = {}
 

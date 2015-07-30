@@ -1,4 +1,4 @@
--- Scratchbox2 universal redirector dynamic path translation scripts
+-- ldbox universal redirector dynamic path translation scripts
 -- Copyright (C) 2006, 2007 Lauri Leukkunen
 -- Licensed under MIT license.
 
@@ -38,16 +38,16 @@ end
 --	if (not a or not b) then return false end
 --	return string.sub(b, 1, string.len(a)) == a
 --    end
-isprefix = sb.isprefix
+isprefix = lb.isprefix
 
-function sb2_procfs_mapper(binary_name, func_name, rp, path, rule)
+function lb_procfs_mapper(binary_name, func_name, rp, path, rule)
 	local ret_path = path;
 
 	if (debug_messages_enabled) then
-		sb.log("debug", "sb2_procfs_mapper "..path.." : "..rp)
+		lb.log("debug", "lb_procfs_mapper "..path.." : "..rp)
 	end
 
-	local mapped = sb.procfs_mapping_request(path)
+	local mapped = lb.procfs_mapping_request(path)
 
 	-- Returns exec_policy_name, path, flags
 	if (mapped) then
@@ -83,11 +83,11 @@ function load_and_check_rules()
 	--
 	-- Version 104:
 	-- - CPU Transparency for native architecture is implemented:
-	--    - sbox_cputransparency_native_method - defined by the '-p'
-	--      option of sb2-init,
-	--    - sbox_cputransparency_native_cmd,
-	--    - sbox_cputransparency_native_args,
-	--    All of the above are equivalent to sbox_cputransparency_*
+	--    - ldbox_cputransparency_native_method - defined by the '-p'
+	--      option of lb-init,
+	--    - ldbox_cputransparency_native_cmd,
+	--    - ldbox_cputransparency_native_args,
+	--    All of the above are equivalent to ldbox_cputransparency_*
 	--    variables.
 	--
 	-- Version 103:
@@ -114,13 +114,13 @@ function load_and_check_rules()
         --
 	-- Version 25:
 	-- - CPU Transparency is now defined by three variables:
-	--    - sbox_cputransparency_method is the complete string,
+	--    - ldbox_cputransparency_method is the complete string,
 	--      containing both the command and options. This is
-	--	defined by the '-c' option of sb2-init.
-	--    - sbox_cputransparency_cmd is path to the binary,
-	--    - sbox_cputransparency_args contains optional
+	--	defined by the '-c' option of lb-init.
+	--    - ldbox_cputransparency_cmd is path to the binary,
+	--    - ldbox_cputransparency_args contains optional
 	--	arguments.
-	--   Previously only sbox_cputransparency_method was
+	--   Previously only ldbox_cputransparency_method was
 	--   available.
 	-- Version 24:
 	-- - Added support for gconv_path for native applications
@@ -145,7 +145,7 @@ function load_and_check_rules()
 	-- - added "all_exec_policies" list to all
 	--   mapping modes
 	-- Differences between version 17 and 18:
-	-- - added sb2_procfs_mapper()
+	-- - added lb_procfs_mapper()
 	-- Differences between version 16 and 17:
 	-- - Added support for hierarcic rules (i.e. rule
 	--   trees. 16 supports only linear rule lists)
@@ -164,14 +164,14 @@ function load_and_check_rules()
 	-- fail and die if interface version is incorrect
 	if (rule_file_interface_version == nil) or 
            (type(rule_file_interface_version) ~= "string") then
-		sb.log("error", string.format(
+		lb.log("error", string.format(
 			"Fatal: Rule file interface version check failed: "..
 			"No version information in %s",
 			rule_file_path))
 		os.exit(89)
 	end
 	if rule_file_interface_version ~= current_rule_interface_version then
-		sb.log("error", string.format(
+		lb.log("error", string.format(
 			"Fatal: Rule file interface version check failed: "..
 			"got %s, expected %s", rule_file_interface_version,
 			current_rule_interface_version))
@@ -179,13 +179,13 @@ function load_and_check_rules()
 	end
 
         if (type(fs_mapping_rules) ~= "table") then
-		sb.log("error", "'fs_mapping_rule' is not an array.");
+		lb.log("error", "'fs_mapping_rule' is not an array.");
 		os.exit(87)
 	end
 end
 
 enable_cross_gcc_toolchain = ruletree.catalog_get_boolean(
-        "Conf."..sbox_mapmode, "enable_cross_gcc_toolchain")
+        "Conf."..ldbox_mapmode, "enable_cross_gcc_toolchain")
 
 fs_mapping_rules = nil
 
@@ -194,15 +194,15 @@ load_and_check_rules()
 -- load reverse mapping rules, if those have been created
 -- (the file does not exist during the very first round here)
 reverse_fs_mapping_rules = nil
-if (sb.path_exists(rev_rule_file_path)) then
-	sb.log("debug", "Loading reverse rules")
+if (lb.path_exists(rev_rule_file_path)) then
+	lb.log("debug", "Loading reverse rules")
 	do_file(rev_rule_file_path)
 end
 if (debug_messages_enabled) then
 	if reverse_fs_mapping_rules ~= nil then
-		sb.log("debug", "Loaded reverse rules")
+		lb.log("debug", "Loaded reverse rules")
 	else
-		sb.log("debug", "No reverse rules")
+		lb.log("debug", "No reverse rules")
 	end
 end
 
@@ -216,23 +216,23 @@ function check_protection_attribute(rule, flags)
 	return flags
 end
 
-function sbox_execute_replace_rule(path, replacement, rule_selector)
+function ldbox_execute_replace_rule(path, replacement, rule_selector)
 	local ret = nil
 
 	if (debug_messages_enabled) then
-		sb.log("debug", string.format("replace:%s:%s", path, replacement))
+		lb.log("debug", string.format("replace:%s:%s", path, replacement))
 	end
 	if (rule_selector.dir) then
 		if ((rule_selector.dir ~= "") and
 		    (isprefix(rule_selector.dir, path))) then
 			ret = replacement .. string.sub(path, string.len(rule_selector.dir)+1)
 			if (debug_messages_enabled) then
-				sb.log("debug", string.format("replaced (dir) => %s", ret))
+				lb.log("debug", string.format("replaced (dir) => %s", ret))
 			end
 		else
 			ret = ""
 			if (debug_messages_enabled) then
-				sb.log("debug", string.format("replacement failed (short path?)"))
+				lb.log("debug", string.format("replacement failed (short path?)"))
 			end
 		end
 	elseif (rule_selector.prefix) then
@@ -240,12 +240,12 @@ function sbox_execute_replace_rule(path, replacement, rule_selector)
 		    (isprefix(rule_selector.prefix, path))) then
 			ret = replacement .. string.sub(path, string.len(rule_selector.prefix)+1)
 			if (debug_messages_enabled) then
-				sb.log("debug", string.format("replaced (prefix) => %s", ret))
+				lb.log("debug", string.format("replaced (prefix) => %s", ret))
 			end
 		else
 			ret = ""
 			if (debug_messages_enabled) then
-				sb.log("debug", string.format("replacement failed (short path?)"))
+				lb.log("debug", string.format("replacement failed (short path?)"))
 			end
 		end
 	elseif (rule_selector.path) then
@@ -253,16 +253,16 @@ function sbox_execute_replace_rule(path, replacement, rule_selector)
 		if (rule_selector.path == path) then
 			ret = replacement
 			if (debug_messages_enabled) then
-				sb.log("debug", string.format("replaced (path) => %s", ret))
+				lb.log("debug", string.format("replaced (path) => %s", ret))
 			end
 		else
 			ret = ""
 			if (debug_messages_enabled) then
-				sb.log("debug", string.format("replacement failed (short path?)"))
+				lb.log("debug", string.format("replacement failed (short path?)"))
 			end
 		end
 	else
-		sb.log("error", "error in rule: can't replace without 'prefix' or 'path'")
+		lb.log("error", "error in rule: can't replace without 'prefix' or 'path'")
 		ret = path
 	end
 
@@ -272,18 +272,18 @@ end
 function rule_logging(rule, path)
 	if (rule.log_level) then
 		if (rule.log_message) then
-			sb.log(rule.log_level, string.format("%s (%s)",
+			lb.log(rule.log_level, string.format("%s (%s)",
 				rule.log_message, path))
 		else
 			-- default message = log path
-			sb.log(rule.log_level, string.format("path=(%s)", path))
+			lb.log(rule.log_level, string.format("path=(%s)", path))
 		end
 	end
 end
 
 
 -- returns exec_policy_name, path, flags
-function sbox_execute_conditional_actions(binary_name,
+function ldbox_execute_conditional_actions(binary_name,
 		func_name, rp, path, rule_selector)
 	local actions = rule_selector.actions
 	local ret_exec_policy_name = nil
@@ -291,7 +291,7 @@ function sbox_execute_conditional_actions(binary_name,
 	local a
 	for a = 1, table.maxn(actions) do
 		if (debug_messages_enabled) then
-			sb.log("debug", string.format("try %d", a))
+			lb.log("debug", string.format("try %d", a))
 		end
 
 		-- each member in the "actions" array is a 
@@ -314,12 +314,12 @@ function sbox_execute_conditional_actions(binary_name,
 			if (action_candidate.if_exists_then_map_to) then
 				tmp_dest = action_candidate.if_exists_then_map_to .. path
 			else
-				tmp_dest = sbox_execute_replace_rule(path,
+				tmp_dest = ldbox_execute_replace_rule(path,
 					action_candidate.if_exists_then_replace_by, rule_selector)
 			end
-			if (sb.path_exists(tmp_dest)) then
+			if (lb.path_exists(tmp_dest)) then
 				if (debug_messages_enabled) then
-					sb.log("debug", string.format(
+					lb.log("debug", string.format(
 						"target exists: => %s", tmp_dest))
 				end
 				if (action_candidate.exec_policy_name ~= nil) then
@@ -329,42 +329,42 @@ function sbox_execute_conditional_actions(binary_name,
 				return ret_exec_policy_name, tmp_dest, ret_flags
 			end
 		elseif (action_candidate.if_active_exec_policy_is) then
-                        local ep_name = sb.get_active_exec_policy_name()
+                        local ep_name = lb.get_active_exec_policy_name()
                         if (ep_name ~= nil and
                             ep_name == action_candidate.if_active_exec_policy_is) then
 				if (debug_messages_enabled) then
-					sb.log("debug", string.format(
+					lb.log("debug", string.format(
 						"selected by exec_policy %s",
 						ep_name))
 				end
 				rule_logging(action_candidate, path)
-				return sbox_execute_rule(binary_name,
+				return ldbox_execute_rule(binary_name,
 					func_name, rp, path,
 					rule_selector, action_candidate)
 			end
 		elseif (action_candidate.if_redirect_ignore_is_active) then
-			if (sb.test_if_listed_in_envvar(
+			if (lb.test_if_listed_in_envvar(
 				action_candidate.if_redirect_ignore_is_active,
-				"SBOX_REDIRECT_IGNORE")) then
+				"LDBOX_REDIRECT_IGNORE")) then
 
 				if (debug_messages_enabled) then
-					sb.log("debug", "selected; redirect ignore is active")
+					lb.log("debug", "selected; redirect ignore is active")
 				end
 				rule_logging(action_candidate, path)
-				return sbox_execute_rule(binary_name,
+				return ldbox_execute_rule(binary_name,
 					func_name, rp, path,
 					rule_selector, action_candidate)
 			end
 		elseif (action_candidate.if_redirect_force_is_active) then
-			if (sb.test_if_listed_in_envvar(
+			if (lb.test_if_listed_in_envvar(
 				action_candidate.if_redirect_force_is_active,
-				"SBOX_REDIRECT_FORCE")) then
+				"LDBOX_REDIRECT_FORCE")) then
 
 				if (debug_messages_enabled) then
-					sb.log("debug", "selected; redirect force is active")
+					lb.log("debug", "selected; redirect force is active")
 				end
 				rule_logging(action_candidate, path)
-				return sbox_execute_rule(binary_name,
+				return ldbox_execute_rule(binary_name,
 					func_name, rp, path,
 					rule_selector, action_candidate)
 			end
@@ -372,11 +372,11 @@ function sbox_execute_conditional_actions(binary_name,
 			local ev_value = os.getenv(action_candidate.if_env_var_is_not_empty)
 			if (ev_value ~= nil and ev_value ~= "") then
 				if (debug_messages_enabled) then
-					sb.log("debug", "selected; env.var '"..
+					lb.log("debug", "selected; env.var '"..
 						action_candidate.if_env_var_is_not_empty..
 						"'='"..ev_value.."'")
 				end
-				return sbox_execute_rule(binary_name,
+				return ldbox_execute_rule(binary_name,
 					func_name, rp, path,
 					rule_selector, action_candidate)
 			end
@@ -384,10 +384,10 @@ function sbox_execute_conditional_actions(binary_name,
 			local ev_value = os.getenv(action_candidate.if_env_var_is_empty)
 			if (ev_value == nil or ev_value == "") then
 				if (debug_messages_enabled) then
-					sb.log("debug", "selected; env.var is empty '"..
+					lb.log("debug", "selected; env.var is empty '"..
 						action_candidate.if_env_var_is_empty.."'")
 				end
-				return sbox_execute_rule(binary_name,
+				return ldbox_execute_rule(binary_name,
 					func_name, rp, path,
 					rule_selector, action_candidate)
 			end
@@ -400,14 +400,14 @@ function sbox_execute_conditional_actions(binary_name,
 			    or action_candidate.set_path) then
 
 				if (debug_messages_enabled) then
-					sb.log("debug", "using default (unconditional) rule")
+					lb.log("debug", "using default (unconditional) rule")
 				end
 				rule_logging(action_candidate, path)
-				return sbox_execute_rule(binary_name,
+				return ldbox_execute_rule(binary_name,
 					func_name, rp, path,
 					rule_selector, action_candidate)
 			else
-				sb.log("error", string.format(
+				lb.log("error", string.format(
 					"error in rule: no valid conditional actions for '%s'",
 					path))
 			end
@@ -415,13 +415,13 @@ function sbox_execute_conditional_actions(binary_name,
 	end
 
 	-- no valid action found. This should not happen.
-	sb.log("error", string.format("mapping rule for '%s': execution of conditional actions failed", path))
+	lb.log("error", string.format("mapping rule for '%s': execution of conditional actions failed", path))
 
 	return ret_exec_policy_name, path, 0
 end
 
 -- returns exec_policy_name, path and readonly_flag
-function sbox_execute_rule(binary_name, func_name, rp, path,
+function ldbox_execute_rule(binary_name, func_name, rp, path,
 	rule_selector, rule_conditions_and_actions)
 
 	local ret_exec_policy_name = nil
@@ -442,7 +442,7 @@ function sbox_execute_rule(binary_name, func_name, rp, path,
 		ret_path = path
 	elseif (rule_conditions_and_actions.actions) then
 		ret_exec_policy_name, ret_path, ret_flags = 
-			sbox_execute_conditional_actions(binary_name,
+			ldbox_execute_conditional_actions(binary_name,
 				func_name, rp, path, rule_selector)
 	elseif (rule_conditions_and_actions.map_to) then
 		if (rule_conditions_and_actions.map_to == "/") then
@@ -453,28 +453,28 @@ function sbox_execute_rule(binary_name, func_name, rp, path,
 	elseif (rule_conditions_and_actions.map_to_value_of_env_var) then
 		ret_path = os.getenv(rule_conditions_and_actions.map_to_value_of_env_var) .. path
 	elseif (rule_conditions_and_actions.replace_by) then
-		ret_path = sbox_execute_replace_rule(path, rule_conditions_and_actions.replace_by, rule_selector)
+		ret_path = ldbox_execute_replace_rule(path, rule_conditions_and_actions.replace_by, rule_selector)
 	elseif (rule_conditions_and_actions.replace_by_value_of_env_var) then
-		ret_path = sbox_execute_replace_rule(path, os.getenv(rule_conditions_and_actions.replace_by_value_of_env_var), rule_selector)
+		ret_path = ldbox_execute_replace_rule(path, os.getenv(rule_conditions_and_actions.replace_by_value_of_env_var), rule_selector)
 	elseif (rule_conditions_and_actions.force_orig_path) then
 		ret_path = path
 		ret_flags = ret_flags + RULE_FLAGS_FORCE_ORIG_PATH
 	elseif (rule_conditions_and_actions.union_dir) then
 		local union_status
-		sb.log("debug", string.format("union directory '%s'", path))
-		sb.log("debug", string.format("type = %s", type(rule_conditions_and_actions.union_dir)))
-		union_status, ret_path = sb.prep_union_dir(path,
+		lb.log("debug", string.format("union directory '%s'", path))
+		lb.log("debug", string.format("type = %s", type(rule_conditions_and_actions.union_dir)))
+		union_status, ret_path = lb.prep_union_dir(path,
 			#(rule_conditions_and_actions.union_dir), rule_conditions_and_actions.union_dir)
 		if ret_path ~= nil then
-			sb.log("debug", string.format("ret_path '%s'", ret_path))
+			lb.log("debug", string.format("ret_path '%s'", ret_path))
 		end
 		if union_status == true then
 			if (debug_messages_enabled) then
-				sb.log("debug", string.format(
+				lb.log("debug", string.format(
 					"union directory '%s' => '%s'", path, ret_path))
 			end
 		else
-			sb.log("error", string.format(
+			lb.log("error", string.format(
 				"failed to make union directory '%s'", path))
 			ret_path = path
 		end
@@ -496,7 +496,7 @@ function sbox_execute_rule(binary_name, func_name, rp, path,
 		elseif rule_selector.prefix then
 			rule_selector_str = "(prefix="..rule_selector.prefix..")"
 		end
-		sb.log("error", string.format("mapping rule '%s' %s does not "..
+		lb.log("error", string.format("mapping rule '%s' %s does not "..
 			"have any valid actions, path=%s", rule_name, rule_selector_str, path))
 	end
 	
@@ -509,27 +509,27 @@ function find_rule(mapping_rules, fn_class, full_path, binary_name)
 	local i = 0
 	local min_path_len = 0
 	if (debug_messages_enabled) then
-		sb.log("noise", string.format("find_rule for (%s), class=0x%X",
+		lb.log("noise", string.format("find_rule for (%s), class=0x%X",
 			full_path, fn_class))
 	end
 
 	-- FIXME: Fix indentation:
 		for i = 1, table.maxn(mapping_rules) do
 			local rule = mapping_rules[i]
-			-- sb.test_path_match() is implemented in C (better
+			-- lb.test_path_match() is implemented in C (better
 			-- performance). It returns <0 if full_path doesn't
 			-- match, min.length otherwise
-			min_path_len = sb.test_path_match(full_path,
+			min_path_len = lb.test_path_match(full_path,
 				rule.dir, rule.prefix, rule.path)
 			if min_path_len >= 0 then
 				-- Path matches, test if other conditions
 				-- exist and are also OK:
 				if rule.chain then
-					sb.log("error", "rule.chain is not supported (%s)", full_path)
+					lb.log("error", "rule.chain is not supported (%s)", full_path)
 				end
 
 				if rule.func_class then
-					if sb.test_fn_class_match(fn_class, rule.func_class) < 1 then
+					if lb.test_fn_class_match(fn_class, rule.func_class) < 1 then
 						rule = nil
 					end
 				end
@@ -542,7 +542,7 @@ function find_rule(mapping_rules, fn_class, full_path, binary_name)
 								rulename = string.format("#%d",i)
 							end
 
-							sb.log("noise", string.format(
+							lb.log("noise", string.format(
 							  "binary_name ok in rule '%s'",
 							  rulename))
 						end
@@ -563,7 +563,7 @@ function find_rule(mapping_rules, fn_class, full_path, binary_name)
 						return s_rule, s_min_len
 					end
 					if (debug_messages_enabled) then
-						sb.log("noise",
+						lb.log("noise",
 						  "rule not found from subtree")
 					end
 					rule = nil
@@ -576,7 +576,7 @@ function find_rule(mapping_rules, fn_class, full_path, binary_name)
 							rulename = string.format("#%d",i)
 						end
 
-						sb.log("noise", string.format(
+						lb.log("noise", string.format(
 							"selected rule '%s'",
 							rulename))
 					end
@@ -586,12 +586,12 @@ function find_rule(mapping_rules, fn_class, full_path, binary_name)
 		end
 	
 	if (debug_messages_enabled) then
-		sb.log("noise", string.format("rule not found"))
+		lb.log("noise", string.format("rule not found"))
 	end
 	return nil, 0
 end
 
--- sbox_translate_path is the function called from libsb2.so
+-- ldbox_translate_path is the function called from liblb.so
 -- preload library and the FUSE system for each path that needs
 -- translating.
 --
@@ -600,7 +600,7 @@ end
 --   2. exec_policy_name
 --   3. path (mapping result)
 --   4. Flags (bitmask)
-function sbox_translate_path(rule, binary_name, func_name, path, fn_class)
+function ldbox_translate_path(rule, binary_name, func_name, path, fn_class)
 	local ret = path
 	local rp = path
 	local ret_flags = 0
@@ -608,21 +608,21 @@ function sbox_translate_path(rule, binary_name, func_name, path, fn_class)
 
 	if (not rule) then
 		-- error, not even a default rule found
-		sb.log("error", string.format("Unable to find a match at all: %s(%s)", func_name, path))
+		lb.log("error", string.format("Unable to find a match at all: %s(%s)", func_name, path))
 		return nil, nil, path, ret_flags
 	end
 
 	if (debug_messages_enabled) then
-		sb.log("noise", string.format("map:%s", path))
+		lb.log("noise", string.format("map:%s", path))
 	end
 
 	if (rule.log_level) then
 		if (rule.log_message) then
-			sb.log(rule.log_level, string.format("%s (%s)",
+			lb.log(rule.log_level, string.format("%s (%s)",
 				rule.log_message, path))
 		else
 			-- default message = log path
-			sb.log(rule.log_level, string.format("path=(%s)", path))
+			lb.log(rule.log_level, string.format("path=(%s)", path))
 		end
 	end
 
@@ -636,35 +636,35 @@ function sbox_translate_path(rule, binary_name, func_name, path, fn_class)
 			ret_flags = check_protection_attribute(rule, ret_flags)
 		end
 	else
-		exec_policy_name, ret, ret_flags = sbox_execute_rule(
+		exec_policy_name, ret, ret_flags = ldbox_execute_rule(
 			binary_name, func_name, rp, path, rule, rule)
 	end
 
 	return rule, exec_policy_name, ret, ret_flags
 end
 
--- sbox_get_mapping_requirements is called from libsb2.so before
+-- ldbox_get_mapping_requirements is called from liblb.so before
 -- path resolution takes place. The primary purpose of this is to
 -- determine where to start resolving symbolic links; shorter paths than
--- "min_path_len" should not be given to sbox_translate_path()
+-- "min_path_len" should not be given to ldbox_translate_path()
 -- returns "rule", "rule_found", "min_path_len", "flags"
 -- ("flags" may contain "call_translate_for_all", which
 -- is a flag which controls optimizations in
 -- the path resolution code)
-function sbox_get_mapping_requirements(binary_name, func_name, full_path, fn_class)
+function ldbox_get_mapping_requirements(binary_name, func_name, full_path, fn_class)
 	-- loop through the rules, first match is used
 	local min_path_len = 0
 	local rule = nil
 
 	if (debug_messages_enabled) then
-		sb.log("debug", string.format("sbox_get_mapping_requirements : fn_class type =%s",
+		lb.log("debug", string.format("ldbox_get_mapping_requirements : fn_class type =%s",
 			type(fn_class)))
 	end
 
 	rule, min_path_len = find_rule(fs_mapping_rules, fn_class, full_path, binary_name)
 	if (not rule) then
 		-- error, not even a default rule found
-		sb.log("error", string.format("Unable to find rule for: %s(%s)", func_name, full_path))
+		lb.log("error", string.format("Unable to find rule for: %s(%s)", func_name, full_path))
 		return nil, false, 0, 0
 	end
 
@@ -677,9 +677,9 @@ function sbox_get_mapping_requirements(binary_name, func_name, full_path, fn_cla
 end
 
 
--- sbox_reverse_path is called from libsb2.so
+-- ldbox_reverse_path is called from liblb.so
 -- returns "orig_path", "flags"
-function sbox_reverse_path(binary_name, func_name, full_path, fn_class)
+function ldbox_reverse_path(binary_name, func_name, full_path, fn_class)
 	-- loop through the rules, first match is used
 	local min_path_len = 0
 	local rule = nil
@@ -688,7 +688,7 @@ function sbox_reverse_path(binary_name, func_name, full_path, fn_class)
 		-- reverse mapping is an optional feature,
 		-- so it isn't really an error if the rule
 		-- can't be found.
-		sb.log("info", string.format("REVERSE rules are not available: %s(%s)",
+		lb.log("info", string.format("REVERSE rules are not available: %s(%s)",
 			func_name, full_path))
 
 		return nil, 0
@@ -697,12 +697,12 @@ function sbox_reverse_path(binary_name, func_name, full_path, fn_class)
 	rule, min_path_len = find_rule(reverse_fs_mapping_rules, fn_class, full_path, binary_name)
 	if (not rule) then
 		-- not even a default rule found
-		sb.log("info", string.format("Unable to find REVERSE rule for: %s(%s)", func_name, full_path))
+		lb.log("info", string.format("Unable to find REVERSE rule for: %s(%s)", func_name, full_path))
 		return nil, 0
 	end
 
 	local rule2, exec_policy2, orig_path, flags2
-	rule2, exec_policy2, orig_path, flags2 = sbox_translate_path(rule, 
+	rule2, exec_policy2, orig_path, flags2 = ldbox_translate_path(rule,
 		binary_name, func_name, full_path)
 
 	return orig_path, flags2

@@ -6,15 +6,15 @@
  */
 
 #include "mapping.h"
-#include "sb2.h"
-#include "libsb2.h"
+#include "lb.h"
+#include "liblb.h"
 #include "exported.h"
 
-#include "sb2_execs.h"
+#include "lb_execs.h"
 
 /* Exec postprocessing for native, dynamically linked binaries.
  * exec_postprocess_native_executable() is called to decide HOW the executable
- * should be started (see description of the algorithm in sb_exec.c)
+ * should be started (see description of the algorithm in lb_exec.c)
 */
 
 static int elem_count(const char **elems)
@@ -55,7 +55,7 @@ static void init_strv(struct strv_s *svp, const char *name,
 
 static void add_string_to_strv(struct strv_s *svp, const char *str)
 {
-	SB_LOG(SB_LOGLEVEL_NOISE,
+	LB_LOG(LB_LOGLEVEL_NOISE,
 		"%s: %s[%d] = '%s'",
 		__func__, svp->strv_name, svp->strv_first_free_idx, str);
 	assert(svp->strv_first_free_idx < svp->strv_new_v_max_size);
@@ -75,7 +75,7 @@ static const char *add_string_from_ruletreelist_to_strv(
 	ofs = ruletree_objectlist_get_item(ruletreelist_offs, idx);
 	if (ofs) cp = offset_to_ruletree_string_ptr(ofs, NULL);
 	if (!cp) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"Configuration error: Faulty qemu %s element (%d, %s)",
 			svp->strv_name, idx, conf_cputransparency_name);
 		return(NULL);
@@ -90,12 +90,12 @@ static const char *add_string_from_ruletreelist_to_strv(
 static const char *get_users_ld_preload(const char **orig_env)
 {
 	int	i;
-	const char *n = "__SB2_LD_PRELOAD=";
+	const char *n = "__LB_LD_PRELOAD=";
 	int	sz = strlen(n);
 
 	for (i = 0; orig_env[i]; i++) {
 		if (!strncmp(orig_env[i], n, sz)) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: found '%s'",
 				__func__, orig_env[i]+sz);
 			return(orig_env[i] + sz);
@@ -107,12 +107,12 @@ static const char *get_users_ld_preload(const char **orig_env)
 static const char *get_users_ld_library_path(const char **orig_env)
 {
 	int	i;
-	const char *n = "__SB2_LD_LIBRARY_PATH=";
+	const char *n = "__LB_LD_LIBRARY_PATH=";
 	int	sz = strlen(n);
 
 	for (i = 0; orig_env[i]; i++) {
 		if (!strncmp(orig_env[i], n, sz)) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: found '%s'",
 				__func__, orig_env[i]+sz);
 			return(orig_env[i] + sz);
@@ -173,13 +173,13 @@ static void setenv_native_app_ld_preload(
 	}
 
 	if (new_path) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: set LD_PRELOAD='%s'",
 			__func__, new_path);
 	} else {
 		char *cp;
 		new_path = ruletree_catalog_get_string("config", "host_ld_preload");
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: No value for LD_PRELOAD, using host's variable '%s'",
 			__func__, new_path);
 		assert(asprintf(&cp, "LD_PRELOAD=%s", new_path) > 0);
@@ -212,7 +212,7 @@ static void setenv_native_app_ld_preload(
  *        -- Set the value:
  *        if (new_path == nil) then
  *                if debug_messages_enabled then
- *                        sb.log("debug", "No value for LD_LIBRARY_PATH, using host's path")
+ *                        lb.log("debug", "No value for LD_LIBRARY_PATH, using host's path")
  *                end
  *                -- Use host's original value
  *                new_path = host_ld_library_path
@@ -277,13 +277,13 @@ static void setenv_native_app_ld_library_path(
 	}
 
 	if (new_path) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: set LD_LIBRARY_PATH='%s'",
 			__func__, new_path);
 	} else {
 		char *cp;
 		new_path = ruletree_catalog_get_string("config", "host_ld_library_path");
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: No value for LD_LIBRARY_PATH, using host's path '%s'",
 			__func__, new_path);
 		assert(asprintf(&cp, "LD_LIBRARY_PATH=%s", new_path) > 0);
@@ -292,7 +292,7 @@ static void setenv_native_app_ld_library_path(
 	add_string_to_strv(new_envp, new_path);
 }
 
-/* "generic part" (compare with Lua:sb_execve_postprocess() */
+/* "generic part" (compare with Lua:lb_execve_postprocess() */
 static int exec_postprocess_prepare(
 	const char *exec_policy_name,
 	exec_policy_handle_t *ephp,
@@ -308,13 +308,13 @@ static int exec_postprocess_prepare(
 {
 	exec_policy_handle_t	eph;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"%s: mapped_file=%s filename=%s binary_name=%s exec_policy_name=%s",
 		__func__, *mapped_file, *filename, binary_name, exec_policy_name);
 
 	*ephp = eph = find_exec_policy_handle(exec_policy_name);
 	if (!exec_policy_handle_is_valid(eph)) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: invalid exec_policy_handle, allow direct exec",
 			__func__);
 		return(1);
@@ -328,22 +328,22 @@ static int exec_postprocess_prepare(
 			const char	*log_message;
 
 			log_message = EXEC_POLICY_GET_STRING(eph, log_message);
-			SB_LOG(sblog_level_name_to_number(log_level), "%s", log_message);
+			LB_LOG(lblog_level_name_to_number(log_level), "%s", log_message);
 		}
 	}
 
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"%s: Applying exec_policy '%s'",
 		__func__, exec_policy_name);
 
 	/* allocate new environment.
-	 * reserve space for new entries, plus __SB2_EXEC_POLICY_NAME
+	 * reserve space for new entries, plus __LB_EXEC_POLICY_NAME
 	*/
 	init_strv(new_envp, "envp", orig_env, 1 + add_envp_size);
 	{
 		char	*cp;
 
-		assert(asprintf(&cp, "__SB2_EXEC_POLICY_NAME=%s", exec_policy_name) > 0);
+		assert(asprintf(&cp, "__LB_EXEC_POLICY_NAME=%s", exec_policy_name) > 0);
 		add_string_to_strv(new_envp, cp);
 	}
 
@@ -362,8 +362,8 @@ static int exec_postprocess_prepare(
  *    0 = argc&argv were updated, OK to execute with the new params
  *    1 = ok to exec directly with orig.arguments
  *
- * (replacement for both sb_execve_postprocess() (C) and
- *  sb_execve_postprocess (Lua))
+ * (replacement for both lb_execve_postprocess() (C) and
+ *  lb_execve_postprocess (Lua))
 */
 int exec_postprocess_native_executable(
 	const char *exec_policy_name,
@@ -404,12 +404,12 @@ int exec_postprocess_native_executable(
 		orig_env, &new_envp, 5)) return(1);
 
 	/* Old Lua code, for reference:
-	 *	function sb_execve_postprocess_native_executable(exec_policy,
+	 *	function lb_execve_postprocess_native_executable(exec_policy,
 	 *		exec_type, mapped_file, filename, argv, envp)
 	 *
 	 *		-- Native binary. See what we need to do with it...
 	 *		if debug_messages_enabled then
-	 *			sb.log("debug", "sb_execve_postprocess_native_executable")
+	 *			lb.log("debug", "lb_execve_postprocess_native_executable")
 	 *		end
 	 *
 	 *		local new_argv = {}
@@ -431,7 +431,7 @@ int exec_postprocess_native_executable(
 	*/
 	native_app_ld_so = EXEC_POLICY_GET_STRING(eph, native_app_ld_so);
 	if (!native_app_ld_so) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: No native_app_ld_so", __func__);
 
 		/* (new code. this wasn't present in the Lua version) */
@@ -449,7 +449,7 @@ int exec_postprocess_native_executable(
 			*/
 			if (info->pt_interp) {	
 				char *pt_interp_copy = strdup(info->pt_interp);
-				SB_LOG(SB_LOGLEVEL_DEBUG,
+				LB_LOG(LB_LOGLEVEL_DEBUG,
 					"%s: No native_app_ld_so, SUID/SGID binary, "
 					"start with PT_INTERP='%s', argv[0]=´%s´",
 					__func__, pt_interp_copy, *mapped_file);
@@ -461,7 +461,7 @@ int exec_postprocess_native_executable(
 
 				new_mapped_file = pt_interp_copy;
 			} else {
-				SB_LOG(SB_LOGLEVEL_DEBUG,
+				LB_LOG(LB_LOGLEVEL_DEBUG,
 					"%s: No native_app_ld_so, SUID/SGID binary, "
 					"no PT_INTERP", __func__);
 			}
@@ -471,7 +471,7 @@ int exec_postprocess_native_executable(
 
 		/* we need to use ld.so for starting the binary, 
 		 * instead of starting it directly: */
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: native_app_ld_so='%s'",
 			__func__, native_app_ld_so);
 
@@ -520,7 +520,7 @@ int exec_postprocess_native_executable(
 		 *
 		 * We now have a patch for ld.so which introduces a new
 		 * option, "--argv0 argument", and a flag is used to tell
-		 * if a patched ld.so is available (the "sb2" script finds 
+		 * if a patched ld.so is available (the "lb" script finds
 		 * that out during startup phase).
 		 *
 		 * Lua:
@@ -542,14 +542,14 @@ int exec_postprocess_native_executable(
 			add_string_to_strv(&new_argv, "--argv0");
 			add_string_to_strv(&new_argv, orig_argv[0]);
 		}
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: argv: add '%s'", __func__, *mapped_file);
 		add_string_to_strv(&new_argv, *mapped_file);
 		first_argv_element_to_copy = 1; /* in C, argv[0] is the first one */
 	}
 
 	/* Ensure that the LD_LIBRARY_PATH and LD_PRELOAD are set,
-	 * SB2 won't work without any.
+	 * ldbox won't work without any.
 	 *
 	 * Lua:
 	 *	if setenv_native_app_ld_library_path(exec_policy, new_envp) then
@@ -572,7 +572,7 @@ int exec_postprocess_native_executable(
 	 * Lua:
 	 *	if exec_policy.native_app_locale_path ~= nil then
 	 *		if debug_messages_enabled then
-	 *			sb.log("debug", string.format("setting LOCPATH=%s",
+	 *			lb.log("debug", string.format("setting LOCPATH=%s",
 	 *			    exec_policy.native_app_locale_path))
 	 *		end
 	 *		table.insert(new_envp, "LOCPATH=" ..
@@ -589,7 +589,7 @@ int exec_postprocess_native_executable(
 		if (native_app_locale_path) {
 			char	*cp;
 
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: setting LOCPATH and NLSPATH to '%s'",
 				__func__, native_app_locale_path);
 			assert(asprintf(&cp, "LOCPATH=%s", native_app_locale_path) > 0);
@@ -602,7 +602,7 @@ int exec_postprocess_native_executable(
 	/* Lua:
 	 *	if exec_policy.native_app_gconv_path ~= nil then
 	 *		if debug_messages_enabled then
-	 *			sb.log("debug", string.format("setting GCONV_PATH=%s",
+	 *			lb.log("debug", string.format("setting GCONV_PATH=%s",
 	 *			    exec_policy.native_app_gconv_path))
 	 *		end
 	 *		table.insert(new_envp, "GCONV_PATH=" ..
@@ -617,7 +617,7 @@ int exec_postprocess_native_executable(
 		if (native_app_gconv_path) {
 			char	*cp;
 
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: setting GCONV_PATH to '%s'",
 				__func__, native_app_gconv_path);
 			assert(asprintf(&cp, "GCONV_PATH=%s", native_app_gconv_path) > 0);
@@ -644,13 +644,13 @@ int exec_postprocess_native_executable(
 			case 'L':
 				if (!strncmp(orig_env[i], n_ld_library_path, sz_ld_library_path) ||
 				    !strncmp(orig_env[i], n_ld_preload, sz_ld_preload)) {
-					SB_LOG(SB_LOGLEVEL_DEBUG,
+					LB_LOG(LB_LOGLEVEL_DEBUG,
 						"%s: env: skip '%s'", __func__, orig_env[i]);
 					continue;
 				}
 				break;
 			}
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: env: add '%s'", __func__, orig_env[i]);
 			add_string_to_strv(&new_envp, orig_env[i]);
 		}
@@ -679,7 +679,7 @@ int exec_postprocess_native_executable(
 		int i;
 
 		for (i = first_argv_element_to_copy; orig_argv[i]; i++) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: argv: add '%s'", __func__, orig_argv[i]);
 			add_string_to_strv(&new_argv, orig_argv[i]);
 		}
@@ -731,7 +731,7 @@ static int matches_gconv_path_nlspath_or_locpath(const char *cp)
 	if (!strncmp(cp, gconv_path_prefix, gconv_path_prefix_len) ||
 	    !strncmp(cp, nlspath_prefix, nlspath_prefix_len) ||
 	    !strncmp(cp, locpath_prefix, locpath_prefix_len)) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "matches '%s'", cp);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "matches '%s'", cp);
 		return(1);
 	}
 	return(0);
@@ -771,11 +771,11 @@ static int exec_postprocess_qemu(
 	uint32_t			qemu_env_list_size = 0;
 	const char	*ld_trace_prefix = "LD_TRACE_";
 	const int	ld_trace_prefix_len = strlen(ld_trace_prefix);
-	const char	*sb2_ld_preload_prefix = "__SB2_LD_PRELOAD=";
-	const int	sb2_ld_preload_prefix_len = strlen(sb2_ld_preload_prefix);
+	const char	*lb_ld_preload_prefix = "__LB_LD_PRELOAD=";
+	const int	lb_ld_preload_prefix_len = strlen(lb_ld_preload_prefix);
 	int		num_ld_trace_env_vars = 0;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"%s: postprocess '%s' '%s'", __func__, *mapped_file, *mapped_file);
 
 	namev_in_ruletree[0] = "cputransparency";
@@ -830,14 +830,14 @@ static int exec_postprocess_qemu(
 			return(-1);
 
 	/* Old Lua code, for reference:
-	 *function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
+	 *function lb_execve_postprocess_cpu_transparency_executable(exec_policy,
 	 *    exec_type, mapped_file, filename, argv, envp, conf_cputransparency)
 	 *
 	 *	if debug_messages_enabled then
-	 *		sb.log("debug", "postprocessing cpu_transparency for " .. filename)
+	 *		lb.log("debug", "postprocessing cpu_transparency for " .. filename)
 	 *	end
 	*/
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"%s: postprocessing cpu_transparency for '%s'", __func__, *filename);
 
 	/*	if conf_cputransparency.method_is_qemu then
@@ -861,7 +861,7 @@ static int exec_postprocess_qemu(
 		namev_in_ruletree[2] = "cmd";
 		cputransparency_cmd = get_cputransp_string(namev_in_ruletree);
 		if (!cputransparency_cmd) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"%s: No command for cpu_transparency (%s)", __func__,
 				conf_cputransparency_name);
 			return(-1); /* do not execute */
@@ -942,7 +942,7 @@ static int exec_postprocess_qemu(
 	 *					-- .. and move to qemu command line 
 	 *					table.insert(new_argv, "-E")
 	 *					table.insert(new_argv, envp[i])
-	 *				elseif string.match(envp[i], "^__SB2_LD_PRELOAD=.*") then
+	 *				elseif string.match(envp[i], "^__LB_LD_PRELOAD=.*") then
 	 *					-- FIXME: This will now drop application's
 	 *					-- LD_PRELOAD. This is not really what should 
 	 *					-- be done... To Be Fixed.
@@ -981,8 +981,8 @@ static int exec_postprocess_qemu(
 				}
 				break;
 			case '_':
-				if (!strncmp(orig_env_var, sb2_ld_preload_prefix,
-					sb2_ld_preload_prefix_len)) {
+				if (!strncmp(orig_env_var, lb_ld_preload_prefix,
+					lb_ld_preload_prefix_len)) {
 					/* FIXME: This will now drop application's
 					 * LD_PRELOAD. This is not really what should 
 					 * be done... To Be Fixed.
@@ -1008,7 +1008,7 @@ static int exec_postprocess_qemu(
 					continue;
 				}
 			}
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: envp: add '%s'", __func__, orig_env[i]);
 			add_string_to_strv(&new_envp, orig_env[i]);
 		}
@@ -1028,7 +1028,7 @@ static int exec_postprocess_qemu(
 	*/
 	
 	/*
-	 *		-- libsb2 will replace LD_PRELOAD and LD_LIBRARY_PATH
+	 *		-- liblb will replace LD_PRELOAD and LD_LIBRARY_PATH
 	 *		-- env.vars, we don't need to worry about what the
 	 *		-- application will see in those - BUT we need
 	 *		-- to set those variables for Qemu itself.
@@ -1058,14 +1058,14 @@ static int exec_postprocess_qemu(
 		namev_in_ruletree[2] = "qemu_ld_library_path";
 		qemu_ldlibpath = get_cputransp_string(namev_in_ruletree);
 		if (!qemu_ldlibpath || (*qemu_ldlibpath == '\0')) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: No qemu_ld_library_path, using host's ld_library_path (%s)",
 				__func__, conf_cputransparency_name);
 			qemu_ldlibpath = ruletree_catalog_get_string("config", "host_ld_library_path");
 			assert(asprintf(&cp, "LD_LIBRARY_PATH=%s", qemu_ldlibpath) > 0);	
 		} else {
 			/* qemu_ldlibpath has LD_LIBRARY_PATH= prefix */
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: set ld_library_path (%s) = %s",
 				__func__, conf_cputransparency_name, qemu_ldlibpath);
 			cp = strdup(qemu_ldlibpath);
@@ -1076,14 +1076,14 @@ static int exec_postprocess_qemu(
 		namev_in_ruletree[2] = "qemu_ld_preload";
 		qemu_ldpreload = get_cputransp_string(namev_in_ruletree);
 		if (!qemu_ldpreload || (*qemu_ldpreload == '\0')) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: No qemu_ld_preload, using host's ld_preload (%s)",
 				__func__, conf_cputransparency_name);
 			qemu_ldpreload = ruletree_catalog_get_string("config", "host_ld_preload");
 			assert(asprintf(&cp, "LD_PRELOAD=%s", qemu_ldpreload) > 0);	
 		} else {
 			/* qemu_ldpreload has LD_PRELOAD= prefix */
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: set ld_preload (%s) = %s",
 				__func__, conf_cputransparency_name, qemu_ldpreload);
 			cp = strdup(qemu_ldpreload);
@@ -1123,7 +1123,7 @@ static int exec_postprocess_qemu(
 	 *
 	 * FIXME: Not implemented:
 	 *	elseif conf_cputransparency.method_is_sbrsh then
-	 *		return sb_execve_postprocess_sbrsh(exec_policy,
+	 *		return lb_execve_postprocess_sbrsh(exec_policy,
 	 *    			exec_type, mapped_file, filename, argv, envp)
 	 *	end
 	 *
@@ -1167,7 +1167,7 @@ int exec_postprocess_cpu_transparency_executable(
 }
 
 /* Directly executed static host binaries (alternatively,
- * static binaries can be executed with Qemu. See sb_exec.c)
+ * static binaries can be executed with Qemu. See lb_exec.c)
  *
  * Same result code as Lua returned, the return value:
  *    -1 = do not execute.

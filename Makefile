@@ -10,7 +10,7 @@ MACH := $(shell uname -m)
 OS := $(shell uname -s)
 
 ifeq ($(OS),Linux)
-LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
+LIBLB_LDFLAGS = -Wl,-soname=$(LIBLB_SONAME) \
 		-Wl,--version-script=preload/export.map
 
 SHLIBEXT = so
@@ -47,8 +47,8 @@ ifneq ($(strip "$(GIT_MODIFIED)"),"")
 PACKAGE_VERSION := $(PACKAGE_VERSION)-dirty
 endif
 endif
-PACKAGE = "SB2"
-LIBSB2_SONAME = "libsb2.so.1"
+PACKAGE = "LDBOX"
+LIBLB_SONAME = "liblb.so.1"
 LLBUILD ?= $(SRCDIR)/llbuild
 PROTOTYPEWARNINGS=-Wmissing-prototypes -Wstrict-prototypes
 
@@ -60,7 +60,7 @@ endif
 
 # targets variable will be filled by llbuild
 targets = 
-subdirs = preload luaif sblib pathmapping execs network rule_tree utils sb2d wrappers
+subdirs = preload luaif lblib pathmapping execs network rule_tree utils lbrdbd wrappers
 
 -include config.mak
 
@@ -108,10 +108,10 @@ do-all: $(targets)
 		echo $(PACKAGE_VERSION) > .version; \
 	fi)
 
-include/scratchbox2_version.h: .version Makefile
-	echo "/* Automatically generated file. Do not edit. */" >include/scratchbox2_version.h
-	echo '#define SCRATCHBOX2_VERSION "'`cat .version`'"' >>include/scratchbox2_version.h
-	echo '#define LIBSB2_SONAME "'$(LIBSB2_SONAME)'"' >>include/scratchbox2_version.h
+include/ldbox_version.h: .version Makefile
+	echo "/* Automatically generated file. Do not edit. */" >include/ldbox_version.h
+	echo '#define LDBOX_VERSION "'`cat .version`'"' >>include/ldbox_version.h
+	echo '#define LIBLB_SONAME "'$(LIBLB_SONAME)'"' >>include/ldbox_version.h
 
 regular: .configure .version
 	@$(MAKE) -f $(SRCDIR)/Makefile --include-dir=$(SRCDIR) SRCDIR=$(SRCDIR) do-all
@@ -126,13 +126,13 @@ multilib:
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
 host_prefixed_gcc_bins = $(foreach v,$(gcc_bins),host-$(v))
 
-sb2_modes = emulate tools simple accel nomap emulate+toolchain emulate+toolchain+utils \
+lb_modes = emulate tools simple accel nomap emulate+toolchain emulate+toolchain+utils \
 	    	obs-deb-install obs-deb-build \
 	    	obs-rpm-install obs-rpm-build obs-rpm-build+pp
-sb2_net_modes = localhost offline online online_privatenets
+lb_net_modes = localhost offline online online_privatenets
 
 tarball:
-	@git archive --format=tar --prefix=sbox2-$(PACKAGE_VERSION)/ $(PACKAGE_VERSION) | bzip2 >sbox2-$(PACKAGE_VERSION).tar.bz2
+	@git archive --format=tar --prefix=ldbox-$(PACKAGE_VERSION)/ $(PACKAGE_VERSION) | bzip2 >ldbox-$(PACKAGE_VERSION).tar.bz2
 
 
 install-noarch: regular
@@ -141,35 +141,35 @@ install-noarch: regular
 	then echo "$(prefix)/bin present" ; \
 	else install -d -m 755 $(prefix)/bin ; \
 	fi
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/modes
-	$(Q)(set -e; for d in $(sb2_modes); do \
-		install -d -m 755 $(prefix)/share/scratchbox2/modes/$$d; \
+	$(Q)install -d -m 755 $(prefix)/share/ldbox/lua_scripts
+	$(Q)install -d -m 755 $(prefix)/share/ldbox/modes
+	$(Q)(set -e; for d in $(lb_modes); do \
+		install -d -m 755 $(prefix)/share/ldbox/modes/$$d; \
 		for f in $(SRCDIR)/modes/$$d/*; do \
-			install -c -m 644 $$f $(prefix)/share/scratchbox2/modes/$$d; \
+			install -c -m 644 $$f $(prefix)/share/ldbox/modes/$$d; \
 		done; \
 	done)
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/net_rules
-	$(Q)(set -e; for d in $(sb2_net_modes); do \
-		install -d -m 755 $(prefix)/share/scratchbox2/net_rules/$$d; \
+	$(Q)install -d -m 755 $(prefix)/share/ldbox/net_rules
+	$(Q)(set -e; for d in $(lb_net_modes); do \
+		install -d -m 755 $(prefix)/share/ldbox/net_rules/$$d; \
 		for f in $(SRCDIR)/net_rules/$$d/*; do \
-			install -c -m 644 $$f $(prefix)/share/scratchbox2/net_rules/$$d; \
+			install -c -m 644 $$f $(prefix)/share/ldbox/net_rules/$$d; \
 		done; \
 	done)
 	# "accel" == "devel" mode in 2.3.x:
-	$(Q)ln -sf accel $(prefix)/share/scratchbox2/modes/devel
+	$(Q)ln -sf accel $(prefix)/share/ldbox/modes/devel
 	# Rule libraries
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/rule_lib
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/rule_lib/fs_rules
+	$(Q)install -d -m 755 $(prefix)/share/ldbox/rule_lib
+	$(Q)install -d -m 755 $(prefix)/share/ldbox/rule_lib/fs_rules
 	$(Q)(set -e; for f in $(SRCDIR)/rule_lib/fs_rules/*; do \
-		install -c -m 644 $$f $(prefix)/share/scratchbox2/rule_lib/fs_rules; \
+		install -c -m 644 $$f $(prefix)/share/ldbox/rule_lib/fs_rules; \
 	done)
 	# "scripts" and "wrappers" are visible to the user in some 
-	# mapping modes, "lib" is for sb2's internal use
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lib
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/scripts
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/wrappers
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/tests
+	# mapping modes, "lib" is for ldbox's internal use
+	$(Q)install -d -m 755 $(prefix)/share/ldbox/lib
+	$(Q)install -d -m 755 $(prefix)/share/ldbox/scripts
+	$(Q)install -d -m 755 $(prefix)/share/ldbox/wrappers
+	$(Q)install -d -m 755 $(prefix)/share/ldbox/tests
 	@if [ -d $(prefix)/share/man/man1 ] ; \
 	then echo "$(prefix)/share/man/man1 present" ; \
 	else install -d -m 755 $(prefix)/share/man/man1 ; \
@@ -178,53 +178,53 @@ install-noarch: regular
 	then echo "$(prefix)/share/man/man7 present" ; \
 	else install -d -m 755 $(prefix)/share/man/man7 ; \
 	fi
-	$(Q)echo "$(PACKAGE_VERSION)" > $(prefix)/share/scratchbox2/version
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2 $(prefix)/bin/sb2
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-init $(prefix)/bin/sb2-init
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-config $(prefix)/bin/sb2-config
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-session $(prefix)/bin/sb2-session
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-start-qemuserver $(prefix)/bin/sb2-start-qemuserver
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-qemu-gdbserver-prepare $(prefix)/bin/sb2-qemu-gdbserver-prepare
+	$(Q)echo "$(PACKAGE_VERSION)" > $(prefix)/share/ldbox/version
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb $(prefix)/bin/lb
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-init $(prefix)/bin/lb-init
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-config $(prefix)/bin/lb-config
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-session $(prefix)/bin/lb-session
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-build-libtool $(prefix)/bin/lb-build-libtool
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-start-qemuserver $(prefix)/bin/lb-start-qemuserver
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-qemu-gdbserver-prepare $(prefix)/bin/lb-qemu-gdbserver-prepare
 
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-cmp-checkbuilddeps-output.pl $(prefix)/share/scratchbox2/lib/sb2-cmp-checkbuilddeps-output.pl
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-cmp-checkbuilddeps-output.pl $(prefix)/share/ldbox/lib/lb-cmp-checkbuilddeps-output.pl
 
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-upgrade-config $(prefix)/share/scratchbox2/scripts/sb2-upgrade-config
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-parse-sb2-init-args $(prefix)/share/scratchbox2/scripts/sb2-parse-sb2-init-args
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-config-gcc-toolchain $(prefix)/share/scratchbox2/scripts/sb2-config-gcc-toolchain
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-config-debian $(prefix)/share/scratchbox2/scripts/sb2-config-debian
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-check-pkg-mappings $(prefix)/share/scratchbox2/scripts/sb2-check-pkg-mappings
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-exitreport $(prefix)/share/scratchbox2/scripts/sb2-exitreport
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-generate-locales $(prefix)/share/scratchbox2/scripts/sb2-generate-locales
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-logz $(prefix)/bin/sb2-logz
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/init*.lua $(prefix)/share/scratchbox2/lua_scripts/
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/rule_constants.lua $(prefix)/share/scratchbox2/lua_scripts/
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/exec_constants.lua $(prefix)/share/scratchbox2/lua_scripts/
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_gcc.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp_gcc.lua
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_misc.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp_misc.lua
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_reverse_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_reverse_rules.lua
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvmods_loader.lua $(prefix)/share/scratchbox2/lua_scripts/argvmods_loader.lua
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/add_rules_to_rule_tree.lua $(prefix)/share/scratchbox2/lua_scripts/add_rules_to_rule_tree.lua
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-upgrade-config $(prefix)/share/ldbox/scripts/lb-upgrade-config
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-parse-lb-init-args $(prefix)/share/ldbox/scripts/lb-parse-lb-init-args
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-config-gcc-toolchain $(prefix)/share/ldbox/scripts/lb-config-gcc-toolchain
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-config-debian $(prefix)/share/ldbox/scripts/lb-config-debian
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-check-pkg-mappings $(prefix)/share/ldbox/scripts/lb-check-pkg-mappings
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-exitreport $(prefix)/share/ldbox/scripts/lb-exitreport
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-generate-locales $(prefix)/share/ldbox/scripts/lb-generate-locales
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-logz $(prefix)/bin/lb-logz
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/init*.lua $(prefix)/share/ldbox/lua_scripts/
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/rule_constants.lua $(prefix)/share/ldbox/lua_scripts/
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/exec_constants.lua $(prefix)/share/ldbox/lua_scripts/
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_gcc.lua $(prefix)/share/ldbox/lua_scripts/argvenvp_gcc.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_misc.lua $(prefix)/share/ldbox/lua_scripts/argvenvp_misc.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_reverse_rules.lua $(prefix)/share/ldbox/lua_scripts/create_reverse_rules.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvmods_loader.lua $(prefix)/share/ldbox/lua_scripts/argvmods_loader.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/add_rules_to_rule_tree.lua $(prefix)/share/ldbox/lua_scripts/add_rules_to_rule_tree.lua
 
-	$(Q)install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
-	$(Q)chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
+	$(Q)install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/ldbox/tests
+	$(Q)chmod a+x $(prefix)/share/ldbox/tests/run.sh
 
 	$(Q)install -c -m 644 $(SRCDIR)/docs/*.1 $(prefix)/share/man/man1
-	$(Q)install -c -m 644 $(OBJDIR)/preload/libsb2_interface.7 $(prefix)/share/man/man7
-	$(Q)rm -f $(prefix)/share/scratchbox2/host_usr
-	$(Q)ln -sf /usr $(prefix)/share/scratchbox2/host_usr
+	$(Q)install -c -m 644 $(OBJDIR)/preload/liblb_interface.7 $(prefix)/share/man/man7
+	$(Q)rm -f $(prefix)/share/ldbox/host_usr
+	$(Q)ln -sf /usr $(prefix)/share/ldbox/host_usr
 	@# Wrappers:
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/wrappers/dpkg
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/wrappers/apt-get
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/ldconfig $(prefix)/share/scratchbox2/wrappers/ldconfig
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/texi2html $(prefix)/share/scratchbox2/wrappers/texi2html
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/wrappers/dpkg-checkbuilddeps
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/debconf2po-update $(prefix)/share/scratchbox2/wrappers/debconf2po-update
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/host-gcc-tools-wrapper $(prefix)/share/scratchbox2/wrappers/host-gcc-tools-wrapper
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/gdb $(prefix)/share/scratchbox2/wrappers/gdb
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/ldd $(prefix)/share/scratchbox2/wrappers/ldd
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/pwd $(prefix)/share/scratchbox2/wrappers/pwd
-	$(Q)(set -e; cd $(prefix)/share/scratchbox2/wrappers; \
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/ldbox/wrappers/dpkg
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/ldbox/wrappers/apt-get
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/ldconfig $(prefix)/share/ldbox/wrappers/ldconfig
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/texi2html $(prefix)/share/ldbox/wrappers/texi2html
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/dpkg-checkbuilddeps $(prefix)/share/ldbox/wrappers/dpkg-checkbuilddeps
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/debconf2po-update $(prefix)/share/ldbox/wrappers/debconf2po-update
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/host-gcc-tools-wrapper $(prefix)/share/ldbox/wrappers/host-gcc-tools-wrapper
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/gdb $(prefix)/share/ldbox/wrappers/gdb
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/ldd $(prefix)/share/ldbox/wrappers/ldd
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/pwd $(prefix)/share/ldbox/wrappers/pwd
+	$(Q)(set -e; cd $(prefix)/share/ldbox/wrappers; \
 	for f in $(host_prefixed_gcc_bins); do \
 		ln -sf host-gcc-tools-wrapper $$f; \
 	done)
@@ -241,16 +241,16 @@ do-install: install-noarch
 	then echo "$(prefix)/lib present" ; \
 	else install -d -m 755 $(prefix)/lib ; \
 	fi
-	$(Q)install -d -m 755 $(prefix)/lib/libsb2
-	$(Q)install -d -m 755 $(prefix)/lib/libsb2/wrappers
-	$(Q)install -c -m 755 $(OBJDIR)/wrappers/fakeroot $(prefix)/lib/libsb2/wrappers/fakeroot
-	$(Q)install -c -m 755 $(OBJDIR)/preload/libsb2.$(SHLIBEXT) $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
-	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2dctl $(prefix)/lib/libsb2/sb2dctl
-	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
-	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
-	$(Q)install -c -m 755 $(OBJDIR)/sb2d/sb2d $(prefix)/bin/sb2d
+	$(Q)install -d -m 755 $(prefix)/lib/liblb
+	$(Q)install -d -m 755 $(prefix)/lib/liblb/wrappers
+	$(Q)install -c -m 755 $(OBJDIR)/wrappers/fakeroot $(prefix)/lib/liblb/wrappers/fakeroot
+	$(Q)install -c -m 755 $(OBJDIR)/preload/liblb.$(SHLIBEXT) $(prefix)/lib/liblb/liblb.so.$(PACKAGE_VERSION)
+	$(Q)install -c -m 755 $(OBJDIR)/utils/lbrdbdctl $(prefix)/lib/liblb/lbrdbdctl
+	$(Q)install -c -m 755 $(OBJDIR)/utils/lb-show $(prefix)/bin/lb-show
+	$(Q)install -c -m 755 $(OBJDIR)/utils/lb-monitor $(prefix)/bin/lb-monitor
+	$(Q)install -c -m 755 $(OBJDIR)/lbrdbd/lbrdbd $(prefix)/bin/lbrdbd
 ifeq ($(OS),Linux)
-	$(Q)/sbin/ldconfig -n $(prefix)/lib/libsb2
+	$(Q)/sbin/ldconfig -n $(prefix)/lib/liblb
 endif
 
 multilib_prefix=$(prefix)
@@ -265,10 +265,10 @@ do-install-multilib:
 	then echo "$(prefix)/lib$(bitness) present" ; \
 	else install -d -m 755 $(prefix)/lib$(bitness) ; \
 	fi
-	$(Q)install -d -m 755 $(multilib_prefix)/lib$(bitness)/libsb2
-	$(Q)install -c -m 755 preload/libsb2.$(SHLIBEXT) $(multilib_prefix)/lib$(bitness)/libsb2/libsb2.so.$(PACKAGE_VERSION)
+	$(Q)install -d -m 755 $(multilib_prefix)/lib$(bitness)/liblb
+	$(Q)install -c -m 755 preload/liblb.$(SHLIBEXT) $(multilib_prefix)/lib$(bitness)/liblb/liblb.so.$(PACKAGE_VERSION)
 ifeq ($(OS),Linux)
-	$(Q)/sbin/ldconfig -n $(multilib_prefix)/lib$(bitness)/libsb2
+	$(Q)/sbin/ldconfig -n $(multilib_prefix)/lib$(bitness)/liblb
 endif
 
 CLEAN_FILES += $(targets) config.status config.log

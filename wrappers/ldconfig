@@ -13,41 +13,41 @@ args="$*"
 prog="$0"
 progbase=`basename $0`
 
-function error_not_inside_sb2()
+function error_not_inside_lb()
 {
-	echo "SB2: $progbase wrapper: This wrapper can only be used from inside"
+	echo "ldbox: $progbase wrapper: This wrapper can only be used from inside"
 	echo "the scratchbox 2'ed environment"
 	exit 1
 }
 
-if [ -z "$SBOX_SESSION_DIR" ]
+if [ -z "$LDBOX_SESSION_DIR" ]
 then
-	error_not_inside_sb2
+	error_not_inside_lb
 fi
 
-. $SBOX_SESSION_DIR/sb2-session.conf
+. $LDBOX_SESSION_DIR/lb-session.conf
 
-if [ -z "$sbox_mapmode" -o -z "$sbox_dir" ]
+if [ -z "$ldbox_mapmode" -o -z "$ldbox_dir" ]
 then
-	error_not_inside_sb2
+	error_not_inside_lb
 fi
 
-sbox_ldconfig_path=""
-sbox_ldconfig_root=""
+ldbox_ldconfig_path=""
+ldbox_ldconfig_root=""
 # read-in mode-specific settings
-if [ -f $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc ]
+if [ -f $LDBOX_SESSION_DIR/modes/$ldbox_mapmode/lbrc ]
 then
-	. $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc "$progbase"
+	. $LDBOX_SESSION_DIR/modes/$ldbox_mapmode/lbrc "$progbase"
 fi
 
-if [ -z "$sbox_ldconfig_path" ]
+if [ -z "$ldbox_ldconfig_path" ]
 then
-	sbox_ldconfig_path="$sbox_target_root/sbin/ldconfig"
+	ldbox_ldconfig_path="$ldbox_target_root/sbin/ldconfig"
 fi
-if [ -z "$sbox_ldconfig_root" ]
+if [ -z "$ldbox_ldconfig_root" ]
 then
-	sbox_ldconfig_root="$sbox_target_root"
+	ldbox_ldconfig_root="$ldbox_target_root"
 fi
 
-export SBOX_ALLOW_STATIC_BINARY=$sbox_ldconfig_path
-exec $sbox_ldconfig_path -r "$sbox_ldconfig_root" $args
+export LDBOX_ALLOW_STATIC_BINARY=$ldbox_ldconfig_path
+exec $ldbox_ldconfig_path -r "$ldbox_ldconfig_root" $args

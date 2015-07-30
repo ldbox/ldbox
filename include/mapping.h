@@ -73,27 +73,27 @@ extern void free_mapping_results(mapping_results_t *res);
 
 extern void force_path_to_mapping_result(mapping_results_t *res, const char *path);
 
-#define SBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK 0x01
-#define SBOX_MAP_PATH_ALLOW_NONEXISTENT          0x02
+#define LDBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK 0x01
+#define LDBOX_MAP_PATH_ALLOW_NONEXISTENT          0x02
 
-extern void sbox_map_path(const char *func_name, const char *path,
+extern void ldbox_map_path(const char *func_name, const char *path,
 	uint32_t flags, mapping_results_t *res, uint32_t classmask);
 
-extern void sbox_map_path_at(const char *func_name, int dirfd,
+extern void ldbox_map_path_at(const char *func_name, int dirfd,
 	const char *path, uint32_t flags,
 	mapping_results_t *res, uint32_t classmask);
 
-extern char *sbox_virtual_path_to_abs_virtual_path(
+extern char *ldbox_virtual_path_to_abs_virtual_path(
         const char *binary_name,
         const char *func_name,
         uint32_t fn_class,
         const char *virtual_orig_path,
         int *res_errno);
 
-extern void sbox_map_path_for_sb2show(const char *binary_name,
+extern void ldbox_map_path_for_lbshow(const char *binary_name,
 	const char *func_name, const char *path, mapping_results_t *res);
 
-extern void sbox_map_path_for_exec(const char *func_name, const char *path,
+extern void ldbox_map_path_for_exec(const char *func_name, const char *path,
 	mapping_results_t *res);
 
 extern void custom_map_path(const char *binary_name,
@@ -108,11 +108,11 @@ extern char *custom_map_abstract_path(
 
 extern char *emumode_map(const char *path);
 #if 0
-extern void sb_push_string_to_lua_stack(char *str);
+extern void lb_push_string_to_lua_stack(char *str);
 #endif
 
 #if 0
-extern int sb_execve_postprocess(const char *exec_type,
+extern int lb_execve_postprocess(const char *exec_type,
 	const char *exec_policy_name,
 	char **mapped_file, char **filename, const char *binary_name,
 	char ***argv, char ***envp);
@@ -134,12 +134,12 @@ extern char *prep_union_dir(const char *dst_path,
  *    does not have bit operations; also it enables us to find
  *    rules that still use old syntax
 */
-#define SB2_MAPPING_RULE_FLAGS_READONLY			01
-#define SB2_MAPPING_RULE_FLAGS_CALL_TRANSLATE_FOR_ALL	02
-#define SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH		04
-#define SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT	010
-#define SB2_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS	020
-#define SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH_UNLESS_CHROOT	040
+#define LB_MAPPING_RULE_FLAGS_READONLY			01
+#define LB_MAPPING_RULE_FLAGS_CALL_TRANSLATE_FOR_ALL	02
+#define LB_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH		04
+#define LB_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT	010
+#define LB_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS	020
+#define LB_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH_UNLESS_CHROOT	040
 
 /* list of all known flags: The preload library will log a warning, if 
  * the mapping code (in Lua) returns unknown flags. This is important
@@ -147,43 +147,43 @@ extern char *prep_union_dir(const char *dst_path,
  * added in the future, but the preload libraries which are installed to 
  * the targets/tools are not properly updated.
 */
-#define SB2_MAPPING_RULE_ALL_FLAGS \
-	(SB2_MAPPING_RULE_FLAGS_READONLY | \
-	 SB2_MAPPING_RULE_FLAGS_CALL_TRANSLATE_FOR_ALL | \
-	 SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH | \
-	 SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH_UNLESS_CHROOT | \
-	 SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT | \
-	 SB2_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS)
+#define LB_MAPPING_RULE_ALL_FLAGS \
+	(LB_MAPPING_RULE_FLAGS_READONLY | \
+	 LB_MAPPING_RULE_FLAGS_CALL_TRANSLATE_FOR_ALL | \
+	 LB_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH | \
+	 LB_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH_UNLESS_CHROOT | \
+	 LB_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT | \
+	 LB_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS)
 
 /* Interface classes. 
  * These can be used as conditions in path mapping rules.
  * The interface definition files use these without prefix
- * (SB2_INTERFACE_CLASS_). see interface.master for examples.
+ * (LB_INTERFACE_CLASS_). see interface.master for examples.
  * Note: multiple values can be ORed.
 */
-#define SB2_INTERFACE_CLASS_OPEN	0x1
-#define SB2_INTERFACE_CLASS_STAT	0x2
-#define SB2_INTERFACE_CLASS_EXEC	0x4
+#define LB_INTERFACE_CLASS_OPEN	0x1
+#define LB_INTERFACE_CLASS_STAT	0x2
+#define LB_INTERFACE_CLASS_EXEC	0x4
 
-#define SB2_INTERFACE_CLASS_SOCKADDR	0x8	/* address in bind, connect */
-#define SB2_INTERFACE_CLASS_FTSOPEN	0x10	/* ftsopen */
-#define SB2_INTERFACE_CLASS_GLOB	0x20	/* glob */
+#define LB_INTERFACE_CLASS_SOCKADDR	0x8	/* address in bind, connect */
+#define LB_INTERFACE_CLASS_FTSOPEN	0x10	/* ftsopen */
+#define LB_INTERFACE_CLASS_GLOB	0x20	/* glob */
 
-#define SB2_INTERFACE_CLASS_GETCWD	0x40	/* getcwd() etc */
-#define SB2_INTERFACE_CLASS_REALPATH	0x80	/* realpath */
-#define SB2_INTERFACE_CLASS_SET_TIMES	0x100	/* utimes() etc: set timestamps */
+#define LB_INTERFACE_CLASS_GETCWD	0x40	/* getcwd() etc */
+#define LB_INTERFACE_CLASS_REALPATH	0x80	/* realpath */
+#define LB_INTERFACE_CLASS_SET_TIMES	0x100	/* utimes() etc: set timestamps */
 
-#define SB2_INTERFACE_CLASS_L10N	0x200	/* gettextdomain etc. */
-#define SB2_INTERFACE_CLASS_MKNOD	0x400
-#define SB2_INTERFACE_CLASS_RENAME	0x800
+#define LB_INTERFACE_CLASS_L10N	0x200	/* gettextdomain etc. */
+#define LB_INTERFACE_CLASS_MKNOD	0x400
+#define LB_INTERFACE_CLASS_RENAME	0x800
 
-#define SB2_INTERFACE_CLASS_PROC_FS_OP	0x1000	/* /proc file system operation */
+#define LB_INTERFACE_CLASS_PROC_FS_OP	0x1000	/* /proc file system operation */
 
-#define SB2_INTERFACE_CLASS_SYMLINK	0x2000
-#define SB2_INTERFACE_CLASS_CREAT	0x4000
-#define SB2_INTERFACE_CLASS_REMOVE	0x8000	/* unlink*, remove, rmdir */
+#define LB_INTERFACE_CLASS_SYMLINK	0x2000
+#define LB_INTERFACE_CLASS_CREAT	0x4000
+#define LB_INTERFACE_CLASS_REMOVE	0x8000	/* unlink*, remove, rmdir */
 
-#define SB2_INTERFACE_CLASS_CHROOT	0x10000	/* chroot() */
+#define LB_INTERFACE_CLASS_CHROOT	0x10000	/* chroot() */
 
 /* interface funtion ->  class(es) mapping table, 
  * created by gen-interface.c */

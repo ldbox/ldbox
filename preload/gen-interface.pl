@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# gen-wrappers.pl -- an interface generator for scratchbox2 preload library
+# gen-wrappers.pl -- an interface generator for ldbox preload library
 #
 # Copyright (C) 2007 Lauri T. Aarnio
 #
@@ -21,7 +21,7 @@
 # split to several physical lines by using a backslash as the last character
 # of a line.
 #
-# Command "LOGLEVEL" specifies what level will be used for SB_LOG() calls.
+# Command "LOGLEVEL" specifies what level will be used for LB_LOG() calls.
 #
 # Command "WRAP" is used to generate wrapper functions. A wrapper performs
 # specified parameter transformations (usually path remapping) and then
@@ -35,9 +35,9 @@
 #
 # Following modifiers are available for "WRAP" and "GATE":
 #   - "map(varname)" will map function's parameter "varname" using
-#     the sbox_map_path() function
+#     the ldbox_map_path() function
 #   - "map_at(fdname,varname)" will map function's parameter "varname" using
-#     the sbox_map_path_at() function
+#     the ldbox_map_path_at() function
 #   - "hardcode_param(N,name)" will hardcode name of the Nth parameter
 #     to "name" (this is typically needed only if the function definition uses
 #     macros to build the parameter list, instead of specifying names of
@@ -45,7 +45,7 @@
 #   - "optional_arg_is_create_mode" handles varargs for open() etc.,
 #     where an optional 3rd arg is "mode".
 #   - "returns_string" indicates that the return value (which should be 
-#     "char *") can be safely logged with SB_LOG. Note that other pointers
+#     "char *") can be safely logged with LB_LOG. Note that other pointers
 #     as return values will be logged as "NULL" or "not null"
 #   - fail_if_readonly(varname,return_value,error_code) and
 #     check_and_fail_if_readonly(extra_check,varname,return_value,error_code)
@@ -53,7 +53,7 @@
 #     rules, and fail if it is (the latter modifier also makes an extra user-
 #     provided check). "varname" must be the same name which was specified
 #     to map() or map_at(). "error_code" will be assigned to errno, and
-#     the failure will always be logged (SB_LOG_NOTICE level)
+#     the failure will always be logged (LB_LOG_NOTICE level)
 #   - "dont_resolve_final_symlink" is used to prefix "map" modifiers where the
 #     final symbolic link should not be followed, because the call operates
 #     on the symlink itself (for example, see the difference between stat() and
@@ -76,13 +76,13 @@
 #   - "return(expr)" can be used to alter the return value.
 #   - "create_nomap_nolog_version" creates a direct interface function to the
 #     next function (for internal use inside the preload library)
-#   - "no_libsb2_init_check" disables the call to sb2_initialize_global_variables()
-#   - "log_params(sb_log_params)" calls SB_LOG(sb_log_params); this can be
+#   - "no_liblb_init_check" disables the call to lb_initialize_global_variables()
+#   - "log_params(lb_log_params)" calls LB_LOG(lb_log_params); this can be
 #     used to log parameters of the call.
 #   - class(CLASSNAME,...) defines API class attributes (a comma-separated
 #     list can be used to specify multiple classes). The classname
 #     can be OPEN, STAT, EXEC, or other pre-defined name (see
-#     SB2_INTERFACE_CLASS_* constant definitions)
+#     LB_INTERFACE_CLASS_* constant definitions)
 #   - conditionally_class(CONDITION,CLASSNAME,...) adds API class attributes
 #     if CONDITION is true (a comma-separated list can be used to specify
 #     multiple classes, just like for "class").
@@ -113,7 +113,7 @@ my $export_list_for_ld_output_file = $opt_L;	# -L generated_list_for_ld
 my $export_map_for_ld_output_file = $opt_M;	# -M generated_export_map_for_ld
 my $interface_name = $opt_n;			# -n interface_name
 my $man_page_output_file = $opt_m;		# -m man_page_file_name
-my $vrs = $opt_V;				# -V sb2_version
+my $vrs = $opt_V;				# -V lb_version
 
 my $num_errors = 0;
 
@@ -130,7 +130,7 @@ if ($man_page_output_file) {
 	}
 }
 
-my $man_page_body = ".TH $man_page_name $man_page_sect \"\" \"$vrs\" \"libsb2 interface man page\"\n";
+my $man_page_body = ".TH $man_page_name $man_page_sect \"\" \"$vrs\" \"liblb interface man page\"\n";
 my $man_page_tail = "";
 
 # loglevel defaults to a value which a) causes compilation to fail, if
@@ -139,14 +139,14 @@ my $generated_code_loglevel = "LOGLEVEL_statement_missing_from_interface_master"
 
 #============================================
 # This will be added to all generated interface functions (unless
-# modifier 'no_libsb2_init_check' is present):
+# modifier 'no_liblb_init_check' is present):
 # global variables need to be initialized by a function call
 # because the library constructor function seems to be unreliable:
 # it may not be the first executed function in a multithreaded
 # environment!
-my $libsb2_initialized_check_for_all_functions =
-	"\tif (!sb2_global_vars_initialized__)\n".
-	"\t\tsb2_initialize_global_variables();\n";
+my $liblb_initialized_check_for_all_functions =
+	"\tif (!lb_global_vars_initialized__)\n".
+	"\t\tlb_initialize_global_variables();\n";
 
 #============================================
 
@@ -462,7 +462,7 @@ sub process_readonly_check_modifier {
 
 	$mods->{'path_ro_check_code'} .=
 		"\tif ($ro_flag$extra_check) {\n".
-		"\t\tSB_LOG(SB_LOGLEVEL_NOTICE, ".
+		"\t\tLB_LOG(LB_LOGLEVEL_NOTICE, ".
 		"\"%s returns (%s is readonly) ".
 		"$return_value, error_code=$error_code\", ".
 		"__func__, ($new_name ? $new_name : \"<empty path>\"));\n".
@@ -488,7 +488,7 @@ sub class_list_to_expr {
 	my @class_arr;
 	my $class;
         foreach $class (split(/,/,$class_list)) {
-		push(@class_arr, 'SB2_INTERFACE_CLASS_'.$class);
+		push(@class_arr, 'LB_INTERFACE_CLASS_'.$class);
 	}
 	return ('('.join(' | ',@class_arr).')');
 }
@@ -558,7 +558,7 @@ sub process_wrap_or_gate_modifiers {
 		'make_nomap_function' => 0,		# flag
 		'make_nomap_nolog_function' => 0,	# flag
 		'returns_string' => 0,			# flag
-		'check_libsb2_has_been_initialized' => 1, # flag
+		'check_liblb_has_been_initialized' => 1, # flag
 		'log_params' => undef,
 		'class' => '0',
 		'conditionally_class' => '0',
@@ -597,9 +597,9 @@ sub process_wrap_or_gate_modifiers {
 
 			my $new_name = "mapped__".$param_to_be_mapped;
 			my $no_symlink_resolve =
-				expr_to_flagexpr($mods->{'dont_resolve_final_symlink'}, "SBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK");
+				expr_to_flagexpr($mods->{'dont_resolve_final_symlink'}, "LDBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK");
 			my $allow_nonexistent =
-				expr_to_flagexpr($mods->{'allow_nonexistent'}, "SBOX_MAP_PATH_ALLOW_NONEXISTENT");
+				expr_to_flagexpr($mods->{'allow_nonexistent'}, "LDBOX_MAP_PATH_ALLOW_NONEXISTENT");
 			my $flags = flagexpr_join($no_symlink_resolve, $allow_nonexistent);
 
 			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name.mres_result_path";
@@ -609,12 +609,12 @@ sub process_wrap_or_gate_modifiers {
 
 			$mods->{'path_mapping_code'} .=
 				"\tclear_mapping_results_struct(&res_$new_name);\n".
-				"\tsbox_map_path(__func__, ".
+				"\tldbox_map_path(__func__, ".
 					"$param_to_be_mapped, ".
 					"$flags, ".
 					"&res_$new_name, classmask);\n".
 				"\tif (res_$new_name.mres_errno) {\n".
-				"\t\tSB_LOG(SB_LOGLEVEL_DEBUG, \"mapping failed, errno %d\",".
+				"\t\tLB_LOG(LB_LOGLEVEL_DEBUG, \"mapping failed, errno %d\",".
 					" res_$new_name.mres_errno);\n".
 				"\t\terrno = res_$new_name.mres_errno;\n".
 				"\t\tfree_mapping_results(&res_$new_name);\n".
@@ -653,9 +653,9 @@ sub process_wrap_or_gate_modifiers {
 			my $new_name = "mapped__".$param_to_be_mapped;
 			my $ro_flag = $param_to_be_mapped."_is_readonly";
 			my $no_symlink_resolve =
-				expr_to_flagexpr($mods->{'dont_resolve_final_symlink'}, "SBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK");
+				expr_to_flagexpr($mods->{'dont_resolve_final_symlink'}, "LDBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK");
 			my $allow_nonexistent =
-				expr_to_flagexpr($mods->{'allow_nonexistent'}, "SBOX_MAP_PATH_ALLOW_NONEXISTENT");
+				expr_to_flagexpr($mods->{'allow_nonexistent'}, "LDBOX_MAP_PATH_ALLOW_NONEXISTENT");
 			my $flags = flagexpr_join($no_symlink_resolve, $allow_nonexistent);
 
 			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name.mres_result_path";
@@ -664,7 +664,7 @@ sub process_wrap_or_gate_modifiers {
 				"\tmapping_results_t res_$new_name;\n";
 			$mods->{'path_mapping_code'} .=
 				"\tclear_mapping_results_struct(&res_$new_name);\n".
-				"\tsbox_map_path_at(__func__, ".
+				"\tldbox_map_path_at(__func__, ".
 					"$fd_param, ".
 					"$param_to_be_mapped, ".
 					"$flags, ".
@@ -766,8 +766,8 @@ sub process_wrap_or_gate_modifiers {
 			$mods->{'returns_string'} = 1;
 		} elsif($modifiers[$i] =~ m/^log_params\((.*)\)$/) {
 			$mods->{'log_params'} = $1;
-		} elsif($modifiers[$i] eq 'no_libsb2_init_check') {
-			$mods->{'check_libsb2_has_been_initialized'} = 0;
+		} elsif($modifiers[$i] eq 'no_liblb_init_check') {
+			$mods->{'check_liblb_has_been_initialized'} = 0;
 		} elsif($modifiers[$i] =~ m/^class\((.*)\)$/) {
 			if ($mods->{'class'} ne '0') {
 				printf "ERROR: redefinition of 'class' for '%s'\n",
@@ -1138,14 +1138,14 @@ sub command_wrap_or_gate {
 	$nomap_nolog_fn_c_code .= "\tint result_errno = errno;\n";
 
 	# variables have been introduced, add the code:
-	if($mods->{'check_libsb2_has_been_initialized'} != 0) {
-		$wrapper_fn_c_code .=		$libsb2_initialized_check_for_all_functions;
-		$nomap_fn_c_code .=		$libsb2_initialized_check_for_all_functions;
-		$nomap_nolog_fn_c_code .=	$libsb2_initialized_check_for_all_functions;
+	if($mods->{'check_liblb_has_been_initialized'} != 0) {
+		$wrapper_fn_c_code .=		$liblb_initialized_check_for_all_functions;
+		$nomap_fn_c_code .=		$liblb_initialized_check_for_all_functions;
+		$nomap_nolog_fn_c_code .=	$liblb_initialized_check_for_all_functions;
 	}
 	if(defined $mods->{'log_params'}) {
-		$wrapper_fn_c_code .=		"\tSB_LOG(".$mods->{'log_params'}.");\n";
-		$nomap_fn_c_code .=		"\tSB_LOG(".$mods->{'log_params'}.");\n";
+		$wrapper_fn_c_code .=		"\tLB_LOG(".$mods->{'log_params'}.");\n";
+		$nomap_fn_c_code .=		"\tLB_LOG(".$mods->{'log_params'}.");\n";
 	}
 
 	$wrapper_fn_c_code .=		$mods->{'path_mapping_code'}.
@@ -1160,28 +1160,28 @@ sub command_wrap_or_gate {
 	if($command eq 'WRAP') {
 		# Wrappers log an error and abort if the real function
 		# does not exist.
-		$loglevel_no_real_fn = "SB_LOGLEVEL_ERROR";
+		$loglevel_no_real_fn = "LB_LOGLEVEL_ERROR";
 		$no_real_fn_abort_code = "abort();";
 	} else { # GATE
 		# Gates log a warning (but don't abort) if the real function
 		# does not exist - the gate function should handle the rest.
-		$loglevel_no_real_fn = "SB_LOGLEVEL_WARNING";
+		$loglevel_no_real_fn = "LB_LOGLEVEL_WARNING";
 		$no_real_fn_abort_code = "/* no abort() */";
 	}
 
 	my $check_fn_pointer_log_enabled .=
 		"\tif($real_fn_pointer_name == NULL) {\n".
-		"\t\t$real_fn_pointer_name = sbox_find_next_symbol(1, ".
+		"\t\t$real_fn_pointer_name = ldbox_find_next_symbol(1, ".
 			"\"$fn_name\");\n".
 		"\t\tif ($real_fn_pointer_name == NULL) {\n".
-		"\t\t\tSB_LOG($loglevel_no_real_fn, \"Real '%s'".
+		"\t\t\tLB_LOG($loglevel_no_real_fn, \"Real '%s'".
 			" not found\", \"$fn_name\");\n".
 		"\t\t\t$no_real_fn_abort_code\n".
 		"\t\t}\n".
 		"\t}\n";
 	my $check_fn_pointer_log_disabled .=
 		"\tif($real_fn_pointer_name == NULL) {\n".
-		"\t\t$real_fn_pointer_name = sbox_find_next_symbol(0, ".
+		"\t\t$real_fn_pointer_name = ldbox_find_next_symbol(0, ".
 			"\"$fn_name\");\n".
 		"\t\tif ($real_fn_pointer_name == NULL) {\n".
 		"\t\t\t$no_real_fn_abort_code\n".
@@ -1244,7 +1244,7 @@ sub command_wrap_or_gate {
 	# representation of the error message (sys_errlist is nonstandard,
 	# and there are two different implemetations of strerror_r() :-(
 	if(defined $log_return_value_format) {
-		$log_return_val = "\tSB_LOG($generated_code_loglevel, ".
+		$log_return_val = "\tLB_LOG($generated_code_loglevel, ".
 			"\"%s returns ".
 			"$log_return_value_format, errno=%d (%s)\", ".
 			"__func__, $log_return_val, result_errno, ".
@@ -1253,7 +1253,7 @@ sub command_wrap_or_gate {
 	} else {
 		# don't know how to print the return value itself 
 		# (an unknown type or no return value at all), but log errno
-		$log_return_val = "\tSB_LOG($generated_code_loglevel, ".
+		$log_return_val = "\tLB_LOG($generated_code_loglevel, ".
 			"\"%s returns,".
 			" errno=%d (%s)\", ".
 			"__func__, result_errno, ".
@@ -1450,8 +1450,8 @@ while ($line = <STDIN>) {
 		# (e.g. used for variables)
 		command_export_symbol(@field);
 	} elsif($field[0] eq 'LOGLEVEL') {
-		if(!($field[1] =~ m/^SB_LOGLEVEL_/)) {
-			printf "ERROR: LOGLEVEL is not SB_LOGLEVEL_*\n";
+		if(!($field[1] =~ m/^LB_LOGLEVEL_/)) {
+			printf "ERROR: LOGLEVEL is not LB_LOGLEVEL_*\n";
 			$num_errors++;
 		}
 		$generated_code_loglevel = $field[1];
@@ -1487,7 +1487,7 @@ if(defined $wrappers_c_output_file) {
 	$interface_functions_and_classes .= "\t{NULL, 0},\n};\n";
 	write_output_file($wrappers_c_output_file,
 		$file_header_comment.
-		'#include "libsb2.h"'."\n".
+		'#include "liblb.h"'."\n".
 		$include_h_file.
 		$wrappers_c_buffer.
 		$interface_functions_and_classes);

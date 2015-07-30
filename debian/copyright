@@ -1,6 +1,6 @@
 This package was debianized by Riku Voipio <riku.voipio@iki.fi>
 
-The source may be fetched from git://gitorious.org/scratchbox2/scratchbox2.git
+The source may be fetched from https://github.com/ldbox/ldbox.git
 
 preload library and most of scratchbox 2.0 :
  Copyright (C) 2006 Lauri Leukkunen <lle@rahina.org>
@@ -9,7 +9,7 @@ preload library and most of scratchbox 2.0 :
 It may be redistributed under the terms of the GNU LGPL, Version 2 or
 later, found on Debian systems in the file /usr/share/common-licenses/LGPL-2.
 
-sb_alien, libsb_env and utils:
+lb_alien, liblb_env and utils:
  
  Copyright (C) 2004-2005 Nokia
  Author: Timo Savola <timo.savola@iki.fi>

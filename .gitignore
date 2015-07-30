@@ -21,11 +21,11 @@ preload/wrappers.c
 obj-32
 obj-64
 .configure*
-utils/sb2-show
-utils/sb2-monitor
-utils/sb2-interp-wrapper
+utils/lb-show
+utils/lb-monitor
+utils/lb-interp-wrapper
 .version
 preload/privatewrappers.c
 preload/privatewrappers.h
 preload/export.map
-include/scratchbox2_version.h
+include/ldbox_version.h

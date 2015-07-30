@@ -34,8 +34,8 @@
 #include <lauxlib.h>
 
 #include "mapping.h"
-#include "sb2.h"
-#include "libsb2.h"
+#include "lb.h"
+#include "liblb.h"
 #include "exported.h"
 
 #include <sys/mman.h>
@@ -75,16 +75,16 @@ void *offset_to_ruletree_object_ptr(ruletree_object_offset_t offs, uint32_t requ
 	ruletree_object_hdr_t	*hdrp = offset_to_raw_ruletree_ptr(offs);
 
 	if (!hdrp) {
-		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: no hdrp @%u", __func__, offs);
+		LB_LOG(LB_LOGLEVEL_NOISE3, "%s: no hdrp @%u", __func__, offs);
 		return(NULL);
 	}
-	if (hdrp->rtree_obj_magic != SB2_RULETREE_MAGIC) {
-		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: wrong magic 0x%X @%u", __func__,
+	if (hdrp->rtree_obj_magic != LB_RULETREE_MAGIC) {
+		LB_LOG(LB_LOGLEVEL_NOISE3, "%s: wrong magic 0x%X @%u", __func__,
 			hdrp->rtree_obj_magic, offs);
 		return(NULL);
 	}
 	if (required_type && (required_type != hdrp->rtree_obj_type)) {
-		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: wrong type (req=0x%X, was 0x%X, @%u)",
+		LB_LOG(LB_LOGLEVEL_NOISE3, "%s: wrong type (req=0x%X, was 0x%X, @%u)",
 			__func__, required_type, hdrp->rtree_obj_type, offs);
 		return(NULL);
 	}
@@ -97,13 +97,13 @@ ruletree_object_offset_t append_struct_to_ruletree_file(void *ptr, size_t size, 
 	ruletree_object_offset_t location = 0;
 	ruletree_object_hdr_t	*hdrp = ptr;
 
-	hdrp->rtree_obj_magic = SB2_RULETREE_MAGIC;
+	hdrp->rtree_obj_magic = LB_RULETREE_MAGIC;
 	hdrp->rtree_obj_type = type;
 	
 	if (ruletree_ctx.rtree_ruletree_fd >= 0) {
 		location = lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END); 
 		if (write(ruletree_ctx.rtree_ruletree_fd, ptr, size) < (int)size) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"Failed to append a struct (%d bytes) to the rule tree", size);
 		}
 		if (ruletree_ctx.rtree_ruletree_hdr_p) 
@@ -122,7 +122,7 @@ static int open_ruletree_file(int create_if_it_doesnt_exist)
 		O_CLOEXEC | O_RDWR | (create_if_it_doesnt_exist ? O_CREAT : 0),
 		S_IRUSR | S_IWUSR);
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "open_ruletree_file => %d", ruletree_ctx.rtree_ruletree_fd);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "open_ruletree_file => %d", ruletree_ctx.rtree_ruletree_fd);
 	return (ruletree_ctx.rtree_ruletree_fd);
 }
 
@@ -134,7 +134,7 @@ static int mmap_ruletree(ruletree_hdr_t *hdr)
 		ruletree_ctx.rtree_ruletree_fd, 0);
 
 	if (!ruletree_ctx.rtree_ruletree_ptr) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"Failed to mmap() ruletree");
 		return(-1);
 	}
@@ -146,13 +146,13 @@ static int mmap_ruletree(ruletree_hdr_t *hdr)
 	/* now do the same without force. */
 	ruletree_ctx.rtree_ruletree_hdr_p =
 		(ruletree_hdr_t*)offset_to_ruletree_object_ptr(0,
-			SB2_RULETREE_OBJECT_TYPE_FILEHDR);
+			LB_RULETREE_OBJECT_TYPE_FILEHDR);
 
 	if (ruletree_ctx.rtree_ruletree_hdr_p) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree mmap'ed ok");
+		LB_LOG(LB_LOGLEVEL_DEBUG, "ruletree mmap'ed ok");
 		return(0);
 	}
-	SB_LOG(SB_LOGLEVEL_ERROR, "Faulty ruletree header");
+	LB_LOG(LB_LOGLEVEL_ERROR, "Faulty ruletree header");
 	return(-1);
 }
 
@@ -168,16 +168,16 @@ int create_ruletree_file(const char *ruletree_path,
 	ruletree_ctx.rtree_ruletree_path = strdup(ruletree_path);
 
 	if (open_ruletree_file(1/*create_if_it_doesnt_exist*/) < 0) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "create_ruletree_file: open() failed");
+		LB_LOG(LB_LOGLEVEL_DEBUG, "create_ruletree_file: open() failed");
 		return(-1);
 	}
 
 	if (lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END) != 0) { 
-		SB_LOG(SB_LOGLEVEL_DEBUG, "create_ruletree_file: file is not empty");
+		LB_LOG(LB_LOGLEVEL_DEBUG, "create_ruletree_file: file is not empty");
 		return(-1);
 	}
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "create_ruletree_file - initializing rule tree db");
+	LB_LOG(LB_LOGLEVEL_DEBUG, "create_ruletree_file - initializing rule tree db");
 
 	memset(&hdr, 0, sizeof(hdr));
 	hdr.rtree_version = RULE_TREE_VERSION;
@@ -186,7 +186,7 @@ int create_ruletree_file(const char *ruletree_path,
 	hdr.rtree_min_mmap_addr = min_mmap_addr;
 	hdr.rtree_min_client_socket_fd = min_client_socket_fd;
 	append_struct_to_ruletree_file(&hdr, sizeof(hdr),
-		SB2_RULETREE_OBJECT_TYPE_FILEHDR);
+		LB_RULETREE_OBJECT_TYPE_FILEHDR);
 
 	if (mmap_ruletree(&hdr) < 0) return(-1);
 	
@@ -208,7 +208,7 @@ int attach_ruletree(const char *ruletree_path, int keep_open)
 {
 	ruletree_hdr_t	hdr;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "attach_ruletree(%s)", ruletree_path);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "attach_ruletree(%s)", ruletree_path);
 
 	if (!ruletree_ctx.rtree_ruletree_path && ruletree_path) {
 		ruletree_ctx.rtree_ruletree_path = strdup(ruletree_path);
@@ -217,12 +217,12 @@ int attach_ruletree(const char *ruletree_path, int keep_open)
 	if (open_ruletree_file(0/*create_if_it_doesnt_exist*/) < 0) return(-1);
 
 	if (read(ruletree_ctx.rtree_ruletree_fd, &hdr, sizeof(hdr)) != sizeof(hdr)) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"Illegal ruletree file size or format");
 		return(-1);
 	}
 	if (hdr.rtree_version != RULE_TREE_VERSION) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"Fatal: ruletree version mismatch: Got %d, expected %d",
 			ruletree_ctx.rtree_ruletree_hdr_p->rtree_version,
 			RULE_TREE_VERSION);
@@ -234,10 +234,10 @@ int attach_ruletree(const char *ruletree_path, int keep_open)
 	if (!keep_open) {
 		close(ruletree_ctx.rtree_ruletree_fd);
 		ruletree_ctx.rtree_ruletree_fd = -1;
-		SB_LOG(SB_LOGLEVEL_DEBUG, "rule tree file has been closed.");
+		LB_LOG(LB_LOGLEVEL_DEBUG, "rule tree file has been closed.");
 	}
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "attach_ruletree() => OK");
+	LB_LOG(LB_LOGLEVEL_DEBUG, "attach_ruletree() => OK");
 	return(0);
 }
 
@@ -258,13 +258,13 @@ static uint32_t *ruletree_get_pointer_to_uint32_or_boolean(
 uint32_t *ruletree_get_pointer_to_uint32(ruletree_object_offset_t offs)
 {
 	return(ruletree_get_pointer_to_uint32_or_boolean(offs,
-		SB2_RULETREE_OBJECT_TYPE_UINT32));
+		LB_RULETREE_OBJECT_TYPE_UINT32));
 }
 
 uint32_t *ruletree_get_pointer_to_boolean(ruletree_object_offset_t offs)
 {
 	return(ruletree_get_pointer_to_uint32_or_boolean(offs,
-		SB2_RULETREE_OBJECT_TYPE_BOOLEAN));
+		LB_RULETREE_OBJECT_TYPE_BOOLEAN));
 }
 
 static ruletree_object_offset_t append_uint32_or_boolean_to_ruletree_file(
@@ -286,13 +286,13 @@ static ruletree_object_offset_t append_uint32_or_boolean_to_ruletree_file(
 ruletree_object_offset_t append_uint32_to_ruletree_file(uint32_t initial_value)
 {
 	return(append_uint32_or_boolean_to_ruletree_file(initial_value,
-		SB2_RULETREE_OBJECT_TYPE_UINT32));
+		LB_RULETREE_OBJECT_TYPE_UINT32));
 }
 
 ruletree_object_offset_t append_boolean_to_ruletree_file(uint32_t initial_value)
 {
 	return(append_uint32_or_boolean_to_ruletree_file(initial_value,
-		SB2_RULETREE_OBJECT_TYPE_BOOLEAN));
+		LB_RULETREE_OBJECT_TYPE_BOOLEAN));
 }
 
 /* =================== strings =================== */
@@ -303,11 +303,11 @@ const char *offset_to_ruletree_string_ptr(ruletree_object_offset_t offs,
 	ruletree_string_hdr_t	*strhdr;
 
 	strhdr = offset_to_ruletree_object_ptr(offs,
-		SB2_RULETREE_OBJECT_TYPE_STRING);
+		LB_RULETREE_OBJECT_TYPE_STRING);
 
 	if (strhdr) {
 		const char *str = (const char*)strhdr + sizeof(ruletree_string_hdr_t);
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"offset_to_ruletree_string_ptr returns '%s' (%u)",
 			str, strhdr->rtree_str_size);
 		if (lenp) {
@@ -315,7 +315,7 @@ const char *offset_to_ruletree_string_ptr(ruletree_object_offset_t offs,
 		}
 		return (str);
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE2,
+	LB_LOG(LB_LOGLEVEL_NOISE2,
 		"offset_to_ruletree_string_ptr returns NULL");
 	return(NULL);
 }
@@ -334,9 +334,9 @@ ruletree_object_offset_t append_string_to_ruletree_file(const char *str)
 	shdr.rtree_str_size = len;
 	/* "append_struct_to_ruletree_file" will fill the magic & type */
 	location = append_struct_to_ruletree_file(&shdr, sizeof(shdr),
-		SB2_RULETREE_OBJECT_TYPE_STRING);
+		LB_RULETREE_OBJECT_TYPE_STRING);
 	if (write(ruletree_ctx.rtree_ruletree_fd, str, len+1) < (len + 1)) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"Failed to append a string (%d bytes) to the rule tree", len);
 	}
 	if (ruletree_ctx.rtree_ruletree_hdr_p)
@@ -355,7 +355,7 @@ ruletree_object_offset_t ruletree_objectlist_create_list(uint32_t size)
 	size_t				list_size_in_bytes;
 	ssize_t				wr_result;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_objectlist_create_list(%d) fd=%d",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "ruletree_objectlist_create_list(%d) fd=%d",
 		size, ruletree_ctx.rtree_ruletree_fd);
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
 	if (ruletree_ctx.rtree_ruletree_fd < 0) return(0);
@@ -363,13 +363,13 @@ ruletree_object_offset_t ruletree_objectlist_create_list(uint32_t size)
 	listhdr.rtree_olist_size = size;
 	/* "append_struct_to_ruletree_file" will fill the magic & type */
 	location = append_struct_to_ruletree_file(&listhdr, sizeof(listhdr),
-		SB2_RULETREE_OBJECT_TYPE_OBJECTLIST);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_objectlist_create_list: hdr at %d", location);
+		LB_RULETREE_OBJECT_TYPE_OBJECTLIST);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "ruletree_objectlist_create_list: hdr at %d", location);
 	list_size_in_bytes = size * sizeof(ruletree_object_offset_t);
 	a = calloc(size, sizeof(ruletree_object_offset_t));
 	wr_result = write(ruletree_ctx.rtree_ruletree_fd, a, list_size_in_bytes);
 	if ((wr_result == -1) || ((size_t)wr_result < list_size_in_bytes)) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"Failed to append a list (%d items, %d bytes) to the rule tree", 
 			size, list_size_in_bytes);
 		location = 0; /* return error */
@@ -377,7 +377,7 @@ ruletree_object_offset_t ruletree_objectlist_create_list(uint32_t size)
 	if (ruletree_ctx.rtree_ruletree_hdr_p)
 		ruletree_ctx.rtree_ruletree_hdr_p->rtree_file_size =
 			lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END); 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_objectlist_create_list: location=%d", location);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "ruletree_objectlist_create_list: location=%d", location);
 	return(location);
 }
 
@@ -388,10 +388,10 @@ int ruletree_objectlist_set_item(
 	ruletree_objectlist_t		*listhdr;
 	ruletree_object_offset_t	*a;
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_objectlist_set_item(%d,%d,%d)", list_offs, n, value);
+	LB_LOG(LB_LOGLEVEL_NOISE, "ruletree_objectlist_set_item(%d,%d,%d)", list_offs, n, value);
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (-1);
 	listhdr = offset_to_ruletree_object_ptr(list_offs,
-		SB2_RULETREE_OBJECT_TYPE_OBJECTLIST);
+		LB_RULETREE_OBJECT_TYPE_OBJECTLIST);
 	if(!listhdr) return(-1);
 	if(n >= listhdr->rtree_olist_size) return(-1);
 
@@ -407,10 +407,10 @@ ruletree_object_offset_t ruletree_objectlist_get_item(
 	ruletree_objectlist_t		*listhdr;
 	ruletree_object_offset_t	*a;
 
-	SB_LOG(SB_LOGLEVEL_NOISE2, "ruletree_objectlist_get_item(%d,%d)", list_offs, n);
+	LB_LOG(LB_LOGLEVEL_NOISE2, "ruletree_objectlist_get_item(%d,%d)", list_offs, n);
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
 	listhdr = offset_to_ruletree_object_ptr(list_offs,
-		SB2_RULETREE_OBJECT_TYPE_OBJECTLIST);
+		LB_RULETREE_OBJECT_TYPE_OBJECTLIST);
 	if(!listhdr) return(0);
 	if(n >= listhdr->rtree_olist_size) return(0);
 
@@ -423,10 +423,10 @@ uint32_t ruletree_objectlist_get_list_size(
 {
 	ruletree_objectlist_t		*listhdr;
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_objectlist_get_list_size(%d)", list_offs);
+	LB_LOG(LB_LOGLEVEL_NOISE, "ruletree_objectlist_get_list_size(%d)", list_offs);
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
 	listhdr = offset_to_ruletree_object_ptr(list_offs,
-		SB2_RULETREE_OBJECT_TYPE_OBJECTLIST);
+		LB_RULETREE_OBJECT_TYPE_OBJECTLIST);
 	if(!listhdr) return(0);
 	return (listhdr->rtree_olist_size);
 }
@@ -451,8 +451,8 @@ static ruletree_object_offset_t ruletree_create_bintree_entry(
 	new_entry.rtree_bt_value = value_offs;
 
 	entry_location = append_struct_to_ruletree_file(&new_entry, sizeof(new_entry),
-		SB2_RULETREE_OBJECT_TYPE_BINTREE);
-	SB_LOG(SB_LOGLEVEL_NOISE,
+		LB_RULETREE_OBJECT_TYPE_BINTREE);
+	LB_LOG(LB_LOGLEVEL_NOISE,
 		"ruletree_create_bintree_entry: @%d",
 		(int)entry_location);
 	return(entry_location);
@@ -472,7 +472,7 @@ static ruletree_object_offset_t ruletree_find_bintree_entry(
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
 	if (!root_offs) return(0);
 
-	SB_LOG(SB_LOGLEVEL_NOISE2,
+	LB_LOG(LB_LOGLEVEL_NOISE2,
 		"ruletree_find_bintree_entry: @%d : key1=0x%llX key2=%lld",
 		(int)root_offs, (long long)key1, (long long)key2);
 
@@ -482,18 +482,18 @@ static ruletree_object_offset_t ruletree_find_bintree_entry(
 		ruletree_bintree_t	*bintrp;
 
 		bintrp = offset_to_ruletree_object_ptr(node_offs,
-				SB2_RULETREE_OBJECT_TYPE_BINTREE);
+				LB_RULETREE_OBJECT_TYPE_BINTREE);
 		if (!bintrp) {
 			node_offs = 0;
 			break;
 		}
-		SB_LOG(SB_LOGLEVEL_NOISE3,
+		LB_LOG(LB_LOGLEVEL_NOISE3,
 			"ruletree_find_bintree_entry: check @%d",
 			node_offs);
 		
 		if ((bintrp->rtree_bt_key1 == key1) &&
 		    (bintrp->rtree_bt_key2 == key2)) {
-			SB_LOG(SB_LOGLEVEL_NOISE3,
+			LB_LOG(LB_LOGLEVEL_NOISE3,
 				"ruletree_find_bintree_entry: FOUND");
 			last_direction = 0;
 			return(node_offs);
@@ -502,18 +502,18 @@ static ruletree_object_offset_t ruletree_find_bintree_entry(
 		if ((key1 < bintrp->rtree_bt_key1) ||
 		    ((key1 == bintrp->rtree_bt_key1) &&
 		     (key2 <  bintrp->rtree_bt_key2))) {
-			SB_LOG(SB_LOGLEVEL_NOISE3,
+			LB_LOG(LB_LOGLEVEL_NOISE3,
 				"ruletree_find_bintree_entry: less");
 			last_direction = -1;
 			node_offs = bintrp->rtree_bt_link_less;
 		} else {
-			SB_LOG(SB_LOGLEVEL_NOISE3,
+			LB_LOG(LB_LOGLEVEL_NOISE3,
 				"ruletree_find_bintree_entry: more");
 			last_direction = +1;
 			node_offs = bintrp->rtree_bt_link_more;
 		}
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE3,
+	LB_LOG(LB_LOGLEVEL_NOISE3,
 		"ruletree_find_bintree_entry: Not found.");
 	if(last_visited_node) *last_visited_node = last_compared_node;
 	if(last_result) *last_result = last_direction;
@@ -531,13 +531,13 @@ static ruletree_object_offset_t ruletree_add_to_bintree_entry(
 	ruletree_bintree_t	*parent_bintrp;
 	ruletree_object_offset_t new_bintree_node_offs;
 
-	SB_LOG(SB_LOGLEVEL_NOISE2,
+	LB_LOG(LB_LOGLEVEL_NOISE2,
 		"ruletree_add_to_bintree_entry: @%d",
 		(int)value_node_offs);
 
 	if (last_compared_node == 0) {
 		/* no root - add first node. */
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"ruletree_add_to_bintree_entry: First node");
 		new_bintree_node_offs = ruletree_create_bintree_entry(
 			key1, key2, value_node_offs);
@@ -545,10 +545,10 @@ static ruletree_object_offset_t ruletree_add_to_bintree_entry(
 	}
 
 	parent_bintrp = offset_to_ruletree_object_ptr(last_compared_node,
-				SB2_RULETREE_OBJECT_TYPE_BINTREE);
+				LB_RULETREE_OBJECT_TYPE_BINTREE);
 
 	if (!parent_bintrp) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"ruletree_add_to_bintree_entry: invalid parent");
 		return(0);
 	}
@@ -560,16 +560,16 @@ static ruletree_object_offset_t ruletree_add_to_bintree_entry(
 		if ((key1 < parent_bintrp->rtree_bt_key1) ||
 		    ((key1 == parent_bintrp->rtree_bt_key1) &&
 		     (key2 <  parent_bintrp->rtree_bt_key2))) {
-			SB_LOG(SB_LOGLEVEL_NOISE3,
+			LB_LOG(LB_LOGLEVEL_NOISE3,
 				"ruletree_add_to_bintree_entry: less");
 			if (parent_bintrp->rtree_bt_link_less) {
-				SB_LOG(SB_LOGLEVEL_DEBUG,
+				LB_LOG(LB_LOGLEVEL_DEBUG,
 					"ruletree_add_to_bintree_entry: less already exits!");
 			} else {
 				parent_bintrp->rtree_bt_link_less = new_bintree_node_offs;
 			}
 		} else {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"ruletree_add_to_bintree_entry: invalid direction (-1)");
 		}
 		break;
@@ -577,13 +577,13 @@ static ruletree_object_offset_t ruletree_add_to_bintree_entry(
 		if ((key1 < parent_bintrp->rtree_bt_key1) ||
 		    ((key1 == parent_bintrp->rtree_bt_key1) &&
 		     (key2 <  parent_bintrp->rtree_bt_key2))) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"ruletree_add_to_bintree_entry: invalid direction (+1)");
 		} else {
-			SB_LOG(SB_LOGLEVEL_NOISE3,
+			LB_LOG(LB_LOGLEVEL_NOISE3,
 				"ruletree_add_to_bintree_entry: more");
 			if (parent_bintrp->rtree_bt_link_more) {
-				SB_LOG(SB_LOGLEVEL_DEBUG,
+				LB_LOG(LB_LOGLEVEL_DEBUG,
 					"ruletree_add_to_bintree_entry: more already exits!");
 			} else {
 				parent_bintrp->rtree_bt_link_more = new_bintree_node_offs;
@@ -591,7 +591,7 @@ static ruletree_object_offset_t ruletree_add_to_bintree_entry(
 		}
 		break;
 	default:
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"ruletree_add_to_bintree_entry: invalid direction(%d)!",
 			last_direction);
 		break;
@@ -615,7 +615,7 @@ static ruletree_object_offset_t ruletree_create_inodestat(
 	new_entry.rtree_inode_simu = *istat_struct;
 
 	entry_location = append_struct_to_ruletree_file(&new_entry, sizeof(new_entry),
-		SB2_RULETREE_OBJECT_TYPE_INODESTAT);
+		LB_RULETREE_OBJECT_TYPE_INODESTAT);
 	return(entry_location);
 }
 
@@ -655,7 +655,7 @@ int ruletree_find_inodestat(
 	ruletree_bintree_t	*bintrp;
 	ruletree_inodestat_t	*fsptr;
 
-	SB_LOG(SB_LOGLEVEL_NOISE,
+	LB_LOG(LB_LOGLEVEL_NOISE,
 		"ruletree_find_inodestat (dev=%lld,ino=%lld,key=%llX)",
 			(long long)handle->rfh_dev,
 			(long long)handle->rfh_ino,
@@ -677,10 +677,10 @@ int ruletree_find_inodestat(
 	if (!handle->rfh_offs) return(-1);
 		
 	bintrp = offset_to_ruletree_object_ptr(handle->rfh_offs,
-			SB2_RULETREE_OBJECT_TYPE_BINTREE);
+			LB_RULETREE_OBJECT_TYPE_BINTREE);
 	if (!bintrp) return(-1);
 	fsptr = offset_to_ruletree_object_ptr(bintrp->rtree_bt_value,
-			SB2_RULETREE_OBJECT_TYPE_INODESTAT);
+			LB_RULETREE_OBJECT_TYPE_INODESTAT);
 	if (!fsptr) return(-1);
 
 	*istat_struct = fsptr->rtree_inode_simu;
@@ -697,7 +697,7 @@ ruletree_object_offset_t ruletree_set_inodestat(
 	ruletree_inodestat_handle_t	*handle,
 	inodesimu_t			*istat_struct)
 {
-	SB_LOG(SB_LOGLEVEL_NOISE,
+	LB_LOG(LB_LOGLEVEL_NOISE,
 		"ruletree_set_inodestat (dev=%lld,ino=%lld,key=%llX))",
 			(long long)handle->rfh_dev,
 			(long long)handle->rfh_ino,
@@ -708,20 +708,20 @@ ruletree_object_offset_t ruletree_set_inodestat(
 		ruletree_bintree_t	*bintrp;
 
 		bintrp = offset_to_ruletree_object_ptr(handle->rfh_offs,
-				SB2_RULETREE_OBJECT_TYPE_BINTREE);
+				LB_RULETREE_OBJECT_TYPE_BINTREE);
 		if (!bintrp) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"ruletree_set_inodestat: Internal error: Invalid handle");
 			return(0);
 		}
 		fsptr = offset_to_ruletree_object_ptr(bintrp->rtree_bt_value,
-				SB2_RULETREE_OBJECT_TYPE_INODESTAT);
+				LB_RULETREE_OBJECT_TYPE_INODESTAT);
 		if (!fsptr) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"ruletree_set_inodestat: Internal error: Invalid bintree");
 			return(0);
 		}
-		SB_LOG(SB_LOGLEVEL_NOISE,
+		LB_LOG(LB_LOGLEVEL_NOISE,
 			"ruletree_set_inodestat: set info");
 		fsptr->rtree_inode_simu = *istat_struct;
 		return(0);
@@ -729,7 +729,7 @@ ruletree_object_offset_t ruletree_set_inodestat(
 		/* Add to the tree. */
 		ruletree_object_offset_t	bt_root;
 
-		SB_LOG(SB_LOGLEVEL_NOISE,
+		LB_LOG(LB_LOGLEVEL_NOISE,
 			"ruletree_set_inodestat: add to tree");
 		handle->rfh_offs = ruletree_create_inodestat(istat_struct);
 		bt_root = ruletree_add_to_bintree_entry(handle->rfh_offs,
@@ -762,7 +762,7 @@ static ruletree_object_offset_t ruletree_create_catalog_entry(
 	new_entry.rtree_cat_next_entry_offs = 0;
 
 	entry_location = append_struct_to_ruletree_file(&new_entry, sizeof(new_entry),
-		SB2_RULETREE_OBJECT_TYPE_CATALOG);
+		LB_RULETREE_OBJECT_TYPE_CATALOG);
 	return(entry_location);
 }
 
@@ -778,12 +778,12 @@ static ruletree_catalog_entry_t *find_last_catalog_entry(
 		catalog_offs = ruletree_ctx.rtree_ruletree_hdr_p->rtree_hdr_root_catalog;
 		if (!catalog_offs) return(NULL);
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE2,
+	LB_LOG(LB_LOGLEVEL_NOISE2,
 		"find_last_catalog_entry: catalog @%d",
 		(int)catalog_offs);
 
 	catp = offset_to_ruletree_object_ptr(catalog_offs,
-				SB2_RULETREE_OBJECT_TYPE_CATALOG);
+				LB_RULETREE_OBJECT_TYPE_CATALOG);
 
 	if (!catp) {
 		/* Failed to link it, provided offset is invalid. */
@@ -792,16 +792,16 @@ static ruletree_catalog_entry_t *find_last_catalog_entry(
 	}
 
 	while (catp->rtree_cat_next_entry_offs) {
-		SB_LOG(SB_LOGLEVEL_NOISE3,
+		LB_LOG(LB_LOGLEVEL_NOISE3,
 			"find_last_catalog_entry: move to @%d",
 			(int)catp->rtree_cat_next_entry_offs);
 		catp = offset_to_ruletree_object_ptr(
 			catp->rtree_cat_next_entry_offs,
-			SB2_RULETREE_OBJECT_TYPE_CATALOG);
+			LB_RULETREE_OBJECT_TYPE_CATALOG);
 	}
 
 	if (!catp) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"find_last_catalog_entry: Error: parent catalog is broken, catalog @%d",
 			(int)catalog_offs);
 		return(NULL);
@@ -815,18 +815,18 @@ static void link_entry_to_ruletree_catalog(
 {
 	ruletree_catalog_entry_t	*prev_entry;
 
-	SB_LOG(SB_LOGLEVEL_NOISE2,
+	LB_LOG(LB_LOGLEVEL_NOISE2,
 		"link_entry_to_ruletree_catalog");
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return;
 	prev_entry = find_last_catalog_entry(catalog_offs);
 	if (!prev_entry && !catalog_offs) {
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"link_entry_to_ruletree_catalog: "
 			"this will be the first entry in the root catalog.");
 		ruletree_ctx.rtree_ruletree_hdr_p->rtree_hdr_root_catalog = new_entry_offs;
 	}
 	if (prev_entry) {
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"link_entry_to_ruletree_catalog: linking");
 		prev_entry->rtree_cat_next_entry_offs = new_entry_offs;
 	}
@@ -844,36 +844,36 @@ static ruletree_object_offset_t add_entry_to_ruletree_catalog(
 	ruletree_object_offset_t	entry_location;
 	ruletree_catalog_entry_t	*ep = NULL;
 
-	SB_LOG(SB_LOGLEVEL_NOISE,
+	LB_LOG(LB_LOGLEVEL_NOISE,
 		"%s: add %s=%d to catalog @%d%s",
 		__func__, name, (int)value_offs, (int)catalog_offs,
 		catalog_offs ? "" : " (root catalog)");
 
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) {
-		SB_LOG(SB_LOGLEVEL_NOISE, "%s: no HDR, can't add anything.", __func__);
+		LB_LOG(LB_LOGLEVEL_NOISE, "%s: no HDR, can't add anything.", __func__);
 		return(0);
 	}
 
 	if (ruletree_ctx.rtree_ruletree_fd < 0) {
-		SB_LOG(SB_LOGLEVEL_NOISE, "%s: no FD, can't add anything.", __func__);
+		LB_LOG(LB_LOGLEVEL_NOISE, "%s: no FD, can't add anything.", __func__);
 		return(0);
 	}
 
-	SB_LOG(SB_LOGLEVEL_NOISE,
+	LB_LOG(LB_LOGLEVEL_NOISE,
 		"%s: catalog @%d, name=%s",
 		__func__, (int)catalog_offs, name);
 	entry_location = ruletree_create_catalog_entry(name, value_offs);
 	if (!entry_location) {
-		SB_LOG(SB_LOGLEVEL_NOISE,
+		LB_LOG(LB_LOGLEVEL_NOISE,
 			"%s: failed to create catalog entry for '%s'",
 			__func__, name);
 	} else {
 		link_entry_to_ruletree_catalog(catalog_offs, entry_location);
-		SB_LOG(SB_LOGLEVEL_NOISE,
+		LB_LOG(LB_LOGLEVEL_NOISE,
 			"%s: new entry '%s' @%d",
 			__func__, name, (int)entry_location);
 		ep = offset_to_ruletree_object_ptr(entry_location,
-			SB2_RULETREE_OBJECT_TYPE_CATALOG);
+			LB_RULETREE_OBJECT_TYPE_CATALOG);
 	}
 	*entry_ptr = ep;
 	return(entry_location);
@@ -905,7 +905,7 @@ static ruletree_object_offset_t ruletree_find_catalog_entry(
 		catalog_offs = ruletree_ctx.rtree_ruletree_hdr_p->rtree_hdr_root_catalog;
 	}
 
-	SB_LOG(SB_LOGLEVEL_NOISE3,
+	LB_LOG(LB_LOGLEVEL_NOISE3,
 		"ruletree_find_catalog_entry from catalog @ %u)", catalog_offs);
 	entry_location = catalog_offs;
 	name_len = strlen(name);
@@ -914,7 +914,7 @@ static ruletree_object_offset_t ruletree_find_catalog_entry(
 		uint32_t	entry_name_len;
 
 		ep = offset_to_ruletree_object_ptr(entry_location,
-					SB2_RULETREE_OBJECT_TYPE_CATALOG);
+					LB_RULETREE_OBJECT_TYPE_CATALOG);
 		if (!ep) return(0);
 
 		entry_name = offset_to_ruletree_string_ptr(ep->rtree_cat_name_offs,
@@ -923,7 +923,7 @@ static ruletree_object_offset_t ruletree_find_catalog_entry(
 		    (name_len == entry_name_len) &&
 		    !strcmp(name, entry_name)) {
 			/* found! */
-			SB_LOG(SB_LOGLEVEL_NOISE3,
+			LB_LOG(LB_LOGLEVEL_NOISE3,
 				"Found entry '%s' @ %u)", name, entry_location);
 			*entry_ptr = ep;
 			return(entry_location);
@@ -931,7 +931,7 @@ static ruletree_object_offset_t ruletree_find_catalog_entry(
 		entry_location = ep->rtree_cat_next_entry_offs;
 	} while (entry_location != 0);
 
-	SB_LOG(SB_LOGLEVEL_NOISE3,
+	LB_LOG(LB_LOGLEVEL_NOISE3,
 		"'%s' not found", name);
 	return(0);
 }
@@ -946,12 +946,12 @@ ruletree_object_offset_t	ruletree_catalog_find_value_from_catalog(
 	object_offs = ruletree_find_catalog_entry(
 		first_catalog_entry_offs, name, &object_cat_entry);
 	if (!object_offs || !object_cat_entry) {
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"%s: Failed: %s not found",
 			__func__, name);
 		return(0);
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE2,
+	LB_LOG(LB_LOGLEVEL_NOISE2,
 		"%s: Found value=@%d",
 		__func__, (int)object_cat_entry->rtree_cat_value_offs);
 	return(object_cat_entry->rtree_cat_value_offs);
@@ -965,7 +965,7 @@ static ruletree_catalog_entry_t *ruletree_catalog_add_or_find_object(
 	ruletree_object_offset_t	object_offs = 0;
 	ruletree_catalog_entry_t	*object_cat_entry = NULL;
 
-	SB_LOG(SB_LOGLEVEL_NOISE2, "%s: '%s'", __func__, object_name);
+	LB_LOG(LB_LOGLEVEL_NOISE2, "%s: '%s'", __func__, object_name);
 	if (first_catalog_entry_offs) {
 		/* the catalog already has something */
 		object_offs = ruletree_find_catalog_entry(
@@ -979,14 +979,14 @@ static ruletree_catalog_entry_t *ruletree_catalog_add_or_find_object(
 	/* else there is nothing in the catalog, add object */
 	if (parent_cat_entry) {
 		/* a subcatalog */
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"%s: add first entry '%s'", __func__, object_name);
 		object_offs = ruletree_create_catalog_entry(object_name, 0);
 		parent_cat_entry->rtree_cat_value_offs = object_offs;
 		object_cat_entry = offset_to_ruletree_object_ptr(object_offs,
-			SB2_RULETREE_OBJECT_TYPE_CATALOG);
+			LB_RULETREE_OBJECT_TYPE_CATALOG);
 	} else {
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"%s: first entry to root catalog, '%s'",
 			__func__, object_name);
 		/* root catalog does not exist, try to create it first. */
@@ -1010,14 +1010,14 @@ ruletree_object_offset_t ruletree_catalog_get(
 {
 	ruletree_object_offset_t	subcatalog_start_offs = 0;
 
-	SB_LOG(SB_LOGLEVEL_NOISE2,
+	LB_LOG(LB_LOGLEVEL_NOISE2,
 		"ruletree_catalog_get(catalog=%s,object_name=%s)",
 		catalog_name, object_name);
 
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) ruletree_to_memory();
 
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) {
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"ruletree_catalog_get: Failed, no rule tree");
 		return (0);
 	}
@@ -1039,21 +1039,21 @@ ruletree_object_offset_t ruletree_catalog_vget(const char *namev[])
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) ruletree_to_memory();
 
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) {
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"%s: Failed, no rule tree", __func__);
 		return (0);
 	}
 
 	catalog_start_offs = 0; /* start from the root catalog */
 	for (i = 0; namev[i]; i++) {
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"%s [%d] '%s'", __func__, i, namev[i]);
 
 		catalog_start_offs = ruletree_catalog_find_value_from_catalog(
 			catalog_start_offs, namev[i]);
 		if (!catalog_start_offs) return(0);
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE2,
+	LB_LOG(LB_LOGLEVEL_NOISE2,
 		"%s returns %d", __func__, (int)catalog_start_offs);
 	return (catalog_start_offs);
 }
@@ -1069,11 +1069,11 @@ const char *ruletree_catalog_get_string(
 	offs = ruletree_catalog_get(catalog_name, object_name);
 	if (offs) {
 		const char *str = offset_to_ruletree_string_ptr(offs, NULL);
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"ruletree_catalog_get_string: '%s'", str);
 		return(str);
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE2,
+	LB_LOG(LB_LOGLEVEL_NOISE2,
 		"ruletree_catalog_get_string: NULL");
 	return(NULL);
 }
@@ -1088,12 +1088,12 @@ uint32_t *ruletree_catalog_get_uint32_ptr(
 	offs = ruletree_catalog_get(catalog_name, object_name);
 	if (offs) {
 		uint32_t *uip = ruletree_get_pointer_to_uint32(offs);
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"ruletree_catalog_get_uint32_ptr(%s,%s): 0x%p",
 			catalog_name, object_name, uip);
 		return(uip);
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE2,
+	LB_LOG(LB_LOGLEVEL_NOISE2,
 		"ruletree_catalog_get_uint32_ptr(%s,%s): NULL",
 			catalog_name, object_name);
 	return(NULL);
@@ -1109,12 +1109,12 @@ uint32_t *ruletree_catalog_get_boolean_ptr(
 	offs = ruletree_catalog_get(catalog_name, object_name);
 	if(offs) {
 		uint32_t *uip = ruletree_get_pointer_to_boolean(offs);
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"ruletree_catalog_get_boolean_ptr(%s,%s): 0x%p",
 			catalog_name, object_name, uip);
 		return(uip);
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE2,
+	LB_LOG(LB_LOGLEVEL_NOISE2,
 		"ruletree_catalog_get_boolean_ptr(%s,%s): NULL",
 			catalog_name, object_name);
 	return(NULL);
@@ -1135,12 +1135,12 @@ int ruletree_catalog_set(
 	ruletree_catalog_entry_t	*catalog_entry_ptr_in_root_catalog = NULL;
 	ruletree_catalog_entry_t	*object_cat_entry = NULL;
 
-	SB_LOG(SB_LOGLEVEL_NOISE2,
+	LB_LOG(LB_LOGLEVEL_NOISE2,
 		"ruletree_catalog_set(catalog=%s,object_name=%s,object_offset=%d)",
 		catalog_name, object_name, (int)value_offset);
 
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) {
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"ruletree_catalog_set: Failed, no rule tree");
 		return (0);
 	}
@@ -1171,14 +1171,14 @@ int ruletree_catalog_vset(
 	int				i;
 
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) {
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			"ruletree_catalog_set: Failed, no rule tree");
 		return (0);
 	}
 
 	catalog_start_offs = ruletree_ctx.rtree_ruletree_hdr_p->rtree_hdr_root_catalog;
 	for (i = 0; namev[i]; i++) {
-		SB_LOG(SB_LOGLEVEL_NOISE2, "%s [%d] %s", __func__, i, namev[i]);
+		LB_LOG(LB_LOGLEVEL_NOISE2, "%s [%d] %s", __func__, i, namev[i]);
 
 		catptr = ruletree_catalog_add_or_find_object(
 			catalog_start_offs, namev[i], catptr);
@@ -1187,7 +1187,7 @@ int ruletree_catalog_vset(
 		catalog_start_offs = catptr->rtree_cat_value_offs;
 	}
 	if (catptr) {
-		SB_LOG(SB_LOGLEVEL_NOISE2, "%s Found, set to %d", __func__, (int)value_offset);
+		LB_LOG(LB_LOGLEVEL_NOISE2, "%s Found, set to %d", __func__, (int)value_offset);
 		catptr->rtree_cat_value_offs = value_offset;
 		return(1);
 	}
@@ -1202,9 +1202,9 @@ ruletree_fsrule_t *offset_to_ruletree_fsrule_ptr(int loc)
 
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (NULL);
 	rp = (ruletree_fsrule_t*)offset_to_ruletree_object_ptr(loc,
-		SB2_RULETREE_OBJECT_TYPE_FSRULE);
+		LB_RULETREE_OBJECT_TYPE_FSRULE);
 	if (rp) {
-		if (rp->rtree_fsr_objhdr.rtree_obj_magic != SB2_RULETREE_MAGIC) rp = NULL;
+		if (rp->rtree_fsr_objhdr.rtree_obj_magic != LB_RULETREE_MAGIC) rp = NULL;
 	}
 	return(rp);
 }
@@ -1217,9 +1217,9 @@ ruletree_exec_preprocessing_rule_t *offset_to_exec_preprocessing_rule_ptr(int lo
 
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (NULL);
 	rp = (ruletree_exec_preprocessing_rule_t*)offset_to_ruletree_object_ptr(loc,
-		SB2_RULETREE_OBJECT_TYPE_EXEC_PP_RULE);
+		LB_RULETREE_OBJECT_TYPE_EXEC_PP_RULE);
 	if (rp) {
-		if (rp->rtree_xpr_objhdr.rtree_obj_magic != SB2_RULETREE_MAGIC) rp = NULL;
+		if (rp->rtree_xpr_objhdr.rtree_obj_magic != LB_RULETREE_MAGIC) rp = NULL;
 	}
 	return(rp);
 }
@@ -1231,10 +1231,10 @@ ruletree_object_offset_t add_net_rule_to_ruletree(
 {
 	ruletree_object_offset_t rule_location = 0;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: ", __func__);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: ", __func__);
 	rule_location = append_struct_to_ruletree_file(rule, sizeof(*rule),
-                SB2_RULETREE_OBJECT_TYPE_NET_RULE);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: done, @%u", __func__, rule_location);
+                LB_RULETREE_OBJECT_TYPE_NET_RULE);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: done, @%u", __func__, rule_location);
         return(rule_location);
 }
 
@@ -1247,26 +1247,26 @@ int ruletree_to_memory(void)
         int attach_result = -1;
 
 	if (ruletree_ctx.rtree_ruletree_path) {
-                SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_to_memory: already done");
+                LB_LOG(LB_LOGLEVEL_NOISE, "ruletree_to_memory: already done");
 		return(0); /* return if already mapped */
 	}
 
-        if (sbox_session_dir) {
+        if (ldbox_session_dir) {
                 char *rule_tree_path = NULL;
 
                 /* map the rule tree to memory: */
-                if (asprintf(&rule_tree_path, "%s/RuleTree.bin", sbox_session_dir) < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+                if (asprintf(&rule_tree_path, "%s/RuleTree.bin", ldbox_session_dir) < 0) {
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"asprintf failed to create file name for rule tree");
 		} else {
 			attach_result = attach_ruletree(rule_tree_path,
 				0/*keep open*/);
-			SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_to_memory: attach(%s) = %d",
+			LB_LOG(LB_LOGLEVEL_DEBUG, "ruletree_to_memory: attach(%s) = %d",
 				rule_tree_path, attach_result);
 			free(rule_tree_path);
 		}
         } else {
-                SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_to_memory: no session dir");
+                LB_LOG(LB_LOGLEVEL_DEBUG, "ruletree_to_memory: no session dir");
 	}
         return (attach_result);
 }

@@ -15,13 +15,13 @@
 */
 
 #include "mapping.h"
-#include "sb2.h"
-#include "libsb2.h"
+#include "lb.h"
+#include "liblb.h"
 #include "exported.h"
 
 #include <sys/mman.h>
 
-#include "sb2_execs.h"
+#include "lb_execs.h"
 
 /* FIXME: This is currently a slightly modified copy of ruletree_test_path_match()
  *    
@@ -35,17 +35,17 @@ static int test_path_match(const char *full_path, size_t full_path_len,
 	uint32_t	selector_len;
 
 	if (!selector_type || !full_path) {
-		SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match fails"); 
+		LB_LOG(LB_LOGLEVEL_NOISE, "ruletree_test_path_match fails");
 		return(-1);
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match (%s), type=%d", 
+	LB_LOG(LB_LOGLEVEL_NOISE, "ruletree_test_path_match (%s), type=%d",
 		full_path, selector_type);
 
 	selector = offset_to_ruletree_string_ptr(selector_offs,
 		&selector_len);
 
 	switch (selector_type) {
-	case SB2_RULETREE_FSRULE_SELECTOR_PATH:
+	case LB_RULETREE_FSRULE_SELECTOR_PATH:
 		if (selector) {
 			if ((selector_len == full_path_len) &&
 			    !strcmp(full_path, selector)) {
@@ -54,7 +54,7 @@ static int test_path_match(const char *full_path, size_t full_path_len,
 			}
 		}
 		break;
-	case SB2_RULETREE_FSRULE_SELECTOR_PREFIX:
+	case LB_RULETREE_FSRULE_SELECTOR_PREFIX:
 		if (selector && (*selector != '\0')) {
 			if ((full_path_len >= selector_len) &&
 			    (full_path[selector_len-1] == selector[selector_len-1]) &&
@@ -64,7 +64,7 @@ static int test_path_match(const char *full_path, size_t full_path_len,
 			}
 		}
 		break;
-	case SB2_RULETREE_FSRULE_SELECTOR_DIR:
+	case LB_RULETREE_FSRULE_SELECTOR_DIR:
 		if (selector && (*selector != '\0')) {
 			/* test a directory prefix: the next char after the
 			 * prefix must be '\0' or '/', unless we are accessing
@@ -81,12 +81,12 @@ static int test_path_match(const char *full_path, size_t full_path_len,
 		}
 		break;
 	default:
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"%s: Unsupported selector type", __func__);
 		return(-1);
 	}
 
-	SB_LOG(SB_LOGLEVEL_NOISE,
+	LB_LOG(LB_LOGLEVEL_NOISE,
 		"%s: '%s' (%u), '%s' (%u) => %d (%s)",
 		__func__, full_path, full_path_len, selector, selector_len, result, match_type);
 	return(result);
@@ -103,11 +103,11 @@ const char *find_exec_policy_name(const char *mapped_path, const char *virtual_p
 	(void)virtual_path; /* not used */
 
 	if (!policy_selection_rules_offs) {
-		modename = sbox_session_mode;
+		modename = ldbox_session_mode;
 		if (!modename)
 			modename = ruletree_catalog_get_string("MODES", "#default");
 		if (!modename) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"%s: modename not found", __func__);
 			return(NULL);
 		}
@@ -116,7 +116,7 @@ const char *find_exec_policy_name(const char *mapped_path, const char *virtual_p
 			"exec_policy_selection", modename);
 
 		if (!policy_selection_rules_offs) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"%s: no exec policy selection rules for mode '%s'",
 				__func__, modename);
 			return(NULL);
@@ -125,7 +125,7 @@ const char *find_exec_policy_name(const char *mapped_path, const char *virtual_p
 	list_size = ruletree_objectlist_get_list_size(policy_selection_rules_offs);
 	mapped_path_len = strlen(mapped_path);
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: path='%s'", __func__, mapped_path);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: path='%s'", __func__, mapped_path);
 	for (i = 0; i < list_size; i++) {
 		ruletree_object_offset_t	rule_offs;
 
@@ -134,13 +134,13 @@ const char *find_exec_policy_name(const char *mapped_path, const char *virtual_p
 			ruletree_exec_policy_selection_rule_t   *rule;
 
 			rule = offset_to_ruletree_object_ptr(
-				rule_offs, SB2_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE);
+				rule_offs, LB_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE);
 			if (rule) {
 				if (test_path_match(mapped_path, mapped_path_len,
 					rule->rtree_xps_type, rule->rtree_xps_selector_offs) >= 0) {
 					const char *epn = offset_to_ruletree_string_ptr(
 						rule->rtree_xps_exec_policy_name_offs, NULL);
-					SB_LOG(SB_LOGLEVEL_DEBUG,
+					LB_LOG(LB_LOGLEVEL_DEBUG,
 						"%s: exec policy found, #%u '%s'",
 						__func__, i, epn);
 					return(epn);
@@ -148,7 +148,7 @@ const char *find_exec_policy_name(const char *mapped_path, const char *virtual_p
 			}
 		}
 	}
-	SB_LOG(SB_LOGLEVEL_ERROR,
+	LB_LOG(LB_LOGLEVEL_ERROR,
 		"%s: exec policy was not found (mode='%s'), default rule is missing?",
 		__func__, modename);
 	return(NULL);

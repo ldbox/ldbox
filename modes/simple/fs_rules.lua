@@ -15,12 +15,12 @@ if (not tools) then
 	tools = "/"
 end
 
-qemu_binary_name = basename(sbox_cputransparency_cmd)
+qemu_binary_name = basename(ldbox_cputransparency_cmd)
 
 simple_rules_usr = {
-		{path = "/usr/bin/sb2-show",
+		{path = "/usr/bin/lb-show",
 		 use_orig_path = true, readonly = true},
-		{dir = "/usr/lib/libsb2", use_orig_path = true,
+		{dir = "/usr/lib/liblb", use_orig_path = true,
 		 readonly = true},
 
 		-- Qemu only:
@@ -53,17 +53,17 @@ fs_mapping_rules = {
 		-- -----------------------------------------------
 		-- 2. Development environment special destinations:
 
-		{prefix = "/sb2/wrappers",
-		 replace_by = sbox_dir.."/share/scratchbox2/wrappers",
+		{prefix = "/lb/wrappers",
+		 replace_by = ldbox_dir.."/share/ldbox/wrappers",
 		 readonly = true},
 
-		{prefix = "/sb2/scripts",
-		 replace_by = sbox_dir.."/share/scratchbox2/scripts",
+		{prefix = "/lb/scripts",
+		 replace_by = ldbox_dir.."/share/ldbox/scripts",
 		 readonly = true},
 
-		{prefix = sbox_user_home_dir, use_orig_path = true},
+		{prefix = ldbox_user_home_dir, use_orig_path = true},
 
-		{prefix = sbox_dir .. "/share/scratchbox2",
+		{prefix = ldbox_dir .. "/share/ldbox",
 		 use_orig_path = true},
 
 		{dir = "/usr", rules = simple_rules_usr},
@@ -75,7 +75,7 @@ fs_mapping_rules = {
 		{prefix = "/host_usr", map_to = target_root},
 		{prefix = "/tmp", use_orig_path = true},
 		{prefix = "/dev", use_orig_path = true},
-		{prefix = "/proc", custom_map_funct = sb2_procfs_mapper,
+		{prefix = "/proc", custom_map_funct = lb_procfs_mapper,
 		 virtual_path = true},
 		{prefix = "/sys", use_orig_path = true},
 

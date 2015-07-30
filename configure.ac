@@ -3,7 +3,7 @@
 
 
 AC_PREREQ(2.59)
-AC_INIT([sb2], [1.99b], [lle@rahina.org])
+AC_INIT([ldbox], [2.3.90], [ol@infoserver.lv])
 #AC_CANONICAL_TARGET
 #AM_INIT_AUTOMAKE
 #AM_MAINTAINER_MODE

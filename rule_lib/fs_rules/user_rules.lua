@@ -15,12 +15,12 @@ function use_outside_path(path)
 end
 
 -- Allow user-defined rules to "overlay" what we've defined here.
--- What is in ~/.sbrules gets executed as if its contents were in this file, on this line.
-function run_user_sbrules()
-   -- We could call .sbrules via pcall to trap errors but that just hides them from the user
-   -- pcall(dofile, home .. '/.sbrules')
-   local sbrules = sbox_user_home_dir .. '/.sbrules'
-   if user_file_readable(sbrules) then
-      do_file(sbrules)
+-- What is in ~/.lbrules gets executed as if its contents were in this file, on this line.
+function run_user_lbrules()
+   -- We could call .lbrules via pcall to trap errors but that just hides them from the user
+   -- pcall(dofile, home .. '/.lbrules')
+   local lbrules = ldbox_user_home_dir .. '/.lbrules'
+   if user_file_readable(lbrules) then
+      do_file(lbrules)
    end
 end

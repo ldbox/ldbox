@@ -1,5 +1,5 @@
 /*
- * network.c -- Network API of the scratchbox2 preload library
+ * network.c -- Network API of the ldbox preload library
  *
  * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
  * parts contributed by 
@@ -34,8 +34,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stddef.h>
-#include "libsb2.h"
-#include "sb2_network.h"
+#include "liblb.h"
+#include "lb_network.h"
 #include "exported.h"
 
 /* ---------- internal functions etc. ---------- */
@@ -63,7 +63,7 @@ static int map_sockaddr_un(
 	if (!*orig_serv_addr_un->sun_path) {
 		/* an "abstract" local domain socket.
 		 * This is a Linux-specific extension */
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: abstract AF_UNIX addr",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: abstract AF_UNIX addr",
 			realfnname);
 		output_addr->mapped_sockaddr_un = *orig_serv_addr_un;
 		snprintf(output_addr->orig_printable_dst_addr,
@@ -75,7 +75,7 @@ static int map_sockaddr_un(
 		return(0);
 	}
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: checking AF_UNIX addr '%s'",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: checking AF_UNIX addr '%s'",
 		realfnname, orig_serv_addr_un->sun_path);
 
 	snprintf(output_addr->orig_printable_dst_addr,
@@ -84,16 +84,16 @@ static int map_sockaddr_un(
 
 	clear_mapping_results_struct(&res);
 	/* FIXME: implement if(pathname_is_readonly!=0)... */
-	sbox_map_path(realfnname, orig_serv_addr_un->sun_path,
-		0/*flags*/, &res, SB2_INTERFACE_CLASS_SOCKADDR);
+	ldbox_map_path(realfnname, orig_serv_addr_un->sun_path,
+		0/*flags*/, &res, LB_INTERFACE_CLASS_SOCKADDR);
 	if (res.mres_errno != 0) {
 		result = res.mres_errno;
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: Failed to map AF_UNIX address '%s': errno=%d",
 			realfnname, orig_serv_addr_un->sun_path, result);
 	} else if (res.mres_result_path == NULL) {
 		result = EINVAL;
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"%s: Failed to map AF_UNIX address '%s'",
 			realfnname, orig_serv_addr_un->sun_path);
 		snprintf(output_addr->mapped_printable_dst_addr,
@@ -104,7 +104,7 @@ static int map_sockaddr_un(
 		if (sizeof(output_addr->mapped_sockaddr_un.sun_path) <=
 		    strlen(res.mres_result_path)) {
 			result = ENAMETOOLONG;
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"%s: Mapped AF_UNIX address (%s) is too long",
 				realfnname, res.mres_result_path);
 			snprintf(output_addr->mapped_printable_dst_addr,
@@ -153,15 +153,15 @@ static int map_sockaddr_in(
 
 		/* call the mapping logic. Parameter "protocol" is currently
 		 * not used, because library calls like "connect()" do not
-		 * specify it - it has been defined earlier. SB2 should
+		 * specify it - it has been defined earlier. ldbox should
 		 * either keep a table (cache) of socket types, or use
 		 * syscalls to dig it out. This has not been implemented.
 		 * To Be Fixed, if it turns out to be a real problem,
 		 * currently it isn't. We have been able to live with a
 		 * common set of protocol-independent rules. FIXME.
 		*/
-		mapping_result_code = sb2_map_network_addr(
-			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
+		mapping_result_code = lb_map_network_addr(
+			(ldbox_binary_name ? ldbox_binary_name : "UNKNOWN"),
 			realfnname, NULL/*protocol. unknown. FIXME */,
 			addr_type, printable_dst_addr,
 			ntohs(orig_sockaddr_in->sin_port),
@@ -171,7 +171,7 @@ static int map_sockaddr_in(
 		if (mapping_result_code) return(mapping_result_code); /* errno-code */
 
 		if (!*mapped_dst_addr) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"%s: failed to map IPv4 address (internal error)",
 				realfnname);
 		} else {
@@ -189,7 +189,7 @@ static int map_sockaddr_in(
 					"AF_INET %s:%d", mapped_dst_addr, mapped_port);
 				return(0); /* ok to use this address */
 			case 0: 
-				SB_LOG(SB_LOGLEVEL_ERROR,
+				LB_LOG(LB_LOGLEVEL_ERROR,
 					"%s: IPv4 address mapping returned an "
 					"illegal string (inet_pton() can't convert it;"
 					" this is an internal error)",
@@ -197,7 +197,7 @@ static int map_sockaddr_in(
 				break;
 			case -1: /* EAFNOSUPPORT */
 			default:
-				SB_LOG(SB_LOGLEVEL_ERROR,
+				LB_LOG(LB_LOGLEVEL_ERROR,
 					"%s: IPv4 address conversion error in "
 					"inet_pton() (internal error)",
 					realfnname);
@@ -215,7 +215,7 @@ static int map_sockaddr_in(
 		snprintf(output_addr->mapped_printable_dst_addr,
 			sizeof(output_addr->mapped_printable_dst_addr),
 			"<AF_INET address conversion failed>");
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"%s: failed to convert IPv4 address to string",
 			realfnname);
 	}
@@ -254,15 +254,15 @@ static int map_sockaddr_in6(
 
 		/* call the mapping logic. Parameter "protocol" is currently
 		 * not used, because library calls like "connect()" do not
-		 * specify it - it has been defined earlier. SB2 should
+		 * specify it - it has been defined earlier. ldbox should
 		 * either keep a table (cache) of socket types, or use
 		 * syscalls to dig it out. This has not been implemented.
 		 * To Be Fixed, if it turns out to be a real problem,
 		 * currently it isn't. We have been able to live with a
 		 * common set of protocol-independent rules. FIXME.
 		*/
-		mapping_result_code = sb2_map_network_addr(
-			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
+		mapping_result_code = lb_map_network_addr(
+			(ldbox_binary_name ? ldbox_binary_name : "UNKNOWN"),
 			realfnname, NULL/*protocol. unknown. FIXME */,
 			addr_type, printable_dst_addr,
 			ntohs(orig_sockaddr_in6->sin6_port),
@@ -272,7 +272,7 @@ static int map_sockaddr_in6(
 		if (mapping_result_code) return(mapping_result_code); /* errno-code */
 
 		if (!*mapped_dst_addr) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"%s: failed to map IPv6 address (internal error)",
 				realfnname);
 		} else {
@@ -290,7 +290,7 @@ static int map_sockaddr_in6(
 					"AF_INET6 [%s]:%d", mapped_dst_addr, mapped_port);
 				return(0); /* ok to use this address */
 			case 0: 
-				SB_LOG(SB_LOGLEVEL_ERROR,
+				LB_LOG(LB_LOGLEVEL_ERROR,
 					"%s: IPv6 address mapping returned an "
 					"illegal string (inet_pton() can't convert it;"
 					" this is an internal error)",
@@ -298,7 +298,7 @@ static int map_sockaddr_in6(
 				break;
 			case -1: /* EAFNOSUPPORT */
 			default:
-				SB_LOG(SB_LOGLEVEL_ERROR,
+				LB_LOG(LB_LOGLEVEL_ERROR,
 					"%s: IPv6 address conversion error in "
 					"inet_pton() (internal error)",
 					realfnname);
@@ -316,7 +316,7 @@ static int map_sockaddr_in6(
 		snprintf(output_addr->mapped_printable_dst_addr,
 			sizeof(output_addr->mapped_printable_dst_addr),
 			"<AF_INET6 address conversion failed>");
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"%s: failed to convert IPv6 address to string",
 			realfnname);
 	}
@@ -340,7 +340,7 @@ static void log_mapped_net_op_result(
 	case EPERM: result_str = "EPERM"; break;
 	default: result_str = "Failed"; break;
 	}
-	SB_LOG(SB_LOGLEVEL_NETWORK, "%s: %s => %s (%d)",
+	LB_LOG(LB_LOGLEVEL_NETWORK, "%s: %s => %s (%d)",
 		realfnname, addr->mapped_printable_dst_addr,
 		result_str, result_errno);
 }
@@ -373,13 +373,13 @@ static int map_sockaddr(
 			if (inet_mapping_result != 0) {
 				/* return error */
 				*result_errno_ptr = inet_mapping_result;
-				SB_LOG(SB_LOGLEVEL_NETWORK,
+				LB_LOG(LB_LOGLEVEL_NETWORK,
 					"%s: denied (%s), errno=%d",
 					realfnname, output_addr->orig_printable_dst_addr,
 					inet_mapping_result);
 				return(MAP_SOCKADDR_OPERATION_DENIED);
 			}
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: orig addr.len=%d, mapped_addrlen=%d",
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: orig addr.len=%d, mapped_addrlen=%d",
 				__func__, input_addrlen, output_addr->mapped_addrlen);
 			return (MAP_SOCKADDR_MAPPED);
 
@@ -419,7 +419,7 @@ static int map_sockaddr(
 	if (inet_mapping_result != 0) {
 		/* return error */
 		*result_errno_ptr = inet_mapping_result;
-		SB_LOG(SB_LOGLEVEL_NETWORK,
+		LB_LOG(LB_LOGLEVEL_NETWORK,
 			"%s: denied (%s), errno=%d",
 			realfnname, output_addr->orig_printable_dst_addr,
 			inet_mapping_result);
@@ -427,13 +427,13 @@ static int map_sockaddr(
 	}
 	if (strcmp(output_addr->orig_printable_dst_addr,
 	    output_addr->mapped_printable_dst_addr)) {
-		SB_LOG(SB_LOGLEVEL_NETWORK,
+		LB_LOG(LB_LOGLEVEL_NETWORK,
 			"%s: allowed, address changed "
 			"(orig.addr=%s, new addr=%s)", realfnname,
 			output_addr->orig_printable_dst_addr,
 			output_addr->mapped_printable_dst_addr);
 	} else {
-		SB_LOG(SB_LOGLEVEL_NETWORK,
+		LB_LOG(LB_LOGLEVEL_NETWORK,
 			"%s: allowed (%s)", realfnname,
 			output_addr->orig_printable_dst_addr);
 	}
@@ -470,7 +470,7 @@ int bind_gate(
 	case MAP_SOCKADDR_USE_ORIG_ADDR:
 		break;
 	default:
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"%s: internal error: unknown result code from map_sockaddr()",
 			realfnname);
 	}
@@ -508,7 +508,7 @@ int connect_gate(
 	case MAP_SOCKADDR_USE_ORIG_ADDR:
 		break;
 	default:
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"%s: internal error: unknown result code from map_sockaddr()",
 			realfnname);
 	}
@@ -553,7 +553,7 @@ ssize_t sendto_gate(
 	case MAP_SOCKADDR_USE_ORIG_ADDR:
 		break;
 	default:
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"%s: internal error: unknown result code from map_sockaddr()",
 			realfnname);
 	}
@@ -597,7 +597,7 @@ ssize_t sendmsg_gate(
 		case MAP_SOCKADDR_USE_ORIG_ADDR:
 			break;
 		default:
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"%s: internal error: unknown result code from map_sockaddr()",
 				realfnname);
 		}
@@ -615,55 +615,55 @@ static void reverse_sockaddr_un(
 	socklen_t *fromlen)
 {
 	struct sockaddr_un *from_un;
-	char *sbox_path = NULL;
+	char *ldbox_path = NULL;
 
 	if (!from || !fromlen || (*fromlen < 1) || (orig_from_size < 1)) {
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			 "%s: nothing to reverse", realfnname);
 		return;
 	}
 
 	if (from->sa_family != AF_UNIX) {
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			 "%s: not AF_UNIX", realfnname);
 		return;
 	}
 
 	if (*fromlen <= offsetof(struct sockaddr_un, sun_path)) {
 		/* empty address, nothing to reverse */
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			 "%s: empty AF_UNIX address", realfnname);
 		return;
 	}
 
 	from_un = (struct sockaddr_un*)from;
 	if (from_un->sun_path[0] == '\0') {
-		SB_LOG(SB_LOGLEVEL_NOISE2,
+		LB_LOG(LB_LOGLEVEL_NOISE2,
 			 "%s: abstract AF_UNIX address", realfnname);
 		return;
 	}
 
 	/* a non-abstract unix domain socket address, reverse it */
-	sbox_path = scratchbox_reverse_path(realfnname, from_un->sun_path,
-			SB2_INTERFACE_CLASS_SOCKADDR);
-	if (sbox_path) {
+	ldbox_path = scratchbox_reverse_path(realfnname, from_un->sun_path,
+			LB_INTERFACE_CLASS_SOCKADDR);
+	if (ldbox_path) {
 		size_t max_path_size = orig_from_size -
 			 offsetof(struct sockaddr_un, sun_path);
 
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: reversed to '%s'",
-			realfnname, sbox_path);
-		if (strlen(sbox_path) >= max_path_size) {
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: reversed to '%s'",
+			realfnname, ldbox_path);
+		if (strlen(ldbox_path) >= max_path_size) {
 			/* address does not fit */
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: (result will be cut)", realfnname);
-			strncpy(from_un->sun_path, sbox_path, max_path_size);
+			strncpy(from_un->sun_path, ldbox_path, max_path_size);
 			*fromlen = orig_from_size;
 		} else {
-			strcpy(from_un->sun_path, sbox_path);
+			strcpy(from_un->sun_path, ldbox_path);
 			*fromlen = offsetof(struct sockaddr_un, sun_path)
-				+ strlen(sbox_path) + 1;
+				+ strlen(ldbox_path) + 1;
 		}
-		free(sbox_path);
+		free(ldbox_path);
 	}
 }
 

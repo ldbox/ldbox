@@ -1,11 +1,11 @@
 LUASRC = luaif/lua-5.1.4/src
 
-# Not needed anymore, because Lua was dropped from libsb2:
+# Not needed anymore, because Lua was dropped from liblb:
 #	$(D)/luaif.o $(D)/argvenvp.o
 
-objs := $(D)/sblib_luaif.o
+objs := $(D)/lblib_luaif.o
 
-$(D)/sblib_luaif.o: preload/exported.h
+$(D)/lblib_luaif.o: preload/exported.h
 
 luaif/libluaif.a: $(objs)
 luaif/libluaif.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC) -I$(OBJDIR)/preload -I$(SRCDIR)/preload \
@@ -23,7 +23,7 @@ lua_sources_expanded = $(foreach v,$(lua_sources),$(LUASRC)/$(v))
 
 lua_objs := $(lua_sources_expanded:.c=.o)
 
-luaif/sb_log.o: include/scratchbox2_version.h
+luaif/lb_log.o: include/ldbox_version.h
 
 luaif/liblua.a: $(lua_objs)
 luaif/liblua.a: override CFLAGS := -O2 -Dfopen=fopen_nomap -g -fPIC -Wall -W $(CFLAGS)

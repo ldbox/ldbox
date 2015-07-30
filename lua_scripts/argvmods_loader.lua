@@ -26,10 +26,10 @@ function load_argvmods_file(modename)
 	end
 
 	-- load in automatically generated argvmods file
-	if sblib.path_exists(argvmods_file_path) then
+	if lblib.path_exists(argvmods_file_path) then
 		do_file(argvmods_file_path)
 		if debug_messages_enabled then
-			sblib.log("debug", string.format(
+			lblib.log("debug", string.format(
 			    "loaded argvmods from '%s'",
 			    argvmods_file_path))
 		end

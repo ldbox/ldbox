@@ -13,7 +13,7 @@ rule_file_interface_version = "105"
 
 -- use "==" to test options as long as there is only one possible option,
 -- string.match() is slow..
-if sbox_mode_specific_options == "use-global-tmp" then
+if ldbox_mode_specific_options == "use-global-tmp" then
 	tmp_dir_dest = "/tmp"
 	var_tmp_dir_dest = "/var/tmp"
 else
@@ -187,11 +187,11 @@ emulate_mode_rules_usr_bin = {
 		 func_class = FUNC_CLASS_EXEC,
 		 actions = accelerated_program_actions},
 
-		{path = "/usr/bin/sb2-show", use_orig_path = true,
+		{path = "/usr/bin/lb-show", use_orig_path = true,
 		 protection = readonly_fs_always},
-		{path = "/usr/bin/sb2-qemu-gdbserver-prepare",
+		{path = "/usr/bin/lb-qemu-gdbserver-prepare",
 		    use_orig_path = true, protection = readonly_fs_always},
-		{path = "/usr/bin/sb2-session", use_orig_path = true,
+		{path = "/usr/bin/lb-session", use_orig_path = true,
 		 protection = readonly_fs_always},
 
 		-- debian tools: rules are not yet enabled.
@@ -205,8 +205,8 @@ emulate_mode_rules_usr = {
 		{name = "/usr/bin branch", dir = "/usr/bin", rules = emulate_mode_rules_usr_bin},
 
 		-- gdb wants to have access to our dynamic linker also,
-		-- /usr/lib/libsb2/wrappers/*, etc.
-		{dir = "/usr/lib/libsb2", use_orig_path = true,
+		-- /usr/lib/liblb/wrappers/*, etc.
+		{dir = "/usr/lib/liblb", use_orig_path = true,
 		 protection = readonly_fs_always},
 
 		{dir = "/usr", map_to = target_root,
@@ -274,7 +274,7 @@ emulate_mode_rules = {
 		-- First paths that should never be mapped:
 		{dir = session_dir, use_orig_path = true},
 
-		{path = sbox_cputransparency_cmd, use_orig_path = true,
+		{path = ldbox_cputransparency_cmd, use_orig_path = true,
 		 protection = readonly_fs_always},
 
 		--{dir = target_root, use_orig_path = true,
@@ -289,7 +289,7 @@ emulate_mode_rules = {
 		-- ldconfig is static binary, and needs to be wrapped
 		-- Gdb needs some special parameters before it
 		-- can be run so we wrap it.
-		{dir = "/sb2/wrappers",
+		{dir = "/lb/wrappers",
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 protection = readonly_fs_always},
 
@@ -301,17 +301,17 @@ emulate_mode_rules = {
 		{dir = "/proc", rules = import_from_fs_rule_library("proc")},
 		{dir = "/sys", rules = sys_rules},
 
-		{dir = sbox_dir .. "/share/scratchbox2",
+		{dir = ldbox_dir .. "/share/ldbox",
 		 use_orig_path = true},
 
-		-- The real sbox_dir.."/lib/libsb2" must be available:
+		-- The real ldbox_dir.."/lib/liblb" must be available:
 		--
-		-- When libsb2 is installed to target we don't want to map
+		-- When liblb is installed to target we don't want to map
 		-- the path where it is found.  For example gdb needs access
 		-- to the library and dynamic linker, and these may be in
-		-- target_root, or under sbox_dir.."/lib/libsb2", or
-		-- under ~/.scratchbox2.
-		{dir = sbox_dir .. "/lib/libsb2",
+		-- target_root, or under ldbox_dir.."/lib/liblb", or
+		-- under ~/.ldbox.
+		{dir = ldbox_dir .. "/lib/liblb",
 		 actions = test_first_target_then_host_default_is_target},
 
 		-- -----------------------------------------------

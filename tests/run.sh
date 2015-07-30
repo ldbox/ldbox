@@ -1,7 +1,7 @@
 #!/bin/sh
 
-#export SBOX_DIR=/scratchbox
-#export SBOX_LOGIN=$SBOX_DIR/login
+#export LDBOX_DIR=/scratchbox
+#export LDBOX_LOGIN=$LDBOX_DIR/login
 
 tdir=`mktemp -d test.XXXXXX` || exit 1
 status=0
@@ -12,12 +12,12 @@ else
 	tests=$1
 fi
 
-echo "*******************************"
-echo "testing basic sb2 functionality"
-echo "*******************************"
+echo "*********************************"
+echo "testing basic ldbox functionality"
+echo "*********************************"
 echo
 
-sb2 sh ./init_tests.sh || exit 1
+lb sh ./init_tests.sh || exit 1
 
 echo
 echo OK
@@ -37,7 +37,7 @@ do
 
 	echo -n "Running \"$name\" ... " >&2
 	cp $test $tdir
-	( cd ${tdir} ; sb2 sh ./$test ) > $tdir/out 2> $tdir/err
+	( cd ${tdir} ; lb sh ./$test ) > $tdir/out 2> $tdir/err
 	retval=$?
 
 	if [ $retval -eq 0 ]

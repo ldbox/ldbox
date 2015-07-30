@@ -211,7 +211,7 @@ function argvmods_to_file(filename, num_argvmods_rules, argvmods_tbl)
 end
 
 if (debug_messages_enabled) then
-	sblib.log("debug",
+	lblib.log("debug",
 		string.format("Adding exec preprocessing rules ('argvmods') to ruletree"))
 end
 
@@ -223,7 +223,7 @@ local num_rules = check_and_count_rules(argvmods)
 argvmods_to_ruletree("misc", num_rules, argvmods)
 argvmods_to_file(session_dir .. "/argvmods_misc.lua", num_rules, argvmods)
 if (debug_messages_enabled) then
-	sblib.log("debug",
+	lblib.log("debug",
 		string.format("%d rules", num_rules))
 end
 
@@ -236,7 +236,7 @@ argvmods_to_ruletree("gcc", num_rules, argvmods)
 clear_attr_list()
 argvmods_to_file(session_dir .. "/argvmods_gcc.lua", num_rules, argvmods)
 if (debug_messages_enabled) then
-	sblib.log("debug",
+	lblib.log("debug",
 		string.format("%d rules", num_rules))
 end
 

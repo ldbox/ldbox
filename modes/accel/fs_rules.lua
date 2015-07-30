@@ -19,7 +19,7 @@ if (not tools) then
 	tools = "/"
 end
 
-sb2_share_dir = sbox_user_home_dir.."/.scratchbox2/"..sbox_target.."/share"
+lb_share_dir = ldbox_user_home_dir.."/.ldbox/"..ldbox_target.."/share"
 
 -- =========== Actions for conditional rules ===========
 
@@ -159,7 +159,7 @@ devel_mode_rules_bin = {
 		 use_orig_path = true, readonly = true},
 	
 		-- "pwd" from "coreutils" uses a built-in replacement
-		-- for getcwd(), which does not work with sb2, because
+		-- for getcwd(), which does not work with ldbox, because
 		-- the path mapping means that ".." does not necessarily
 		-- contain an i-node that refers to the current directory..
 		{path = "/bin/pwd",
@@ -173,11 +173,11 @@ devel_mode_rules_bin = {
 -- Used when dir = "/usr/share":
 devel_mode_rules_usr_share = {
 		-- -----------------------------------------------
-		-- 1. General SB2 environment:
+		-- 1. General ldbox environment:
 
-		{prefix = sbox_dir .. "/share/scratchbox2/host_usr",
+		{prefix = ldbox_dir .. "/share/ldbox/host_usr",
 		 replace_by = "/usr", readonly = true},
-		{prefix = sbox_dir .. "/share/scratchbox2",
+		{prefix = ldbox_dir .. "/share/ldbox",
 		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------
@@ -214,9 +214,9 @@ devel_mode_rules_usr_share = {
 -- Used when dir = "/usr/bin":
 devel_mode_rules_usr_bin = {
 		-- -----------------------------------------------
-		-- 1. General SB2 environment:
+		-- 1. General ldbox environment:
 
-		{prefix = "/usr/bin/sb2-",
+		{prefix = "/usr/bin/lb-",
 		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------
@@ -237,8 +237,8 @@ devel_mode_rules_usr_bin = {
 		 readonly = true},
 
 		-- 19. perl & python:
-		-- 	processing depends on SBOX_REDIRECT_IGNORE,
-		--	SBOX_REDIRECT_FORCE and 
+		-- 	processing depends on LDBOX_REDIRECT_IGNORE,
+		--	LDBOX_REDIRECT_FORCE and
 		--	name of the current exec policy. 
 		--	(these are real prefixes, version number may
 		--	be included in the name (/usr/bin/python2.5 etc))
@@ -280,7 +280,7 @@ devel_mode_rules_usr_lib = {
 		},
 
 		-- wrappers etc.
-		{dir = "/usr/lib/libsb2", force_orig_path = true},
+		{dir = "/usr/lib/liblb", force_orig_path = true},
 
 		{prefix = "/usr/lib",
 		 actions = test_first_target_then_tools_default_is_target},
@@ -409,7 +409,7 @@ devel_mode_rules_scratchbox1 = {
 		-- (these are marked "virtual"; these won't be reversed)
 		-- "libtool" for arm
 		{prefix = "/scratchbox/compilers/cs2005q3.2-glibc2.5-arm/arch_tools/share/libtool",
-		 replace_by = sb2_share_dir .. "/libtool",
+		 replace_by = lb_share_dir .. "/libtool",
 		 log_level = "warning",
 		 readonly = true, virtual_path = true},
 
@@ -448,7 +448,7 @@ devel_mode_rules_scratchbox1 = {
 		-- "policy-rc.d" checks if scratchbox-version exists, 
 		-- to detect if it is running inside scratchbox..
 		{prefix = "/scratchbox/etc/scratchbox-version",
-		 replace_by = "/usr/share/scratchbox2/version",
+		 replace_by = "/usr/share/ldbox/version",
 		 log_level = "warning",
 		 readonly = true, virtual_path = true},
 
@@ -483,12 +483,12 @@ fs_mapping_rules = {
 		-- -----------------------------------------------
 		-- 2. Development environment special destinations:
 
-		{prefix = "/sb2/wrappers",
+		{prefix = "/lb/wrappers",
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 readonly = true},
 
-		{prefix = "/sb2/scripts",
-		 replace_by = sbox_dir.."/share/scratchbox2/scripts",
+		{prefix = "/lb/scripts",
+		 replace_by = ldbox_dir.."/share/ldbox/scripts",
 		 readonly = true},
 
 		-- tools_root should not be mapped twice.
@@ -503,7 +503,7 @@ fs_mapping_rules = {
 		-- -----------------------------------------------
 		-- 10. Home directories
 
-		{prefix = sbox_user_home_dir, use_orig_path = true},
+		{prefix = ldbox_user_home_dir, use_orig_path = true},
 
 		-- "user" is a special username at least on the Maemo platform:
 		-- (but note that if the real user name is "user",
@@ -547,7 +547,7 @@ fs_mapping_rules = {
 		-- -----------------------------------------------
 		-- 90. Top-level directories that must not be mapped:
 		{prefix = "/dev", use_orig_path = true},
-		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+		{dir = "/proc", custom_map_funct = lb_procfs_mapper,
 		 virtual_path = true},
 		{prefix = "/sys",
 		 use_orig_path = true, readonly = true},

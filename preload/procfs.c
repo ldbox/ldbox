@@ -6,7 +6,7 @@
  *
  * ----------------
  *
- * /proc simulation for SB2.
+ * /proc simulation for ldbox.
  *
  * /proc/self/exe (as well as /proc/<MY_PID>/exe and /proc/<PID>L/exe)
  * needs special care if the binary was started by anything else
@@ -37,8 +37,8 @@
 #endif
 
 #include <mapping.h>
-#include <sb2.h>
-#include "libsb2.h"
+#include <lb.h>
+#include "liblb.h"
 #include "exported.h"
 
 #define BLOCK_SIZE (4*1024)
@@ -154,9 +154,9 @@ static char *symlink_for_exe_path(
 	}
 	/* ensure that the directory for links with "depth" levels exists: */
 	prefixlen = snprintf(pathbuf, bufsize, "%s/proc/X.%d",
-		sbox_session_dir, depth);
+		ldbox_session_dir, depth);
 	if ((prefixlen + 2 + strlen(exe_path)) >= bufsize) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"Can't create replacement for /proc/%u/exe; "
 		        "resulting path is too long", pid);
 		return(NULL);
@@ -173,11 +173,11 @@ static char *symlink_for_exe_path(
 		strcat(pathbuf, cp); /* Always fits; We already checked that */
 		if (next_slash) {
 			pathbuf[prefixlen + (next_slash - exe_path)] = '\0';
-			SB_LOG(SB_LOGLEVEL_NOISE, "Create DIR '%s'", pathbuf);
+			LB_LOG(LB_LOGLEVEL_NOISE, "Create DIR '%s'", pathbuf);
 			mkdir_nomap_nolog(pathbuf, 0755);
 			cp = next_slash;
 		} else {
-			SB_LOG(SB_LOGLEVEL_NOISE, "Create SYMLINK '%s' => '%s'",
+			LB_LOG(LB_LOGLEVEL_NOISE, "Create SYMLINK '%s' => '%s'",
 				pathbuf, exe_path);
 			symlink_nomap_nolog(exe_path, pathbuf);
 			cp = NULL;
@@ -190,14 +190,14 @@ static char *symlink_for_exe_path(
  *
  * Returns string in newly allocated buffer, caller should deallocate it.
  */
-static char *select_exe_path_for_sb2(
+static char *select_exe_path_for_lb(
 	const char *orig_binary_name, const char *real_binary_name)
 {
 	if (real_binary_name) {
 		/* real_binary_name contains host real path */
 		/* try to determine virtal real path */
-		char *exe = scratchbox_reverse_path("select_exe_path_for_sb2", real_binary_name,
-				SB2_INTERFACE_CLASS_PROC_FS_OP);
+		char *exe = scratchbox_reverse_path("select_exe_path_for_lb", real_binary_name,
+				LB_INTERFACE_CLASS_PROC_FS_OP);
 		if (exe)
 			return(exe);
 		return(strdup(real_binary_name));
@@ -207,18 +207,18 @@ static char *select_exe_path_for_sb2(
 		/* only unmapped, unclean path is available */
 		char *rp;
 		char *reverse;
-		struct sb2context *sb2if = get_sb2context();
+		struct lbcontext *lbif = get_lbcontext();
 
 		/* lua mapping is disabled at this point, need to enable it */
-		enable_mapping(sb2if);
+		enable_mapping(lbif);
 		/* calculate host real path */
 		rp = canonicalize_file_name(real_binary_name);
-		disable_mapping(sb2if);
-		release_sb2context(sb2if);
+		disable_mapping(lbif);
+		release_lbcontext(lbif);
 
 		if (!rp) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"select_exe_path_for_sb2(%s, %s):"
+			LB_LOG(LB_LOGLEVEL_ERROR,
+				"select_exe_path_for_lb(%s, %s):"
 				" error while determining real path: %s",
 				orig_binary_name,
 				real_binary_name,
@@ -226,8 +226,8 @@ static char *select_exe_path_for_sb2(
 			return(NULL);
 		}
 
-		reverse = scratchbox_reverse_path("select_exe_path_for_sb2", rp,
-				SB2_INTERFACE_CLASS_PROC_FS_OP);
+		reverse = scratchbox_reverse_path("select_exe_path_for_lb", rp,
+				LB_INTERFACE_CLASS_PROC_FS_OP);
 		if (reverse) {
 			free(rp);
 			rp = reverse;
@@ -235,7 +235,7 @@ static char *select_exe_path_for_sb2(
 		return(rp);
 	}
 
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 	       "procfs_mapping failed to get absolute exe path");
 	return(NULL);
 }
@@ -243,40 +243,40 @@ static char *select_exe_path_for_sb2(
 static char *procfs_mapping_request_for_my_files(
 	const char *full_path, const char *base_path)
 {
-	SB_LOG(SB_LOGLEVEL_DEBUG, "procfs_mapping_request_for_my_files(%s)",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "procfs_mapping_request_for_my_files(%s)",
 		full_path);
 
 	if (!strcmp(base_path,"exe")) {
-		const char *exe_path_inside_sb2;
+		const char *exe_path_inside_lb;
 		char	pathbuf[PATH_MAX];
 		char    link_dest[PATH_MAX+1];
 		int	link_len;
 
-                exe_path_inside_sb2 = select_exe_path_for_sb2(
-			sbox_orig_binary_name, sbox_real_binary_name);
+                exe_path_inside_lb = select_exe_path_for_lb(
+			ldbox_orig_binary_name, ldbox_real_binary_name);
 
-                if (!exe_path_inside_sb2) return(NULL);
+                if (!exe_path_inside_lb) return(NULL);
 
 		/* check if the real link is OK: */
 		link_len = readlink_nomap(full_path, link_dest, PATH_MAX);
 		if ((link_len > 0) &&
-		    !strcmp(exe_path_inside_sb2, link_dest)) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+		    !strcmp(exe_path_inside_lb, link_dest)) {
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"procfs_mapping_request_for_my_files:"
 				" real link is ok (%s,%s)",
 				full_path, link_dest);
-			free((void*)exe_path_inside_sb2);
+			free((void*)exe_path_inside_lb);
 			return(NULL);
 		}
 		/* must create a replacement: */
 		if (symlink_for_exe_path(
-		    pathbuf, sizeof(pathbuf), exe_path_inside_sb2, getpid())) {
-			free((void*)exe_path_inside_sb2);
+		    pathbuf, sizeof(pathbuf), exe_path_inside_lb, getpid())) {
+			free((void*)exe_path_inside_lb);
 			return(strdup(pathbuf));
 		}
 		/* oops, failed to create the replacement.
 		 * must use the real link, it points to wrong place.. */
-		free((void*)exe_path_inside_sb2);
+		free((void*)exe_path_inside_lb);
 		return(NULL);
 	}
 	return(NULL);
@@ -285,11 +285,11 @@ static char *procfs_mapping_request_for_my_files(
 static char *procfs_mapping_request_for_other_files(
         const char *full_path, const char *base_path, const char *pid_path, pid_t pid)
 {
-        SB_LOG(SB_LOGLEVEL_DEBUG, "procfs_mapping_request_for_other_files(%s)",
+        LB_LOG(LB_LOGLEVEL_DEBUG, "procfs_mapping_request_for_other_files(%s)",
 	       full_path);
 
         if (!strcmp(base_path,"exe")) {
-                const char *exe_path_inside_sb2;
+                const char *exe_path_inside_lb;
                 char    *buffer;
                 char    pathbuf[PATH_MAX];
                 char    link_dest[PATH_MAX+1];
@@ -299,7 +299,7 @@ static char *procfs_mapping_request_for_other_files(
                 const char *real_binary_name;
 
                 /* Check the process environment to find out is this 
-		 * runned under sb2 
+		 * runned under ldbox
 		 */
                 (void)snprintf(pathbuf, sizeof(pathbuf), "%s/environ",
 			       pid_path);
@@ -308,9 +308,9 @@ static char *procfs_mapping_request_for_other_files(
                         return(NULL);
                 }
 
-                orig_binary_name = read_env_variable("__SB2_ORIG_BINARYNAME",
+                orig_binary_name = read_env_variable("__LB_ORIG_BINARYNAME",
                                                   buffer, len);
-                real_binary_name = read_env_variable("__SB2_REAL_BINARYNAME",
+                real_binary_name = read_env_variable("__LB_REAL_BINARYNAME",
                                                   buffer, len);
 
 		/* we don't need buffer anymore */
@@ -319,35 +319,35 @@ static char *procfs_mapping_request_for_other_files(
 		orig_binary_name = read_env_value(orig_binary_name);
 		real_binary_name = read_env_value(real_binary_name);
 
-                exe_path_inside_sb2 = select_exe_path_for_sb2(
+                exe_path_inside_lb = select_exe_path_for_lb(
 			orig_binary_name, real_binary_name);
 		
                 /* this is not under runned binary */
-                if (!exe_path_inside_sb2) {
+                if (!exe_path_inside_lb) {
                         return(NULL);
                 }
 
                 /* check if the real link is OK: */
                 link_len = readlink_nomap(full_path, link_dest, PATH_MAX);
                 if ((link_len > 0) &&
-                    !strcmp(exe_path_inside_sb2, link_dest)) {
-                        SB_LOG(SB_LOGLEVEL_DEBUG,
+                    !strcmp(exe_path_inside_lb, link_dest)) {
+                        LB_LOG(LB_LOGLEVEL_DEBUG,
 			       "procfs_mapping_request_for_other_files:"
 			       " real link is ok (%s,%s)",
 			       full_path, link_dest);
-			free((void*)exe_path_inside_sb2);
+			free((void*)exe_path_inside_lb);
 			return(NULL);
 		}
 		/* must create a replacement: */
 		if (symlink_for_exe_path(
-		    pathbuf, sizeof(pathbuf), exe_path_inside_sb2, pid)) {
-			free((void*)exe_path_inside_sb2);
+		    pathbuf, sizeof(pathbuf), exe_path_inside_lb, pid)) {
+			free((void*)exe_path_inside_lb);
 			return(strdup(pathbuf));
 		}
 		/* oops, failed to create the replacement.
                  * must use the real link, it points to wrong place.. 
 		 */
-		free((void*)exe_path_inside_sb2);
+		free((void*)exe_path_inside_lb);
 		return(NULL);
 	}
 	return(NULL);
@@ -365,7 +365,7 @@ char *procfs_mapping_request(const char *path)
 	int	len, count;
 	pid_t   pid;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "procfs_mapping_request(%s)", path);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "procfs_mapping_request(%s)", path);
 
 	if (!strncmp(path, proc_self_path, sizeof(proc_self_path)-1))
 		return(procfs_mapping_request_for_my_files(path,
@@ -388,7 +388,7 @@ char *procfs_mapping_request(const char *path)
 		return(procfs_mapping_request_for_other_files(
 			       path, path+len, my_process_path, pid));
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "procfs_mapping_request: not mapped");
+	LB_LOG(LB_LOGLEVEL_DEBUG, "procfs_mapping_request: not mapped");
 	return(NULL);
 }
 

@@ -17,7 +17,7 @@ Riku Voipio <riku.voipio@movial.fi>:
 Lauri T. Aarnio <lauri.aarnio@iki.fi>:
 	preload/gen-interface.pl
 	preload/interface.master
-	luaif/sb_log.c
-	utils/sb2-logz
-	utils/sb2-show.c
+	luaif/lb_log.c
+	utils/lb-logz
+	utils/lb-show.c
 

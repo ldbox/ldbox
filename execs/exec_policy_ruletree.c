@@ -6,13 +6,13 @@
  */
 
 #include "mapping.h"
-#include "sb2.h"
-#include "libsb2.h"
+#include "lb.h"
+#include "liblb.h"
 #include "exported.h"
 
 #include <sys/mman.h>
 
-#include "sb2_execs.h"
+#include "lb_execs.h"
 
 /* Functions for accessing exec policy settings in the rule tree db.
  *
@@ -27,14 +27,14 @@ exec_policy_handle_t     find_exec_policy_handle(const char *policyname)
 	exec_policy_handle_t	eph;
 	const char *v[4];
 	
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: find %s", __func__, policyname);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: find %s", __func__, policyname);
 	v[0] = "exec_policy";
-	v[1] = sbox_session_mode ? sbox_session_mode : ruletree_catalog_get_string("MODES", "#default");
+	v[1] = ldbox_session_mode ? ldbox_session_mode : ruletree_catalog_get_string("MODES", "#default");
 	v[2] = policyname;
 	v[3] = NULL;
 	
 	eph.exec_policy_offset = ruletree_catalog_vget(v);
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"%s: Handle for (%s,%s) = %u", __func__,
 		v[1], v[2], eph.exec_policy_offset);
 	return(eph);
@@ -51,10 +51,10 @@ const char *exec_policy_get_string(exec_policy_handle_t eph,
 			eph.exec_policy_offset, s_name);
 		str = offset_to_ruletree_string_ptr(offs, NULL);
 		if (str) {
-			SB_LOG(SB_LOGLEVEL_NOISE,
+			LB_LOG(LB_LOGLEVEL_NOISE,
 				"%s: %s='%s'", __func__, s_name, str, fldoffs);
 		} else {
-			SB_LOG(SB_LOGLEVEL_NOISE,
+			LB_LOG(LB_LOGLEVEL_NOISE,
 				"%s: No %s", __func__, s_name, fldoffs);
 		}
                 return(str);
@@ -72,7 +72,7 @@ int exec_policy_get_boolean(exec_policy_handle_t eph,
 		offs = ruletree_catalog_find_value_from_catalog(
 			eph.exec_policy_offset, b_name);
 		uip = ruletree_get_pointer_to_boolean(offs);
-                SB_LOG(SB_LOGLEVEL_NOISE,
+                LB_LOG(LB_LOGLEVEL_NOISE,
                         "%s: @%u = *%p = %d",
 			__func__, offs, uip, (uip ? *uip : 999), fldoffs);
                 return(uip ? * uip : 0);
@@ -90,7 +90,7 @@ int exec_policy_get_uint32(exec_policy_handle_t eph,
 		offs = ruletree_catalog_find_value_from_catalog(
 			eph.exec_policy_offset, u_name);
 		uip = ruletree_get_pointer_to_uint32(offs);
-		SB_LOG(SB_LOGLEVEL_NOISE,
+		LB_LOG(LB_LOGLEVEL_NOISE,
 			"%s: @%u = *%p = %u",
 			__func__, offs, uip, (uip ? *uip : 0), fldoffs);
 		return(uip ? *uip : 0);
@@ -106,7 +106,7 @@ ruletree_object_offset_t exec_policy_get_rules(exec_policy_handle_t eph,
 
 		offs = ruletree_catalog_find_value_from_catalog(
 			eph.exec_policy_offset, r_name);
-                SB_LOG(SB_LOGLEVEL_NOISE,
+                LB_LOG(LB_LOGLEVEL_NOISE,
                         "%s: @%u", __func__, offs, fldoffs);
                 return(offs);
 	}

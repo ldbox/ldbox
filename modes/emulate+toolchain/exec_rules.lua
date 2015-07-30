@@ -31,10 +31,10 @@ emulate_mode_target_ld_so = nil		-- default = not needed
 emulate_mode_target_ld_library_path_prefix = ""
 emulate_mode_target_ld_library_path_suffix = nil
 
--- used if libsb2.so is not available in target_root:
+-- used if liblb.so is not available in target_root:
 emulate_mode_target_ld_library_path_suffix = nil
 
-if (conf_target_sb2_installed) then
+if (conf_target_lb_installed) then
 	if (conf_target_ld_so ~= nil) then
 		-- use dynamic libraries from target, 
 		-- when executing native binaries!
@@ -44,7 +44,7 @@ if (conf_target_sb2_installed) then
 else
 	emulate_mode_target_ld_library_path_prefix =
 		host_ld_library_path_prefix ..
-		host_ld_library_path_libsb2
+		host_ld_library_path_liblb
 	emulate_mode_target_ld_library_path_suffix =
 		host_ld_library_path_suffix
 end
@@ -70,7 +70,7 @@ local exec_policy_target = {
 }
 
 --
--- For tools: If tools_root is set and libsb2 has been installed there,
+-- For tools: If tools_root is set and liblb has been installed there,
 -- then dynamic libraries can be used from tools_root (otherwise we'll
 -- be using the libs from the host OS)
 
@@ -83,7 +83,7 @@ local emulate_mode_tools_ld_so = nil		-- default = not needed
 local emulate_mode_tools_ld_library_path_prefix = ""
 local emulate_mode_tools_ld_library_path_suffix = ""
 
-if ((tools_root ~= nil) and conf_tools_sb2_installed) then
+if ((tools_root ~= nil) and conf_tools_lb_installed) then
 	if (conf_tools_ld_so ~= nil) then
 		-- Ok to use dynamic libraries from tools!
 		emulate_mode_tools_ld_so = conf_tools_ld_so
@@ -96,7 +96,7 @@ if ((tools_root ~= nil) and conf_tools_sb2_installed) then
 else
 	emulate_mode_tools_ld_library_path_prefix =
 		host_ld_library_path_prefix ..
-		host_ld_library_path_libsb2
+		host_ld_library_path_liblb
 	emulate_mode_tools_ld_library_path_suffix =
 		host_ld_library_path_suffix
 end

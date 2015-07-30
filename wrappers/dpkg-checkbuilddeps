@@ -10,12 +10,12 @@
 #
 # -------------------
 #
-# dpkg-checkbuilddeps wrapper for SB2.
+# dpkg-checkbuilddeps wrapper for ldbox.
 #
 # ENVIRONMENT VARIABLES:
-# - set SBOX_CHECKBUILDDEPS_VERBOSE to non-empty value to get
+# - set LDBOX_CHECKBUILDDEPS_VERBOSE to non-empty value to get
 #   verbose description about what is missing.
-# - SBOX_DOUBLECHECK_DEPS; see the text below:
+# - LDBOX_DOUBLECHECK_DEPS; see the text below:
 #
 # Currently there are two algorithms for this: Old and new.
 #
@@ -27,7 +27,7 @@
 # the perl script (the old algorithm is off by default).
 #
 # Alternatively, the old and new algorithms can both be
-# enabled by setting environment variable SBOX_DOUBLECHECK_DEPS
+# enabled by setting environment variable LDBOX_DOUBLECHECK_DEPS
 # to any non-empty value. I haven't seen any cases where the
 # old algorithm would be better that the new one, but I'm
 # interested to hear if there are any...before this old
@@ -36,9 +36,9 @@
 # Here is description of the OLD algorithm:
 # Idea behind operation is to first check target's package db,
 # then check if missing packages are tools that could be used
-# from the host (or sbox_tools_root, if that has been set)
+# from the host (or ldbox_tools_root, if that has been set)
 #
-# There might also be dependencies that SB2 itself solves;
+# There might also be dependencies that ldbox itself solves;
 # for example, gcc-* dependencies might be resolved by the
 # cross compiler.
 #
@@ -51,41 +51,41 @@
 # FIXME: This implementation is still incomplete, as this does not
 # check package versions while checking host/tools_root tools.
 # Also, it would be a good idea to do a "visibility check" for host packages,
-# too (see how sb2-check-pkg-mappings does it for target's pkg db)]
+# too (see how lb-check-pkg-mappings does it for target's pkg db)]
 
 args="$*"
 prog="$0"
 progbase=`basename $0`
 
-SBOX_REDIRECT_IGNORE=""
+LDBOX_REDIRECT_IGNORE=""
 
-function error_not_inside_sb2()
+function error_not_inside_lb()
 {
-	echo "SB2: $progbase: This wrapper can only be used from inside"
+	echo "ldbox: $progbase: This wrapper can only be used from inside"
 	echo "the scratchbox 2'ed environment"
 	exit 1
 }
 
 function verbose_message()
 {
-	if [ -n "$SBOX_CHECKBUILDDEPS_VERBOSE" ]; then
+	if [ -n "$LDBOX_CHECKBUILDDEPS_VERBOSE" ]; then
 		echo "$*" 1>&2
 	fi
 }
 
-if [ -z "$SBOX_SESSION_DIR" ]
+if [ -z "$LDBOX_SESSION_DIR" ]
 then
-	error_not_inside_sb2
+	error_not_inside_lb
 fi
 
-. $SBOX_SESSION_DIR/sb2-session.conf
+. $LDBOX_SESSION_DIR/lb-session.conf
 
 # A generated, temporary package db which only contains packages that
 # are usable thru the current mapping mode:
-TARGET_DPKG_ADMINDIR_USABLE_PKGS=$sbox_temp_dpkg_admin_dir
+TARGET_DPKG_ADMINDIR_USABLE_PKGS=$ldbox_temp_dpkg_admin_dir
 
-cfgfile_host_accepted_pkgs=$sbox_dir/share/scratchbox2/modes/$sbox_mapmode/host-accepted-packages
-cfgfile_host_ignored_pkgs=$sbox_dir/share/scratchbox2/modes/$sbox_mapmode/host-ignored-packages
+cfgfile_host_accepted_pkgs=$ldbox_dir/share/ldbox/modes/$ldbox_mapmode/host-accepted-packages
+cfgfile_host_ignored_pkgs=$ldbox_dir/share/ldbox/modes/$ldbox_mapmode/host-ignored-packages
 
 # Execute a command in tools mode. forces /usr/bin/perl to tools,
 # otherwise the shell which is running this script may try to take perl from
@@ -93,7 +93,7 @@ cfgfile_host_ignored_pkgs=$sbox_dir/share/scratchbox2/modes/$sbox_mapmode/host-i
 # Return status is in $tools_mode_tool_stat when this returns.
 function run_in_tools_mode()
 {
-	SBOX_REDIRECT_FORCE="/usr/bin/perl" SBOX_SESSION_MODE=tools \
+	LDBOX_REDIRECT_FORCE="/usr/bin/perl" LDBOX_SESSION_MODE=tools \
 		eval "$*"
 	tools_mode_tool_stat=$?
 }
@@ -132,7 +132,7 @@ function check_host_pkg()
 			fi
 		fi
 
-		pkg_stat_tmp=`mktemp -p $SBOX_SESSION_DIR/tmp pkg-stat.XXXXXXXXXX`
+		pkg_stat_tmp=`mktemp -p $LDBOX_SESSION_DIR/tmp pkg-stat.XXXXXXXXXX`
 		# next check again if the package exists on the target,
 		# just to be able to give a better error message.
 		if dpkg-query -s "$pkgname" >$pkg_stat_tmp 2>&1
@@ -141,7 +141,7 @@ function check_host_pkg()
 			then
 				rm $pkg_stat_tmp
 				check_result_msg="'$pkgname': OOPS. Needed from the the rootstrap (installed there),"
-				check_result_msg2="   but unusable (not fully visible due to SB2 mapping rules)"
+				check_result_msg2="   but unusable (not fully visible due to LB mapping rules)"
 				return
 			fi
 		fi
@@ -182,34 +182,34 @@ function check_gcc_dependency()
 	required_gcc=$1
 	prefix="$2"
 
-	if [ -f $HOME/.scratchbox2/$sbox_target/sb2.config.d/gcc.config.sh ]
+	if [ -f $HOME/.ldbox/$ldbox_target/lb.config.d/gcc.config.sh ]
 	then
 		# a cross compiler has been configured
 		if [ "$required_gcc" = "gcc" ]
 		then
 			# requires GCC, but does not depend on gcc version
-			verbose_message "$prefix""SB2 provides gcc"
+			verbose_message "$prefix""ldbox provides gcc"
 			return 0
 		fi
 		if [ "$required_gcc" = "g++" ]
 		then
 			# requires G++, but does not depend on g++ version
-			verbose_message "$prefix""SB2 provides g++"
+			verbose_message "$prefix""ldbox provides g++"
 			return 0
 		fi
 		#
 		# Find out if gcc version is suitable, try all configured
 		# toolchains
 		for gcc_conf_file in \
-			$HOME/.scratchbox2/$sbox_target/sb2.config.d/gcc*.config.sh
+			$HOME/.ldbox/$ldbox_target/lb.config.d/gcc*.config.sh
 		do
 			if [ -f $gcc_conf_file ]; then
 				. $gcc_conf_file
-				short_vrs="g??-$SBOX_CROSS_GCC_SHORTVERSION"
-				full_vrs="g??-$SBOX_CROSS_GCC_VERSION"
+				short_vrs="g??-$LDBOX_CROSS_GCC_SHORTVERSION"
+				full_vrs="g??-$LDBOX_CROSS_GCC_VERSION"
 				case "$required_gcc" in
 				$short_vrs|$full_vrs)
-					verbose_message "$prefix""SB2 provides $required_gcc"
+					verbose_message "$prefix""ldbox provides $required_gcc"
 					return 0
 					;;
 				esac
@@ -217,12 +217,12 @@ function check_gcc_dependency()
 		done
 	fi # else a cross-compiler is not available, gcc comes from tools
 
-	# Failed, SB2 environment does not provide a suitable gcc.
+	# Failed, ldbox environment does not provide a suitable gcc.
 	return 1
 }
 
 # This is now used only in "OLD_CHK" mode
-function check_sb2_builddeps()
+function check_lb_builddeps()
 {
 	orig_missing="$1"
 	prefix="$2"
@@ -230,7 +230,7 @@ function check_sb2_builddeps()
 	new_missing=""
 	ret=0
 
-	# Currently, SB2 can fulfill "gcc", "gcc-<version>",
+	# Currently, ldbox can fulfill "gcc", "gcc-<version>",
 	# "g++", "g++-<version>"
 	for m in $orig_missing
 	do
@@ -266,7 +266,7 @@ function check_host_builddeps()
 	ret=0
 
 	# do the magic here
-	verbose_message "$prefix""SB2 Checking host build deps.."
+	verbose_message "$prefix""ldbox Checking host build deps.."
 
 	list_ok=1	# default to ok
 	# $m will be the package to test, or pkg/pkg[/...] if there are
@@ -326,8 +326,8 @@ function check_host_builddeps()
 function check_host_builddeps_by_real_tool()
 {
 	ret=0
-	verbose_message "SB2 Checking tools build deps..."
-	x_missing_dep_file=`mktemp -p $SBOX_SESSION_DIR/tmp tools_missing_deps.XXXXXXXXXX`
+	verbose_message "ldbox Checking tools build deps..."
+	x_missing_dep_file=`mktemp -p $LDBOX_SESSION_DIR/tmp tools_missing_deps.XXXXXXXXXX`
 
 	# Run dpkg-checkbuilddeps in the "tools" mode
 	# Note: Can't use a pipeline here, we want to the
@@ -365,15 +365,15 @@ function check_host_builddeps_by_real_tool()
 function check_target_builddeps()
 {
 	ret=0
-	verbose_message "SB2 Checking target build deps..."
-	missing_dep_file=`mktemp -p $SBOX_SESSION_DIR/tmp missing_deps.XXXXXXXXXX`
+	verbose_message "ldbox Checking target build deps..."
+	missing_dep_file=`mktemp -p $LDBOX_SESSION_DIR/tmp missing_deps.XXXXXXXXXX`
 
 	# dpkg-checkbuilddeps with another package db..
 	# a special rule in the tools mode is needed because the
 	# version which is available in /usr/bin may not know about the
 	# --admindir option. Can't use a pipeline here, we want to the
 	# dpkg-checkbuilddeps' return status.
-	SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION=$TARGET_DPKG_ADMINDIR_USABLE_PKGS/status \
+	LDBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION=$TARGET_DPKG_ADMINDIR_USABLE_PKGS/status \
 		run_in_tools_mode /usr/bin/dpkg-checkbuilddeps \
 			$args > $missing_dep_file 2>&1
 	if [ $tools_mode_tool_stat == 0 ]; then
@@ -383,7 +383,7 @@ function check_target_builddeps()
 	fi
 
 	# else real dpkg-checkbuilddeps failed.
-	if [ -n "$SBOX_CHECKBUILDDEPS_VERBOSE" ]; then
+	if [ -n "$LDBOX_CHECKBUILDDEPS_VERBOSE" ]; then
 		sed -e 's/^/     /' < $missing_dep_file
 	fi
 	missing_deps=$(egrep \
@@ -420,10 +420,10 @@ function compare_target_and_host_results_with_new_tool()
 		host_ignored=`grep -v "#" $cfgfile_host_ignored_pkgs`
 	fi
 
-	verbose_message "SB2 Combining results from target and tools..."
+	verbose_message "ldbox Combining results from target and tools..."
 
-	SBOX_TARGET=$sbox_target \
-		$sbox_dir/share/scratchbox2/lib/sb2-cmp-checkbuilddeps-output.pl \
+	LDBOX_TARGET=$ldbox_target \
+		$ldbox_dir/share/ldbox/lib/lb-cmp-checkbuilddeps-output.pl \
 		"$t_missing" "$h_missing" "$both_required" "$host_accepted" "$host_ignored"
 	result2=$?
 	return $result2
@@ -444,7 +444,7 @@ fi
 # Next, check that the list of usable packages exists and is up-to-date.
 # That list is really a temporary package database, which contains only
 # packages that are usable thru this mapping mode.
-sb2-check-pkg-mappings -u
+lb-check-pkg-mappings -u
 
 check_target_builddeps
 check_target_builddeps_result=$?
@@ -461,11 +461,11 @@ function old_deps_checker()
 	verbose_message "OLD_CHK: Build dependencies missing from the target environment:"
 	verbose_message "OLD_CHK:      $missing_deps"
 
-	# Something is missing. Check if SB2 can fulfill the requirements:
-	check_sb2_builddeps "$missing_deps" "OLD_CHK: "
+	# Something is missing. Check if ldbox can fulfill the requirements:
+	check_lb_builddeps "$missing_deps" "OLD_CHK: "
 	if [ $? == 0 ]; then
 		# OK now, nothing needed from the host side
-		verbose_message "OLD_CHK: SB2 tools check => all dependencies OK"
+		verbose_message "OLD_CHK: ldbox tools check => all dependencies OK"
 		return 0
 	fi
 
@@ -477,7 +477,7 @@ function old_deps_checker()
 		verbose_message "OLD_CHK:"
 		verbose_message "OLD_CHK: Configuration file $cfgfile_host_accepted_pkgs"
 		verbose_message "OLD_CHK: does not exist. This means that no packages have been approved to be used"
-		verbose_message "OLD_CHK: from the host environment in this mapping mode ($sbox_mapmode)."
+		verbose_message "OLD_CHK: from the host environment in this mapping mode ($ldbox_mapmode)."
 		return 1
 	fi
 
@@ -505,13 +505,13 @@ function new_deps_checker()
 function deps_check_failed_exit_1()
 {
 	verbose_message "Failed."
-	if [ -z "$SBOX_CHECKBUILDDEPS_VERBOSE" ]; then
-		echo "dpkg-checkbuilddeps: (Set env.var. SBOX_CHECKBUILDDEPS_VERBOSE='y' and run this command again to get more details)" 1>&2
+	if [ -z "$LDBOX_CHECKBUILDDEPS_VERBOSE" ]; then
+		echo "dpkg-checkbuilddeps: (Set env.var. LDBOX_CHECKBUILDDEPS_VERBOSE='y' and run this command again to get more details)" 1>&2
 	fi
 	exit 1
 }
 
-if [ -n "$SBOX_DOUBLECHECK_DEPS" ]; then
+if [ -n "$LDBOX_DOUBLECHECK_DEPS" ]; then
 	old_deps_checker
 	old_deps_checker_result=$?
 fi
@@ -519,7 +519,7 @@ fi
 missing_deps="$missing_deps_after_target_check"
 new_deps_checker
 
-if [ -n "$SBOX_DOUBLECHECK_DEPS" ]; then
+if [ -n "$LDBOX_DOUBLECHECK_DEPS" ]; then
 	if [ "$new_deps_checker_result" != "$old_deps_checker_result" ]; then
 		verbose_message "INCONSISTENT: new and old methods do not agree:"
 		if [ "$new_deps_checker_result" = 0 ]; then

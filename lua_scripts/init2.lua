@@ -3,11 +3,11 @@
 --
 -- Licensed under LGPL version 2.1, see top level LICENSE file for details.
 
--- This script is executed by sb2d when "init2" message is received.
--- The "sb2" script sends that to finalize initializations.
+-- This script is executed by lbrdbd when "init2" message is received.
+-- The "lb" script sends that to finalize initializations.
 
-session_dir = os.getenv("SBOX_SESSION_DIR")
-debug_messages_enabled = sblib.debug_messages_enabled()
+session_dir = os.getenv("LDBOX_SESSION_DIR")
+debug_messages_enabled = lblib.debug_messages_enabled()
 
 -- Default:
 init2_result = "OK - CPU transparency settings loaded."

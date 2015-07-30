@@ -12,7 +12,7 @@
 #  - If host CPU architecture != target CPU architecture,
 #    runs the binary with LD_TRACE_LOADED_OBJECTS=yes if
 #    it is a host binary (there were to be problems running
-#    the real "ldd" from inside sb2, but running ld.so
+#    the real "ldd" from inside lb, but running ld.so
 #    with that env.variable produces the required result)
 #  - If host CPU architecture == target CPU architecture,
 #    assumes that all binaries belong to the target.
@@ -31,23 +31,23 @@ args="$*"
 prog="$0"
 progbase=`basename $0`
 
-function error_not_inside_sb2()
+function error_not_inside_lb()
 {
-	echo "SB2: $progbase wrapper: This wrapper can only be used from inside"
+	echo "ldbox: $progbase wrapper: This wrapper can only be used from inside"
 	echo "the scratchbox 2'ed environment"
 	exit 1
 }
 
 # Some dynamic libraries are reported as "host/dynamic", 
-# some as "host/static" by # "sb2-show binarytype".
+# some as "host/static" by # "lb-show binarytype".
 # If the target CPU arch. is 
 # ompatible with the host, try to resolve 
 function host_compatible_binary()
 {
 	if [ -z "$conf_target_ld_so" ]; then
-		target_ld_so=`grep '^conf_target_ld_so=' $SBOX_SESSION_DIR/exec_config.lua`
+		target_ld_so=`grep '^conf_target_ld_so=' $LDBOX_SESSION_DIR/exec_config.lua`
 		eval $target_ld_so
-		target_libpath=`grep '^conf_target_ld_so_library_path=' $SBOX_SESSION_DIR/exec_config.lua`
+		target_libpath=`grep '^conf_target_ld_so_library_path=' $LDBOX_SESSION_DIR/exec_config.lua`
 		eval $target_libpath
 	fi
 	case "$conf_target_ld_so" in
@@ -57,28 +57,28 @@ function host_compatible_binary()
 		LD_TRACE_LOADED_OBJECTS=yes $1
 		;;
 	*)
-		mapped_file=`$SBOX_SESSION_DIR/bin/sb2-show which $1`
+		mapped_file=`$LDBOX_SESSION_DIR/bin/lb-show which $1`
 		LD_TRACE_LOADED_OBJECTS=yes $conf_target_ld_so --library-path $conf_target_ld_so_library_path $mapped_file
 		;;
 	esac
 }
 
-if [ -z "$SBOX_SESSION_DIR" ]
+if [ -z "$LDBOX_SESSION_DIR" ]
 then
-	error_not_inside_sb2
+	error_not_inside_lb
 fi
 
-. $SBOX_SESSION_DIR/sb2-session.conf
+. $LDBOX_SESSION_DIR/lb-session.conf
 
-if [ -z "$sbox_mapmode" -o -z "$sbox_dir" ]
+if [ -z "$ldbox_mapmode" -o -z "$ldbox_dir" ]
 then
-	error_not_inside_sb2
+	error_not_inside_lb
 fi
 
 # read-in mode-specific settings
-if [ -f $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc ]
+if [ -f $LDBOX_SESSION_DIR/modes/$ldbox_mapmode/lbrc ]
 then
-	. $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc "$progbase"
+	. $LDBOX_SESSION_DIR/modes/$ldbox_mapmode/lbrc "$progbase"
 fi
 
 OPTIONS=""
@@ -96,7 +96,7 @@ done
 
 if [ $NUM_FILES -eq 0 ]
 then
-	exec $sbox_target_root/usr/bin/ldd $OPTIONS
+	exec $ldbox_target_root/usr/bin/ldd $OPTIONS
 fi
 
 for f in $FILES
@@ -105,9 +105,9 @@ do
 	then
 		echo "$f:"
 	fi
-	type=`$SBOX_SESSION_DIR/bin/sb2-show binarytype $f`
+	type=`$LDBOX_SESSION_DIR/bin/lb-show binarytype $f`
 	case "$type" in
-	target*) $sbox_target_root/usr/bin/ldd $OPTIONS $f;;
+	target*) $ldbox_target_root/usr/bin/ldd $OPTIONS $f;;
 	host/*) host_compatible_binary $f;;
 	*) echo "ldd wrapper: Don't know how to handle $f (type=$type)"
 	esac

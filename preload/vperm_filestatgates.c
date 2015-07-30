@@ -1,5 +1,5 @@
 /*
- * libsb2 -- GATE functions for file status simulation (stat(),chown() etc)
+ * liblb -- GATE functions for file status simulation (stat(),chown() etc)
  *
  * Copyright (C) 2011 Nokia Corporation.
  * Author: Lauri T. Aarnio
@@ -21,10 +21,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 */
 
-#include "sb2.h"
-#include "sb2_stat.h"
-#include "sb2_vperm.h"
-#include "libsb2.h"
+#include "lb.h"
+#include "lb_stat.h"
+#include "lb_vperm.h"
+#include "liblb.h"
 #include "exported.h"
 #include "rule_tree.h"
 #include "rule_tree_rpc.h"
@@ -41,7 +41,7 @@ static int get_stat_for_fxxat(
 	r = real_fstatat(dirfd, mapped_filename->mres_result_path, statbuf, flags);
 	if (r < 0) {
 		int e = errno;
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d, errno=%d",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: returns %d, errno=%d",
 			realfnname, r, e);
 		errno = e;
 	}
@@ -59,7 +59,7 @@ static void vperm_clear_all_if_virtualized(
 	if (ruletree_find_inodestat(&handle, &istat_struct) == 0) {
 		/* vperms exist for this inode */
 		if (istat_struct.inodesimu_active_fields != 0) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: clear dev=%llu ino=%llu", 
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: clear dev=%llu ino=%llu",
 				realfnname, (unsigned long long)statbuf->st_dev,
 				(unsigned long long)statbuf->st_ino);
 			ruletree_rpc__vperm_clear(statbuf->st_dev, statbuf->st_ino);
@@ -78,11 +78,11 @@ int __xstat_gate(int *result_errno_ptr,
 {
 	int	r;
 	
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s gate: calling sb2_stat(%s)",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s gate: calling lb_stat(%s)",
 		realfnname, mapped_filename->mres_result_path);
-	r = sb2_stat_file(mapped_filename->mres_result_path, buf, result_errno_ptr,
+	r = lb_stat_file(mapped_filename->mres_result_path, buf, result_errno_ptr,
 		real___xstat_ptr, ver, NULL);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s gate: sb2_stat(%s) returned",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s gate: lb_stat(%s) returned",
 		realfnname, mapped_filename->mres_result_path);
 	return(r);
 }
@@ -96,11 +96,11 @@ int __xstat64_gate(int *result_errno_ptr,
 {
 	int	r;
 	
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s gate: calling sb2_stat(%s)",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s gate: calling lb_stat(%s)",
 		realfnname, mapped_filename->mres_result_path);
-	r = sb2_stat64_file(mapped_filename->mres_result_path, buf, result_errno_ptr,
+	r = lb_stat64_file(mapped_filename->mres_result_path, buf, result_errno_ptr,
 		real___xstat64_ptr, ver, NULL);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s gate: sb2_stat(%s) returned",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s gate: lb_stat(%s) returned",
 		realfnname, mapped_filename->mres_result_path);
 	return(r);
 }
@@ -115,11 +115,11 @@ int __lxstat_gate(int *result_errno_ptr,
 {
 	int	r;
 	
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s gate: calling sb2_stat(%s)",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s gate: calling lb_stat(%s)",
 		realfnname, mapped_filename->mres_result_path);
-	r = sb2_stat_file(mapped_filename->mres_result_path, buf, result_errno_ptr,
+	r = lb_stat_file(mapped_filename->mres_result_path, buf, result_errno_ptr,
 		real___lxstat_ptr, ver, NULL);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s gate: sb2_stat(%s) returned",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s gate: lb_stat(%s) returned",
 		realfnname, mapped_filename->mres_result_path);
 	return(r);
 }
@@ -134,11 +134,11 @@ int __lxstat64_gate(int *result_errno_ptr,
 {
 	int	r;
 	
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s gate: calling sb2_stat(%s)",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s gate: calling lb_stat(%s)",
 		realfnname, mapped_filename->mres_result_path);
-	r = sb2_stat64_file(mapped_filename->mres_result_path, buf, result_errno_ptr,
+	r = lb_stat64_file(mapped_filename->mres_result_path, buf, result_errno_ptr,
 		real___lxstat64_ptr, ver, NULL);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s gate: sb2_stat(%s) returned",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s gate: lb_stat(%s) returned",
 		realfnname, mapped_filename->mres_result_path);
 	return(r);
 }
@@ -250,7 +250,7 @@ static void vperm_chown(
 	int release_uid = 0;
 	int release_gid = 0;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: real fn=>EPERM, virtualize "
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: real fn=>EPERM, virtualize "
 		" (uid=%d, gid=%d)",
 		realfnname, statbuf->st_uid, statbuf->st_gid);
 	if (owner != (uid_t)-1) {
@@ -315,7 +315,7 @@ int fchownat_gate(int *result_errno_ptr,
 			*result_errno_ptr = errno;
 		}
 	}
-	SB_LOG(SB_LOGLEVEL_DEBUG, "fchownat: returns %d", res);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "fchownat: returns %d", res);
 	return(res);
 }
 
@@ -356,7 +356,7 @@ int chown_gate(int *result_errno_ptr,
 			*result_errno_ptr = errno;
 		}
 	}
-	SB_LOG(SB_LOGLEVEL_DEBUG, "chown: returns %d", res);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "chown: returns %d", res);
 	return(res);
 }
 
@@ -397,7 +397,7 @@ int lchown_gate(int *result_errno_ptr,
 			*result_errno_ptr = errno;
 		}
 	}
-	SB_LOG(SB_LOGLEVEL_DEBUG, "lchown: returns %d", res);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "lchown: returns %d", res);
 	return(res);
 }
 
@@ -438,7 +438,7 @@ int fchown_gate(int *result_errno_ptr,
 			*result_errno_ptr = errno;
 		}
 	}
-	SB_LOG(SB_LOGLEVEL_DEBUG, "fchown: returns %d", res);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "fchown: returns %d", res);
 	return(res);
 }
 
@@ -451,7 +451,7 @@ static void vperm_chmod(
 	mode_t virt_mode,
 	mode_t suid_sgid_bits)
 {
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: virtualize stat "
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: virtualize stat "
 		" (real mode=0%o, new virtual mode=0%o, suid/sgid=0%o)",
 		realfnname, statbuf->st_mode, virt_mode, suid_sgid_bits);
 
@@ -483,7 +483,7 @@ static int vperm_chmod_if_simulated_device(
 		if (istat_struct.inodesimu_active_fields & RULETREE_INODESTAT_SIM_DEVNODE) {
 			/* A simulated device; never set real mode for this,
 			 * real mode is 0000 intentionally.  */
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: set mode of simulated device", __func__);
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: set mode of simulated device", __func__);
 			vperm_chmod(realfnname, statbuf, mode, suid_sgid_bits);
 			return(0);
 		}
@@ -516,7 +516,7 @@ static void vperm_chmod_prepare(
 	int	*forced_owner_rights,
 	int	*return_zero_now)
 {
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s", __func__, realfnname);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: %s", __func__, realfnname);
 
 	/* A simulated device => don't change real mode at all.*/
 	if (get_vperm_num_active_inodestats() > 0) {
@@ -559,7 +559,7 @@ static void vperm_chmod_prepare(
 		is_dir = S_ISDIR(buf->st_mode);
 
 		if (is_dir && ((mode & 0700) != 0700)) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: simulate_root_fs_permissions for directory,"
 				" set forced_owner_rights = 0700",
 				__func__);
@@ -582,7 +582,7 @@ static int vperm_chmod_done_update_state(
 {
 	struct stat	statbuf;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s", __func__, realfnname);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: %s", __func__, realfnname);
 
 	/* need to update vperm state if
 	 *  - SUID/SGID is used
@@ -598,7 +598,7 @@ static int vperm_chmod_done_update_state(
 	    forced_owner_rights ||
 	    ((res < 0) && ( e == EPERM)) ||
 	    ((res == 0) && (get_vperm_num_active_inodestats() > 0))) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: set vperms", __func__);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: set vperms", __func__);
 
 		if (vperm_stat_for_chmod(realfnname, fd, mapped_filename, flags, &statbuf) == 0) {
 			vperm_chmod(realfnname, &statbuf, mode, suid_sgid_bits);
@@ -649,7 +649,7 @@ int fchmodat_gate(int *result_errno_ptr,
 		dirfd, mapped_filename, flags,
 		mode, suid_sgid_bits, forced_owner_rights);
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "fchmodat: returns %d", res);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "fchmodat: returns %d", res);
 	return(res);
 }
 
@@ -685,7 +685,7 @@ int fchmod_gate(int *result_errno_ptr,
 		fd, NULL/*no mapped_filename*/, 0/*no flags*/,
 		mode, suid_sgid_bits, forced_owner_rights);
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d", __func__, res);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: returns %d", __func__, res);
 	return(res);
 }
 
@@ -721,7 +721,7 @@ int chmod_gate(int *result_errno_ptr,
 		realfnname, res, e,
 		AT_FDCWD, mapped_filename, 0/*flags:follow symlinks*/,
 		mode, suid_sgid_bits, forced_owner_rights);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d", __func__, res);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: returns %d", __func__, res);
 	return(res);
 }
 
@@ -747,13 +747,13 @@ static int vperm_mknod(
 	/* we can only simulate device nodes. */
 	switch (mode & S_IFMT) {
 	case S_IFCHR:
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: Creating simulated character device node", __func__);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: Creating simulated character device node", __func__);
 		break;
 	case S_IFBLK:
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: Creating simulated block device node", __func__);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: Creating simulated block device node", __func__);
 		break;
 	default:
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: not a device node, can't simulate (type=0%o)",
 			__func__, (mode & S_IFMT));
 		*result_errno_ptr = EPERM;
@@ -768,7 +768,7 @@ static int vperm_mknod(
 	dummy_dev_fd = openat_nomap_nolog(dirfd,
 		mapped_filename->mres_result_path, O_CREAT|O_WRONLY|O_TRUNC, 0000);
 	if (dummy_dev_fd < 0) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: failed to create as a file (%s)",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: failed to create as a file (%s)",
 			 __func__, mapped_filename->mres_result_path);
 		*result_errno_ptr = EPERM;
 		return(-1);
@@ -799,7 +799,7 @@ int __xmknod_gate(int *result_errno_ptr,
 	/* first try the real function */
 	res = (*real___xmknod_ptr)(ver, mapped_filename->mres_result_path, mode, dev);
 	if (res == 0) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: real fn: ok", __func__);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: real fn: ok", __func__);
 		/* OK, success. */
 		/* If this inode has been virtualized, update DB */
 		if (get_vperm_num_active_inodestats() > 0) {
@@ -814,7 +814,7 @@ int __xmknod_gate(int *result_errno_ptr,
 	} else {
 		int	e = errno;
 
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: real fn: %d, errno=%d",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: real fn: %d, errno=%d",
 			__func__, res, e);
 		if (e == EPERM) {
 			res = vperm_mknod(AT_FDCWD, result_errno_ptr,
@@ -823,7 +823,7 @@ int __xmknod_gate(int *result_errno_ptr,
 			*result_errno_ptr = e;
 		}
 	}
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d", __func__, res);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: returns %d", __func__, res);
 	return(res);
 }
 
@@ -840,7 +840,7 @@ int __xmknodat_gate(int *result_errno_ptr,
 	/* first try the real function */
 	res = (*real___xmknodat_ptr)(ver, dirfd, mapped_filename->mres_result_path, mode, dev);
 	if (res == 0) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: real fn: ok", __func__);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: real fn: ok", __func__);
 		/* OK, success. */
 		/* If this inode has been virtualized, update DB */
 		if (get_vperm_num_active_inodestats() > 0) {
@@ -855,7 +855,7 @@ int __xmknodat_gate(int *result_errno_ptr,
 	} else {
 		int	e = errno;
 
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: real fn: %d, errno=%d",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: real fn: %d, errno=%d",
 			__func__, res, e);
 		if (e == EPERM) {
 			res = vperm_mknod(dirfd, result_errno_ptr,
@@ -864,7 +864,7 @@ int __xmknodat_gate(int *result_errno_ptr,
 			*result_errno_ptr = e;
 		}
 	}
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d", __func__, res);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: returns %d", __func__, res);
 	return(res);
 }
 
@@ -891,7 +891,7 @@ int unlink_gate(int *result_errno_ptr,
 	if (res == 0) {
 		if (has_stat) {
 			/* FIXME: races are possible here. Might be better if
-			 * sb2d unlinks the file ? */
+			 * lbrdbd unlinks the file ? */
 			if (statbuf.st_nlink == 1)
 				vperm_clear_all_if_virtualized(realfnname, &statbuf);
 		}
@@ -923,7 +923,7 @@ int remove_gate(int *result_errno_ptr,
 	if (res == 0) {
 		if (has_stat) {
 			/* FIXME: races are possible here. Might be better if
-			 * sb2d removes the file ? */
+			 * lbrdbd removes the file ? */
 			if (statbuf.st_nlink == 1)
 				vperm_clear_all_if_virtualized(realfnname, &statbuf);
 		}
@@ -955,7 +955,7 @@ int rmdir_gate(int *result_errno_ptr,
 	if (res == 0) {
 		if (has_stat) {
 			/* FIXME: races are possible here. Might be better if
-			 * sb2d removes the file ? */
+			 * lbrdbd removes the file ? */
 			vperm_clear_all_if_virtualized(realfnname, &statbuf);
 		}
 	} else {
@@ -987,7 +987,7 @@ int unlinkat_gate(int *result_errno_ptr,
 	if (res == 0) {
 		if (has_stat) {
 			/* FIXME: races are possible here. Might be better if
-			 * sb2d does the operation ? */
+			 * lbrdbd does the operation ? */
 			if (statbuf.st_nlink == 1)
 				vperm_clear_all_if_virtualized(realfnname, &statbuf);
 		}
@@ -1009,7 +1009,7 @@ static void vperm_set_owner_and_group(
 	if (real_fstatat(dirfd, mapped_pathname->mres_result_path, &statbuf, 0) == 0) {
 		vperm_chown(realfnname, &statbuf, vperm_geteuid(), vperm_getegid());
 	} else {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: stat failed", realfnname);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: stat failed", realfnname);
 	}
 }
 
@@ -1035,7 +1035,7 @@ static void vperm_mkdir_prepare(
 	    (vperm_geteuid() == 0) &&
 	    vperm_simulate_root_fs_permissions()) {
 		if ((mode & 0700) != 0700) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: forcing owner rights to RWX", realfnname);
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: forcing owner rights to RWX", realfnname);
 			*forced_owner_rights = 0700;
 		}
 	}
@@ -1141,35 +1141,35 @@ static int vperm_multiopen(
 
 	if (open_2va_ptr) {
 		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X,mode=0%o)",
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X,mode=0%o)",
 				__func__, realfnname, pathname, flags, modebits);
 		}
 		return ((*open_2va_ptr)(pathname, flags, modebits));
 	}
 	if (open_3va_ptr) {
 		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X,mode=0%o)",
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X,mode=0%o)",
 				__func__, realfnname, dirfd, pathname, flags, modebits);
 		}
 		return ((*open_3va_ptr)(dirfd, pathname, flags, modebits));
 	}
 	if (creat_ptr) {
 		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',mode=0%o)",
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',mode=0%o)",
 				__func__, realfnname, pathname, modebits);
 		}
 		return ((*creat_ptr)(pathname, modebits));
 	}
 	if (open_2_ptr) {
 		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X)",
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X)",
 				__func__, realfnname, pathname, flags);
 		}
 		return ((*open_2_ptr)(pathname, flags));
 	}
 	if (openat_3_ptr) {
 		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X)",
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X)",
 				__func__, realfnname, dirfd, pathname, flags);
 		}
 		return ((*openat_3_ptr)(dirfd, pathname, flags));
@@ -1177,7 +1177,7 @@ static int vperm_multiopen(
 	if (fopen_ptr) {
 		assert(file_ptr);
 		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fileptr=%s(path='%s',mode='%s')",
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: fileptr=%s(path='%s',mode='%s')",
 				__func__, realfnname, pathname, file_mode);
 		}
 		f = (*fopen_ptr)(pathname, file_mode);
@@ -1187,14 +1187,14 @@ static int vperm_multiopen(
 	if (freopen_ptr) {
 		assert(file_ptr);
 		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fileptr=%s(path='%s',mode='%s',fileptr)",
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: fileptr=%s(path='%s',mode='%s',fileptr)",
 				__func__, realfnname, pathname, file_mode);
 		}
 		f = (*freopen_ptr)(pathname, file_mode, *file_ptr);
 		*file_ptr = f;
 		return (f ? 0 : -1);
 	}
-	SB_LOG(SB_LOGLEVEL_ERROR, "%s: Internal error: 'open' function is missing (%s)",
+	LB_LOG(LB_LOGLEVEL_ERROR, "%s: Internal error: 'open' function is missing (%s)",
 		__func__, realfnname);
 	return(-1);
 }
@@ -1256,7 +1256,7 @@ static int vperm_do_open(
 				int need_w;
 				uid_t real_euid;
 
-				SB_LOG(SB_LOGLEVEL_DEBUG, "%s: open failed, simulated 'root', errno=%d (%s)",
+				LB_LOG(LB_LOGLEVEL_DEBUG, "%s: open failed, simulated 'root', errno=%d (%s)",
 					realfnname, open_errno, mapped_pathname->mres_result_path);
 
 				switch (open_errno) {
@@ -1271,7 +1271,7 @@ static int vperm_do_open(
 						/* owner matches, temporarily change the mode..
 						 * Warning: race conditions are possible here,
 						 * but this can't be done atomically. */
-						SB_LOG(SB_LOGLEVEL_DEBUG, "%s: trying to temporarily change "
+						LB_LOG(LB_LOGLEVEL_DEBUG, "%s: trying to temporarily change "
 							"the mode to 0%o (orig.mode=0%o)",
 							realfnname, tmpmode, orig_stat.st_mode);
 
@@ -1295,10 +1295,10 @@ static int vperm_do_open(
 								orig_stat.st_mode, 0);
 						}
 						if (res_fd < 0) {
-							SB_LOG(SB_LOGLEVEL_DEBUG, "%s: failed to open it for 'root'",
+							LB_LOG(LB_LOGLEVEL_DEBUG, "%s: failed to open it for 'root'",
 								realfnname);
 						} else {
-							SB_LOG(SB_LOGLEVEL_DEBUG, "%s: file is now open, fd=%d",
+							LB_LOG(LB_LOGLEVEL_DEBUG, "%s: file is now open, fd=%d",
 								realfnname, res_fd);
 						}
 					}
@@ -1310,7 +1310,7 @@ static int vperm_do_open(
 				 * failed due to insufficient access
 				 * rights to the directory. Not implemented
 				 * yet. */
-				SB_LOG(SB_LOGLEVEL_DEBUG, "%s: failed to open/create file, simulated 'root', errno=%d (%s)",
+				LB_LOG(LB_LOGLEVEL_DEBUG, "%s: failed to open/create file, simulated 'root', errno=%d (%s)",
 					realfnname, open_errno, mapped_pathname->mres_result_path);
 			}
 		}
@@ -1318,7 +1318,7 @@ static int vperm_do_open(
 		if (uid_or_gid_is_virtual &&
 		    (target_exists_beforehand==0)) {
 			/* file was created */
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: created file, setting simulated UID and GID (%s)",
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: created file, setting simulated UID and GID (%s)",
 				realfnname, mapped_pathname->mres_result_path);
 			vperm_set_owner_and_group(dirfd, realfnname, mapped_pathname);
 		}
@@ -1604,7 +1604,7 @@ int rename_gate(int *result_errno_ptr,
 	if (res == 0) {
 		if (has_stat) {
 			/* FIXME: races are possible here. Might be better if
-			 * sb2d does the operation ? */
+			 * lbrdbd does the operation ? */
 			/* if it was a file, it was removed if there were 1 links.
 			 * but minumum link count for directories is 2.
 			*/
@@ -1644,7 +1644,7 @@ int renameat_gate(int *result_errno_ptr,
 	if (res == 0) {
 		if (has_stat) {
 			/* FIXME: races are possible here. Might be better if
-			 * sb2d does the operation ? */
+			 * lbrdbd does the operation ? */
 			/* if it was a file, it was removed if there were 1 links.
 			 * but minumum link count for directories is 2.
 			*/
@@ -1728,7 +1728,7 @@ static int vperm_root_access(
 	if (r) {
 		/* stat failed => fail. */
 		int e = errno;
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: as 'root', stat failed, errno=%d, returns -1",
 			realfnname, e);
 		*result_errno_ptr = e;
@@ -1736,7 +1736,7 @@ static int vperm_root_access(
 	}
 	/* file exists. */
 	if (mode == F_OK) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: as 'root', F_OK test => ok",
 			realfnname);
 		return(0);
@@ -1746,20 +1746,20 @@ static int vperm_root_access(
 		/* X is ok for privileged users only
 		 * if any of the X bits are set */
 		if (statbuf.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: as 'root', X_OK test => ok",
 				realfnname);
 			return(0);
 		}
 		/* No X permissions */
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: as 'root', X_OK test => EACCES",
 			realfnname);
 		*result_errno_ptr = EACCES;
 		return(-1);
 	} 
 	/* root can read and write anything */
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"%s: as 'root', default = ok",
 		realfnname);
 	return(0);

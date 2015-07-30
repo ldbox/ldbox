@@ -3,7 +3,7 @@
 --
 -- Licensed under MIT license
 
--- This script is executed when SB2 session is created
+-- This script is executed when ldbox session is created
 -- (from init.lua) to load FS mapping rules to the rule
 -- tree database.
 
@@ -202,7 +202,7 @@ function add_one_rule_to_rule_tree(rule, modename)
 			local msg = string.format(
 				"Rule loader(%s): rule %s does not have a selector (dir,prefix or path), and is "..
 				"not marked with 'optional_rule = true'\n", modename, name)
-			sblib.log("warning", msg)
+			lblib.log("warning", msg)
 			-- Should be: io.stderr:write("Error:" .. msg)
 		end
 		-- return 0
@@ -230,7 +230,7 @@ function add_one_rule_to_rule_tree(rule, modename)
 	end
 
 	if (rule.custom_map_funct) then
-		if (rule.custom_map_funct == sb2_procfs_mapper) then
+		if (rule.custom_map_funct == lb_procfs_mapper) then
 			action_type = RULE_ACTION_PROCFS
 			action_str = nil
 		else
@@ -357,7 +357,7 @@ function add_all_exec_policies(modename_in_ruletree)
                 for i = 1, table.maxn(all_exec_policies) do
                         local ep_name = all_exec_policies[i].name
 			if ep_name then
-				sblib.log("debug", "Adding Exec policy "..ep_name)
+				lblib.log("debug", "Adding Exec policy "..ep_name)
 				for key,val in pairs(all_exec_policies[i]) do
 					local required_type = valid_keywords_in_exec_policy[key]
 					local t = type(val)
@@ -416,7 +416,7 @@ for m_index,m_name in pairs(all_modes) do
         do_file(session_dir .. "/lua_scripts/exec_constants.lua")
 
 	-- Main config file:
-	do_file(session_dir .. "/share/scratchbox2/modes/"..modename_in_ruletree.."/config.lua")
+	do_file(session_dir .. "/share/ldbox/modes/"..modename_in_ruletree.."/config.lua")
 
 	-- Load FS rules for this mode:
 	do_file(autorule_file_path)
@@ -428,7 +428,7 @@ for m_index,m_name in pairs(all_modes) do
 	do_file(exec_rule_file_path)
 
 	if debug_messages_enabled then
-		print("sbox_mapmode = "..sbox_mapmode)
+		print("ldbox_mapmode = "..ldbox_mapmode)
 		print("active_mapmode = "..active_mapmode)
 		print("modename_in_ruletree = "..modename_in_ruletree)
 	end

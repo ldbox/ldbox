@@ -26,20 +26,20 @@ simple_chain = {
 		-- -----------------------------------------------
 		-- 2. Development environment special destinations:
 
-		{prefix = "/sb2/wrappers",
-		 replace_by = sbox_dir.."/share/scratchbox2/wrappers",
+		{prefix = "/lb/wrappers",
+		 replace_by = ldbox_dir.."/share/ldbox/wrappers",
 		 readonly = true},
 
-		{prefix = "/sb2/scripts",
-		 replace_by = sbox_dir.."/share/scratchbox2/scripts",
+		{prefix = "/lb/scripts",
+		 replace_by = ldbox_dir.."/share/ldbox/scripts",
 		 readonly = true},
 
-		{prefix = sbox_user_home_dir, use_orig_path = true},
+		{prefix = ldbox_user_home_dir, use_orig_path = true},
 
-		{prefix = sbox_dir .. "/share/scratchbox2",
+		{prefix = ldbox_dir .. "/share/ldbox",
 		 use_orig_path = true},
 
-		{path = "/usr/bin/sb2-show",
+		{path = "/usr/bin/lb-show",
 		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------
@@ -64,7 +64,7 @@ simple_chain = {
 		{prefix = "/tmp", map_to = session_dir},
 
 		{prefix = "/dev", use_orig_path = true},
-		{prefix = "/proc", custom_map_funct = sb2_procfs_mapper,
+		{prefix = "/proc", custom_map_funct = lb_procfs_mapper,
 		 virtual_path = true},
 		{prefix = "/sys", use_orig_path = true},
 
@@ -91,7 +91,7 @@ simple_chain = {
 
 qemu_chain = {
 	next_chain = nil,
-	binary = basename(sbox_cputransparency_cmd),
+	binary = basename(ldbox_cputransparency_cmd),
 	rules = {
 		{prefix = session_dir, use_orig_path = true},
 
@@ -102,7 +102,7 @@ qemu_chain = {
 		{prefix = "/tmp", map_to = session_dir},
 
 		{prefix = "/dev", use_orig_path = true},
-		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+		{dir = "/proc", custom_map_funct = lb_procfs_mapper,
 		 virtual_path = true},
 		{prefix = "/sys", use_orig_path = true},
 

@@ -12,9 +12,9 @@
 
 progbase=`basename $0`
 
-echo "SB2: $progbase wrapper: Operation denied."
-echo "SB2: $progbase wrapper: You see this message because the real $progbase tool"
-echo "SB2: $progbase wrapper: is not available in this environment / mapping mode"
+echo "ldbox: $progbase wrapper: Operation denied."
+echo "ldbox: $progbase wrapper: You see this message because the real $progbase tool"
+echo "ldbox: $progbase wrapper: is not available in this environment / mapping mode"
 
 # FIXME: host-* used to be links to /bin/true; return true for compatibility,
 # but we probably should do "exit 0" here...

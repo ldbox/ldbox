@@ -26,7 +26,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "libsb2.h"
+#include "liblb.h"
 #include "exported.h"
 
 typedef struct fd_path_db_entry_s {
@@ -45,7 +45,7 @@ static pthread_mutex_t	fd_path_db_mutex = PTHREAD_MUTEX_INITIALIZER;
 static void fdpathdb_mutex_lock(void)
 {
 	if (pthread_library_is_available) {
-		SB_LOG(SB_LOGLEVEL_NOISE2, "Going to lock fd_path_db_mutex");
+		LB_LOG(LB_LOGLEVEL_NOISE2, "Going to lock fd_path_db_mutex");
 		(*pthread_mutex_lock_fnptr)(&fd_path_db_mutex);
 		/* NO logging here! */
 	}
@@ -55,7 +55,7 @@ static void fdpathdb_mutex_unlock(void)
 	if (pthread_library_is_available) {
 		/* NO logging here! */
 		(*pthread_mutex_unlock_fnptr)(&fd_path_db_mutex);
-		SB_LOG(SB_LOGLEVEL_NOISE2, "unlocked fd_path_db_mutex");
+		LB_LOG(LB_LOGLEVEL_NOISE2, "unlocked fd_path_db_mutex");
 	}
 }
 
@@ -78,11 +78,11 @@ const char *fdpathdb_find_path(int fd)
 	fdpathdb_mutex_unlock();
 
 	if (ret) {
-		SB_LOG(SB_LOGLEVEL_NOISE,
+		LB_LOG(LB_LOGLEVEL_NOISE,
 			"fdpathdb_find_path: FD %d => '%s'",
 			fd, fd_path_db[fd].fpdb_path);
 	} else {
-		SB_LOG(SB_LOGLEVEL_NOISE,
+		LB_LOG(LB_LOGLEVEL_NOISE,
 			"fdpathdb_find_path: No pathname for FD %d", fd);
 	}
 
@@ -108,7 +108,7 @@ static void fdpathdb_register_mapped_path(
 			if (*mapped_path == '/') {
 				path = mapped_path;
 			} else {
-				SB_LOG(SB_LOGLEVEL_ERROR,
+				LB_LOG(LB_LOGLEVEL_ERROR,
 					"Internal error: fdpathdb needs absolute"
 					" paths (but got '%s','%s')",
 					mapped_path, orig_path);
@@ -117,7 +117,7 @@ static void fdpathdb_register_mapped_path(
 		}
 	}
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "%s: Register %d => '%s'",
+	LB_LOG(LB_LOGLEVEL_NOISE, "%s: Register %d => '%s'",
 		realfnname, fd, path ? path : "(NULL path)");
 
 	fdpathdb_mutex_lock();
@@ -184,7 +184,7 @@ static void fdpathdb_register_mapping_result(const char *realfnname,
 				/* asprintf failed */
 				abort();
 			}
-			SB_LOG(SB_LOGLEVEL_NOISE,
+			LB_LOG(LB_LOGLEVEL_NOISE,
 				"fdpathdb_register_mapping_result:"
 				" built abs.path '%s'",
 				abs_virtual_path);
@@ -365,7 +365,7 @@ void fcntl_postprocess_(const char *realfnname, int ret,
 #ifdef F_DUPFD_CLOEXEC
 	case F_DUPFD_CLOEXEC:
 #endif
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: cmd==dup %d -> %d",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: cmd==dup %d -> %d",
 			realfnname, fd, ret);
 		dup_postprocess_(realfnname, ret, fd);
 		break;

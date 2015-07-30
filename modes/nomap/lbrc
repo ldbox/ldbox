@@ -1,0 +1,28 @@
+#
+# Configuration variables for ldbox - specific to the "nomap" mapping mode.
+#
+# First argument is "initializing" when this script is included from lb-init,
+# or "starting" when included from the "lb" script, or name of the command
+# wrapper which needs mode-specific parameters ("dpkg", "apt-get", etc),
+# and empty otherwise.
+lbrc_mode="$1"
+
+
+case "$lbrc_mode" in
+
+	initializing)
+		;;
+
+	starting)
+		;;
+
+	wrapper_list)
+		LDBOX_WRAPPERS="fakeroot"
+		;;
+
+	*)
+		# Default.
+		;;
+
+esac
+

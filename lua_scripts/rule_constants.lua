@@ -16,7 +16,7 @@ RULE_FLAGS_READONLY_FS_ALWAYS = 16
 RULE_FLAGS_FORCE_ORIG_PATH_UNLESS_CHROOT = 32
 
 -- Function class (bitmask) definitions for rule files:
--- These must match SB2_INTERFACE_CLASS_* definitions in
+-- These must match LB_INTERFACE_CLASS_* definitions in
 -- include/mapping.h
 FUNC_CLASS_OPEN		= 0x1
 FUNC_CLASS_STAT		= 0x2

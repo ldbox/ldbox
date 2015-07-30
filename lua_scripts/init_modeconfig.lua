@@ -10,7 +10,7 @@ for m_index,m_name in pairs(all_modes) do
 	-- Read in config.lua
 	enable_cross_gcc_toolchain = true
 	exec_policy_selection = nil
-	local config_file_name = session_dir .. "/share/scratchbox2/modes/"..m_name.."/config.lua"
+	local config_file_name = session_dir .. "/share/ldbox/modes/"..m_name.."/config.lua"
 	do_file(config_file_name)
 
 	-- Modename => argvmods type table
@@ -25,9 +25,9 @@ for m_index,m_name in pairs(all_modes) do
 			local ruletype = 0
 			local selectorstr = 0
 			-- Recycling:
-			-- SB2_RULETREE_FSRULE_SELECTOR_PATH               101
-			-- SB2_RULETREE_FSRULE_SELECTOR_PREFIX             102
-			-- SB2_RULETREE_FSRULE_SELECTOR_DIR                103
+			-- LB_RULETREE_FSRULE_SELECTOR_PATH               101
+			-- LB_RULETREE_FSRULE_SELECTOR_PREFIX             102
+			-- LB_RULETREE_FSRULE_SELECTOR_DIR                103
 			if epsrule.path then
 				ruletype = 101
 				selectorstr = epsrule.path

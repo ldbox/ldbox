@@ -1,6 +1,6 @@
 /*
- * libsb2 -- mkstemp(), mktemp() etc. GATEs and postprocessors
- *           of the scratchbox2 preload library
+ * liblb -- mkstemp(), mktemp() etc. GATEs and postprocessors
+ *           of the ldbox preload library
  *
  * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
  * parts contributed by 
@@ -31,7 +31,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <signal.h>
-#include "libsb2.h"
+#include "liblb.h"
 #include "exported.h"
 
 /* mkstemp() modifies "template". This locates the part which should be 
@@ -47,7 +47,7 @@ static void postprocess_tempname_template(const char *realfnname,
 	int num_x = 0;
 
 	if (suffixlen >= template_len) {
-		SB_LOG(SB_LOGLEVEL_WARNING,
+		LB_LOG(LB_LOGLEVEL_WARNING,
 			"%s: template length too long %d >= %d, ignoring",
 			realfnname, suffixlen, template_len);
 		return;
@@ -59,7 +59,7 @@ static void postprocess_tempname_template(const char *realfnname,
 		X_ptr --;
 
 	if (*X_ptr != 'X') {
-		SB_LOG(SB_LOGLEVEL_WARNING,
+		LB_LOG(LB_LOGLEVEL_WARNING,
 			"%s: orig.template did not contain X (%s,%s), won't "
 			"do anything", realfnname, template, mapped__template);
 		return;
@@ -67,7 +67,7 @@ static void postprocess_tempname_template(const char *realfnname,
 
 	/* the last 'X' should be the last character in the template: */
 	if (X_ptr[suffixlen + 1] != '\0') {
-		SB_LOG(SB_LOGLEVEL_WARNING,
+		LB_LOG(LB_LOGLEVEL_WARNING,
 			"%s: unknown orig.template format (%s,%s), "
 			"won't do anything",
 			realfnname, template, mapped__template);
@@ -87,7 +87,7 @@ static void postprocess_tempname_template(const char *realfnname,
 	*/
 
 	if (mapped_len < num_x) {
-		SB_LOG(SB_LOGLEVEL_WARNING,
+		LB_LOG(LB_LOGLEVEL_WARNING,
 			"%s: mapped.template is too short (%s,%s), won't "
 			"do anything", realfnname, template, mapped__template);
 		return;
@@ -96,7 +96,7 @@ static void postprocess_tempname_template(const char *realfnname,
 	/* now copy last characters from mapping result to caller's buffer*/
 	memcpy(X_ptr, mapped__template + (mapped_len-num_x-suffixlen), num_x);
 
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"%s: template set to (%s)", realfnname, template);
 }
 
@@ -193,9 +193,9 @@ char *tmpnam_gate(
 	if (!dir) dir = P_tmpdir;
 	if (!dir) dir = "/tmp";
 	
-	snprintf(tmpnam_buf, sizeof(tmpnam_buf), "%s/sb2-XXXXXX", dir);
+	snprintf(tmpnam_buf, sizeof(tmpnam_buf), "%s/lb-XXXXXX", dir);
 	if (strlen(tmpnam_buf) >= L_tmpnam) {
-		SB_LOG(SB_LOGLEVEL_WARNING,
+		LB_LOG(LB_LOGLEVEL_WARNING,
 			"%s: tmp name (%s) >= %d",
 			realfnname, tmpnam_buf, L_tmpnam);
 	}
@@ -204,19 +204,19 @@ char *tmpnam_gate(
 		/* success */
 		if (s) {
 			strcpy(s, tmpnam_buf);
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: result='%s'", realfnname, s);
 			return(s);
 		}
 		
 		/* s was NULL, return pointer to our static buffer */
 		strcpy(static_tmpnam_buf, tmpnam_buf);
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: static buffer='%s'",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: static buffer='%s'",
 			realfnname, static_tmpnam_buf);
 		return(static_tmpnam_buf);
 	}
 	/* mktemp() failed */
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: mktemp() failed", realfnname);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: mktemp() failed", realfnname);
 	return(NULL);
 }
 
@@ -231,7 +231,7 @@ char *tempnam_gate(
 	int namelen;
 	char *tmpnam_buf;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s / %s called", realfnname, __func__);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s / %s called", realfnname, __func__);
 
 	(void)real_tempnam_ptr; /* not used */
 
@@ -248,25 +248,25 @@ char *tempnam_gate(
 	tmpnam_buf = malloc(namelen);
 	if (!tmpnam_buf) {
 		*result_errno_ptr = errno; /* ENOMEM, usually */
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: malloc() failed", realfnname);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: malloc() failed", realfnname);
 		return(NULL);
 	}
 	snprintf(tmpnam_buf, namelen, "%s/%sXXXXXX", 
 		dir, (prefix ? prefix : "tmp."));
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: namelen=%d buf='%s'", 
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: namelen=%d buf='%s'",
 		__func__, namelen, tmpnam_buf);
 
 	if (mktemp(tmpnam_buf) && *tmpnam_buf) {
 		/* success */
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: result='%s'", realfnname, tmpnam_buf);
 		
 		return(tmpnam_buf);
 	}
 	/* mktemp() failed */
 	*result_errno_ptr = errno;
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: mktemp() failed", realfnname);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: mktemp() failed", realfnname);
 	return(NULL);
 }
 

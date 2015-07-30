@@ -14,20 +14,20 @@ if (not tools) then
 	tools = "/"
 end
 
--- Don't map the working directory where sb2 was started, unless
+-- Don't map the working directory where ldbox was started, unless
 -- that happens to be the root directory.
-if sbox_workdir == "/" then
+if ldbox_workdir == "/" then
 	-- FIXME. There should be a way to skip a rule...
 	unmapped_workdir = "/XXXXXX" 
 else
-	unmapped_workdir = sbox_workdir
+	unmapped_workdir = ldbox_workdir
 end
 
 -- This mode can also be used to redirect /var/lib/dpkg/status to another
 -- location (our dpkg-checkbuilddeps wrapper needs that)
 var_lib_dpkg_status_actions = {
-	{ if_env_var_is_not_empty = "SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION",
-	  replace_by_value_of_env_var = "SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION", 
+	{ if_env_var_is_not_empty = "LDBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION",
+	  replace_by_value_of_env_var = "LDBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION",
 	  protection = readonly_fs_if_not_root},
 
 	-- Else use the default location
@@ -38,19 +38,19 @@ var_lib_dpkg_status_actions = {
 tools_in_subdir_mapping_rules = {
 		{dir = session_dir, use_orig_path = true},
 
-		{path = sbox_cputransparency_cmd, use_orig_path = true,
+		{path = ldbox_cputransparency_cmd, use_orig_path = true,
 		 readonly = true},
 
-		{path = "/usr/bin/sb2-show", use_orig_path = true,
+		{path = "/usr/bin/lb-show", use_orig_path = true,
 		 readonly = true},
-		{dir = "/usr/lib/libsb2", use_orig_path = true,
+		{dir = "/usr/lib/liblb", use_orig_path = true,
 		 readonly = true},
 
 		-- tools_root should not be mapped twice.
 		{prefix = tools_root, use_orig_path = true, readonly = true},
 
 		-- ldconfig is static binary, and needs to be wrapped
-		{prefix = "/sb2/wrappers",
+		{prefix = "/lb/wrappers",
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 readonly = true},
 
@@ -62,13 +62,13 @@ tools_in_subdir_mapping_rules = {
 
 		--
 		{prefix = "/dev", use_orig_path = true},
-		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+		{dir = "/proc", custom_map_funct = lb_procfs_mapper,
 		 virtual_path = true},
 		{prefix = "/sys", use_orig_path = true},
 
-		{prefix = sbox_user_home_dir .. "/.scratchbox2",
+		{prefix = ldbox_user_home_dir .. "/.ldbox",
 		 use_orig_path = true},
-		{prefix = sbox_dir .. "/share/scratchbox2",
+		{prefix = ldbox_dir .. "/share/ldbox",
 		 use_orig_path = true},
 
 		--
@@ -97,7 +97,7 @@ tools_in_subdir_mapping_rules = {
 		-- "policy-rc.d" checks if scratchbox-version exists, 
 		-- to detect if it is running inside scratchbox..
 		{prefix = "/scratchbox/etc/scratchbox-version",
-		 replace_by = "/usr/share/scratchbox2/version",
+		 replace_by = "/usr/share/ldbox/version",
 		 log_level = "warning",
 		 readonly = true, virtual_path = true},
 
@@ -107,7 +107,7 @@ tools_in_subdir_mapping_rules = {
 
 		-- The default is to map everything to tools_root,
 		-- except that we don't map the directory tree where
-		-- sb2 was started.
+		-- ldbox was started.
 		{prefix = unmapped_workdir, use_orig_path = true},
 
 		{path = "/", use_orig_path = true},

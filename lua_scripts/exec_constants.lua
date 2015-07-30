@@ -11,6 +11,6 @@
 
 --
 -- Flags that can be passed with exec_policy in "exec_flags" field. Make
--- sure that these match for the C versions defined in exec/sb2_exec.h.
+-- sure that these match for the C versions defined in exec/lb_exec.h.
 --
 EXEC_FLAGS_FORCE_CPU_TRANSPARENCY	= 0x1

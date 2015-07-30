@@ -6,11 +6,11 @@
  */
 
 #include "mapping.h"
-#include "sb2.h"
-#include "libsb2.h"
+#include "lb.h"
+#include "liblb.h"
 #include "exported.h"
 
-#include "sb2_execs.h"
+#include "lb_execs.h"
 
 /* A very straightforward conversion from Lua:
  *
@@ -35,7 +35,7 @@ int exec_map_script_interpreter(
 	const char		*log_level = NULL;
 	uint32_t /*FIXME*/	rule_list_offs = 0;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: interp=%s, interp_arg=%s policy=%s ", __func__,
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: interp=%s, interp_arg=%s policy=%s ", __func__,
 		interpreter, (interp_arg?interp_arg:""), exec_policy_name);
 
         assert(exec_policy_name != NULL);
@@ -48,11 +48,11 @@ int exec_map_script_interpreter(
 		const char	*log_message;
 
 		log_message = EXEC_POLICY_GET_STRING(eph, script_log_message);
-		SB_LOG(sblog_level_name_to_number(log_level), "%s", log_message);
+		LB_LOG(lblog_level_name_to_number(log_level), "%s", log_message);
 	}
 
 	if (EXEC_POLICY_GET_BOOLEAN(eph, script_deny_exec)) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: denied, returns -1", __func__);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: denied, returns -1", __func__);
 		return(-1);
 	}
 
@@ -61,16 +61,16 @@ int exec_map_script_interpreter(
 		char *mapping_result = NULL;
 		const char *new_exec_policy = NULL;
 
-		SB_LOG(SB_LOGLEVEL_DEBUG, "Applying exec_policy '%s' to script", exec_policy_name);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "Applying exec_policy '%s' to script", exec_policy_name);
 
 		mapping_result = custom_map_abstract_path(rule_list_offs,
 			orig_script_filename/*binary_name*/,
 			interpreter, "map_script_interpreter",
-			SB2_INTERFACE_CLASS_EXEC,
+			LB_INTERFACE_CLASS_EXEC,
 			&new_exec_policy);
 
 		if (mapping_result) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: result path = '%s'", __func__, mapping_result);
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: result path = '%s'", __func__, mapping_result);
 
 			if (new_exec_policy_p) *new_exec_policy_p = new_exec_policy;
 			*mapped_interpreter_p = mapping_result;
@@ -81,7 +81,7 @@ int exec_map_script_interpreter(
 			}
 			return(1);
 		} else {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: no result path", __func__);
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: no result path", __func__);
 		}
 	}
 	/* The default case:

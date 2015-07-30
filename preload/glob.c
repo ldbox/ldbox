@@ -1,5 +1,5 @@
-/* Copied from glibc-2.7 to Scratchbox 2, with minimal modifications
- * (search for "SB2" in the code below)
+/* Copied from glibc-2.7 to ldbox, with minimal modifications
+ * (search for "LB" in the code below)
  *
  * added from glibc's posix/glob.c:
 */
@@ -26,7 +26,7 @@
 #include <config.h>
 
 /* Bugfix: Include <dirent.h> here. This fixes the way how <sys/stat.h>
- * is expanded for SB2; originally, some important inline functions were
+ * is expanded for ldbox; originally, some important inline functions were
  * not introduced by Linux's <sys/stat.h>, but once <dirent.h> is included,
  * <sys/stat.h> works as expected. (compare this with the way how "glob64.h"
  * works; it includes this file after some #includes and #defines.
@@ -37,9 +37,9 @@
 
 #ifndef __APPLE__
 #include <glob.h>
-#else /* SB2 - OS X Compat */
+#else /* LB - OS X Compat */
 /* Bugfix: Background: The Mac OS X support added a copy of "glob.h"
- * to SB2. That file causes problems with glob() on Linux; it is maybe
+ * to ldbox. That file causes problems with glob() on Linux; it is maybe
  * not the best possible idea to replace system's glob.h with something 
  * that might not be fully compatible (it seems that the copy of
  * glob.h was taken from an older version of glibc?)
@@ -47,7 +47,7 @@
  * system's glob.h with our private copies of glob.c and glob64.c; glob.h
  * was not missing by accident, this setup was intentional.
  * I have renamed "glob.h" (the copy which was intended for the Mac OS X's)
- * to "sb2_mac_glob.h. However, I don't know the meaning of the following 
+ * to "lb_mac_glob.h. However, I don't know the meaning of the following
  * #include (since there is another #include below), so I might have broken 
  * things on Mac OS X, sorry...  2009-01-16/LTA
 */
@@ -193,7 +193,7 @@
 # endif
 # define struct_stat64		struct stat64
 #else /* !_LIBC */
-#if 0 /* SB2: use unistd.c */
+#if 0 /* LB: use unistd.c */
 # include "getlogin_r.h"
 # include "mempcpy.h"
 # include "stat-macros.h"
@@ -204,13 +204,13 @@
 #endif
 # define __stat64(fname, buf)	stat (fname, buf)
 # define struct_stat64		struct stat
-#ifndef __stat /* SB2 */
+#ifndef __stat /* LB */
 # define __stat(fname, buf)	stat (fname, buf)
 #endif
-#ifndef __alloca /* SB2 - OS X Compat */
+#ifndef __alloca /* LB - OS X Compat */
 # define __alloca		alloca
 #endif
-#ifndef __readdir /* SB2 */
+#ifndef __readdir /* LB */
 # define __readdir		readdir
 #endif
 # define __readdir64		readdir64
@@ -230,19 +230,19 @@
 # define GET_LOGIN_NAME_MAX()	(-1)
 #endif
 
-#ifdef __APPLE__ /* SB2 - OS X Compat */
+#ifdef __APPLE__ /* LB - OS X Compat */
 # define __THROW
 # define __attribute_noinline__ __attribute__ ((__noinline__))
 #include <stdbool.h>
 //#include <dirent.h>
 #endif
 
-#ifndef HAVE_MEMPCPY /* SB2 - OS X Compat */
+#ifndef HAVE_MEMPCPY /* LB - OS X Compat */
 #include <mempcpy.h>
 #endif
 
-#ifdef __APPLE__ /* SB2 - OS X Compat */
-#include "sb2_mac_glob.h" /* SB2 - OS X Compat */
+#ifdef __APPLE__ /* LB - OS X Compat */
+#include "lb_mac_glob.h" /* LB - OS X Compat */
 #endif
 
 
@@ -299,8 +299,8 @@ next_brace_sub (const char *cp, int flags)
    `glob' returns GLOB_ABORTED; if it returns zero, the error is ignored.
    If memory cannot be allocated for PGLOB, GLOB_NOSPACE is returned.
    Otherwise, `glob' returns zero.  */
-#if 1 /* SB2 */
-/* this is called "do_glob" / "do_glob64" in SB2,
+#if 1 /* LB */
+/* this is called "do_glob" / "do_glob64" in ldbox,
  * "glob" & "glob64" are the wrappers */
 # ifdef COMPILE_GLOB64
 #  define glob do_glob64
@@ -1008,7 +1008,7 @@ glob (pattern, flags, errfunc, pglob)
 		}
 	      pglob->gl_pathv = new_gl_pathv;
 
-	      pglob->gl_pathv[newcount] = strdup (pattern); /* SB2 */
+	      pglob->gl_pathv[newcount] = strdup (pattern); /* LB */
 	      if (pglob->gl_pathv[newcount] == NULL)
 		{
 		  globfree (&dirs);
@@ -1229,7 +1229,7 @@ prefix_array (const char *dirname, char **array, size_t n)
 
 
 /* We must not compile this function twice.  */
-#if !defined NO_GLOB_PATTERN_P /* SB2 */
+#if !defined NO_GLOB_PATTERN_P /* LB */
 #if !defined _LIBC || !defined NO_GLOB_PATTERN_P
 int
 __glob_pattern_type (pattern, quote)

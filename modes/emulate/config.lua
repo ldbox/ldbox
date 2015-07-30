@@ -15,18 +15,18 @@ exec_policy_selection = {
 		-- Rule isn't active if tools_root is not set.
 		{prefix = tools_root, exec_policy_name = "Tools"},
 
-		-- scratchbox2 binaries are expected from Host
-		{dir = sbox_dir .. "/bin", exec_policy_name = "Host"},
+		-- ldbox binaries are expected from Host
+		{dir = ldbox_dir .. "/bin", exec_policy_name = "Host"},
 
                 -- the home directory is expected to contain target binaries:
-                {dir = sbox_user_home_dir, exec_policy_name = "Target"},
+                {dir = ldbox_user_home_dir, exec_policy_name = "Target"},
 
 		-- Target binaries:
 		{prefix = target_root, exec_policy_name = "Target"},
 
 		-- the place where the session was created is expected
 		-- to contain target binaries:
-		{prefix = sbox_workdir, exec_policy_name = "Target"},
+		{prefix = ldbox_workdir, exec_policy_name = "Target"},
 
 		-- DEFAULT RULE (must exist):
 		{prefix = "/", exec_policy_name = "Host"}

@@ -34,40 +34,40 @@
 #include <lauxlib.h>
 
 #include "mapping.h"
-#include "sb2.h"
+#include "lb.h"
 #include "rule_tree.h"
 #include "rule_tree_lua.h"
-#include "sb2_network.h"
-#include "sb2_vperm.h"
-#include "libsb2.h"
+#include "lb_network.h"
+#include "lb_vperm.h"
+#include "liblb.h"
 #include "exported.h"
 
 
 #define __set_errno(e) errno = e
 
 void mapping_log_write(char *msg);
-static int lua_bind_sb_functions(lua_State *l);
+static int lua_bind_lb_functions(lua_State *l);
 
-static pthread_key_t sb2context_key;
-static pthread_once_t sb2context_key_once = PTHREAD_ONCE_INIT;
+static pthread_key_t lbcontext_key;
+static pthread_once_t lbcontext_key_once = PTHREAD_ONCE_INIT;
 
 static char *read_string_variable_from_lua(
-	struct sb2context *sb2if,
+	struct lbcontext *lbif,
 	const char *name)
 {
 	char *result = NULL;
 
-	if (sb2if && name && *name) {
-		lua_getglobal(sb2if->lua, name);
-		result = (char *)lua_tostring(sb2if->lua, -1);
+	if (lbif && name && *name) {
+		lua_getglobal(lbif->lua, name);
+		result = (char *)lua_tostring(lbif->lua, -1);
 		if (result) {
 			result = strdup(result);
 		}
-		lua_pop(sb2if->lua, 1);
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		lua_pop(lbif->lua, 1);
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"Lua variable %s = '%s', gettop=%d",
 			name, (result ? result : "<NULL>"),
-			lua_gettop(sb2if->lua));
+			lua_gettop(lbif->lua));
 	}
 	return(result);
 }
@@ -77,25 +77,25 @@ static void free_lua(void *buf)
 	free(buf);
 }
 
-static void alloc_sb2context_key(void)
+static void alloc_lbcontext_key(void)
 {
 	if (pthread_key_create_fnptr)
-		(*pthread_key_create_fnptr)(&sb2context_key, free_lua);
+		(*pthread_key_create_fnptr)(&lbcontext_key, free_lua);
 }
 
 /* used only if pthread lib is not available: */
-static	struct sb2context *my_sb2context = NULL;
+static	struct lbcontext *my_lbcontext = NULL;
 
-static void load_and_execute_lua_file(struct sb2context *sb2if, const char *filename)
+static void load_and_execute_lua_file(struct lbcontext *lbif, const char *filename)
 {
 	const char *errmsg;
 
-	switch(luaL_loadfile(sb2if->lua, filename)) {
+	switch(luaL_loadfile(lbif->lua, filename)) {
 	case LUA_ERRFILE:
 		fprintf(stderr, "Error loading %s\n", filename);
 		exit(1);
 	case LUA_ERRSYNTAX:
-		errmsg = lua_tostring(sb2if->lua, -1);
+		errmsg = lua_tostring(lbif->lua, -1);
 		fprintf(stderr, "Syntax error in %s (%s)\n", filename, 
 			(errmsg?errmsg:""));
 		exit(1);
@@ -106,221 +106,221 @@ static void load_and_execute_lua_file(struct sb2context *sb2if, const char *file
 	default:
 		;
 	}
-	lua_call(sb2if->lua, 0, 0);
+	lua_call(lbif->lua, 0, 0);
 }
 
 /* Lua calls this at panic: */
-static int sb2_lua_panic(lua_State *l)
+static int lb_lua_panic(lua_State *l)
 {
 	fprintf(stderr,
-		"Scratchbox2: Lua interpreter PANIC: unprotected error in call to Lua API (%s)\n",
+		"ldbox: Lua interpreter PANIC: unprotected error in call to Lua API (%s)\n",
 		lua_tostring(l, -1));
-	sblog_init(); /* make sure the logger has been initialized */
-	SB_LOG(SB_LOGLEVEL_ERROR,
+	lblog_init(); /* make sure the logger has been initialized */
+	LB_LOG(LB_LOGLEVEL_ERROR,
 		"Lua interpreter PANIC: unprotected error in call to Lua API (%s)\n",
 		lua_tostring(l, -1));
 	return 0;
 }
 
-static struct sb2context *alloc_sb2context(void)
+static struct lbcontext *alloc_lbcontext(void)
 {
-	struct sb2context *tmp;
+	struct lbcontext *tmp;
 
 	if (pthread_getspecific_fnptr) {
-		tmp = (*pthread_getspecific_fnptr)(sb2context_key);
+		tmp = (*pthread_getspecific_fnptr)(lbcontext_key);
 		if (tmp != NULL) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"alloc_sb2context: already done (pt-getspec.)");
+			LB_LOG(LB_LOGLEVEL_DEBUG,
+				"alloc_lbcontext: already done (pt-getspec.)");
 			return(tmp);
 		}
-	} else if (my_sb2context) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"alloc_sb2context: already done (has my_sb2context)");
-		return(my_sb2context);
+	} else if (my_lbcontext) {
+		LB_LOG(LB_LOGLEVEL_DEBUG,
+			"alloc_lbcontext: already done (has my_lbcontext)");
+		return(my_lbcontext);
 	}
 
-	tmp = malloc(sizeof(struct sb2context));
+	tmp = malloc(sizeof(struct lbcontext));
 	if (!tmp) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
-			"alloc_sb2context: Failed to allocate memory");
+		LB_LOG(LB_LOGLEVEL_ERROR,
+			"alloc_lbcontext: Failed to allocate memory");
 		return(NULL);
 	}
-	memset(tmp, 0, sizeof(struct sb2context));
+	memset(tmp, 0, sizeof(struct lbcontext));
 
 	if (pthread_setspecific_fnptr) {
-		(*pthread_setspecific_fnptr)(sb2context_key, tmp);
+		(*pthread_setspecific_fnptr)(lbcontext_key, tmp);
 	} else {
-		my_sb2context = tmp;
+		my_lbcontext = tmp;
 	}
 	
-	if (!sbox_session_dir || !*sbox_session_dir) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
-			"alloc_sb2context: no SBOX_SESSION_DIR");
+	if (!ldbox_session_dir || !*ldbox_session_dir) {
+		LB_LOG(LB_LOGLEVEL_ERROR,
+			"alloc_lbcontext: no LDBOX_SESSION_DIR");
 		return(NULL); /* can't live without a session */
 	}
-	sbox_session_dir = strdup(sbox_session_dir);
+	ldbox_session_dir = strdup(ldbox_session_dir);
 	tmp->lua = NULL;
 	return(tmp);
 }
 
-void sb2context_initialize_lua(struct sb2context *sb2ctx)
+void lbcontext_initialize_lua(struct lbcontext *lbctx)
 {
 	char *main_lua_script = NULL;
 	char *lua_if_version = NULL;
 
 	/* return immediately if already been here */
-	if (!sb2ctx || sb2ctx->lua) return;
+	if (!lbctx || lbctx->lua) return;
 
 	if (asprintf(&main_lua_script, "%s/lua_scripts/main.lua",
-	     sbox_session_dir) < 0) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
-			"sb2context_initialize_lua: asprintf failed to allocate memory");
+	     ldbox_session_dir) < 0) {
+		LB_LOG(LB_LOGLEVEL_ERROR,
+			"lbcontext_initialize_lua: asprintf failed to allocate memory");
 		return;
 	}
 		
-	SB_LOG(SB_LOGLEVEL_INFO, "Loading '%s'", main_lua_script);
+	LB_LOG(LB_LOGLEVEL_INFO, "Loading '%s'", main_lua_script);
 
-	sb2ctx->lua = luaL_newstate();
-	lua_atpanic(sb2ctx->lua, sb2_lua_panic);
+	lbctx->lua = luaL_newstate();
+	lua_atpanic(lbctx->lua, lb_lua_panic);
 
-	disable_mapping(sb2ctx);
-	luaL_openlibs(sb2ctx->lua);
-	lua_bind_sb_functions(sb2ctx->lua); /* register our sb_ functions */
-	lua_bind_ruletree_functions(sb2ctx->lua); /* register our ruletree_ functions */
-	lua_bind_sblib_functions(sb2ctx->lua); /* register sblib.* functions */
+	disable_mapping(lbctx);
+	luaL_openlibs(lbctx->lua);
+	lua_bind_lb_functions(lbctx->lua); /* register our lb_ functions */
+	lua_bind_ruletree_functions(lbctx->lua); /* register our ruletree_ functions */
+	lua_bind_lblib_functions(lbctx->lua); /* register lblib.* functions */
 
-	load_and_execute_lua_file(sb2ctx, main_lua_script);
+	load_and_execute_lua_file(lbctx, main_lua_script);
 
-	enable_mapping(sb2ctx);
+	enable_mapping(lbctx);
 
 	/* check Lua/C interface version. */
-	lua_if_version = read_string_variable_from_lua(sb2ctx,
-		"sb2_lua_c_interface_version");
+	lua_if_version = read_string_variable_from_lua(lbctx,
+		"lb_lua_c_interface_version");
 	if (!lua_if_version) {
-		SB_LOG(SB_LOGLEVEL_ERROR, "FATAL ERROR: "
-			"sb2's Lua scripts didn't provide"
-			" 'sb2_lua_c_interface_version' identifier!");
+		LB_LOG(LB_LOGLEVEL_ERROR, "FATAL ERROR: "
+			"lb's Lua scripts didn't provide"
+			" 'lb_lua_c_interface_version' identifier!");
 		exit(1);
 	}
-	if (strcmp(lua_if_version, SB2_LUA_C_INTERFACE_VERSION)) {
-		SB_LOG(SB_LOGLEVEL_ERROR, "FATAL ERROR: "
-			"sb2's Lua script interface version mismatch:"
+	if (strcmp(lua_if_version, LB_LUA_C_INTERFACE_VERSION)) {
+		LB_LOG(LB_LOGLEVEL_ERROR, "FATAL ERROR: "
+			"lb's Lua script interface version mismatch:"
 			" scripts provide '%s', but '%s' was expected",
-			lua_if_version, SB2_LUA_C_INTERFACE_VERSION);
+			lua_if_version, LB_LUA_C_INTERFACE_VERSION);
 		exit(1);
 	}
 	free(lua_if_version);
 
-	SB_LOG(SB_LOGLEVEL_INFO, "lua initialized.");
-	SB_LOG(SB_LOGLEVEL_NOISE, "gettop=%d", lua_gettop(sb2ctx->lua));
+	LB_LOG(LB_LOGLEVEL_INFO, "lua initialized.");
+	LB_LOG(LB_LOGLEVEL_NOISE, "gettop=%d", lua_gettop(lbctx->lua));
 
 	free(main_lua_script);
 }
 
-static void increment_sb2if_usage_counter(volatile struct sb2context *ptr)
+static void increment_lbif_usage_counter(volatile struct lbcontext *ptr)
 {
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
-		/* Well, to make this bullet-proof the sb2if structure
+	if (LB_LOG_IS_ACTIVE(LB_LOGLEVEL_DEBUG)) {
+		/* Well, to make this bullet-proof the lbif structure
 		 * should be locked, but since this code is now used only for
 		 * producing debugging information and the pointer is marked
 		 * "volatile", the results are good enough. No need to slow 
 		 * down anything with additional locks - this function is 
 		 * called frequently. */
-		if (ptr->sb2context_in_use > 0) SB_LOG(SB_LOGLEVEL_DEBUG,
+		if (ptr->lbcontext_in_use > 0) LB_LOG(LB_LOGLEVEL_DEBUG,
 			"Lua instance already in use! (%d)",
-			ptr->sb2context_in_use);
+			ptr->lbcontext_in_use);
 
-		(ptr->sb2context_in_use)++;
+		(ptr->lbcontext_in_use)++;
 	}
 }
 
-void release_sb2context(struct sb2context *sb2if)
+void release_lbcontext(struct lbcontext *lbif)
 {
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+	if (LB_LOG_IS_ACTIVE(LB_LOGLEVEL_DEBUG)) {
 		int	i;
-		volatile struct sb2context *ptr = sb2if;
+		volatile struct lbcontext *ptr = lbif;
 
-		SB_LOG(SB_LOGLEVEL_NOISE, "release_sb2context()");
+		LB_LOG(LB_LOGLEVEL_NOISE, "release_lbcontext()");
 
 		if (!ptr) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"release_sb2context(): ptr is NULL ");
+			LB_LOG(LB_LOGLEVEL_DEBUG,
+				"release_lbcontext(): ptr is NULL ");
 			return;
 		}
 
-		i = ptr->sb2context_in_use;
-		if (i > 1) SB_LOG(SB_LOGLEVEL_DEBUG,
+		i = ptr->lbcontext_in_use;
+		if (i > 1) LB_LOG(LB_LOGLEVEL_DEBUG,
 			"Lua instance usage counter was %d", i);
 
-		(ptr->sb2context_in_use)--;
+		(ptr->lbcontext_in_use)--;
 	}
 }
 
-/* get access to sb2 context, create the structure 
+/* get access to ldbox context, create the structure
  * if it didn't exist; in that case, the structure is only
  * cleared (most notably, the Lua system is not initialized
  * by this routine!)
  *
- * Remember to call release_sb2context() after the
+ * Remember to call release_lbcontext() after the
  * pointer is not needed anymore.
 */
-struct sb2context *get_sb2context(void)
+struct lbcontext *get_lbcontext(void)
 {
-	struct sb2context *ptr = NULL;
+	struct lbcontext *ptr = NULL;
 
-	if (!sb2_global_vars_initialized__) sb2_initialize_global_variables();
+	if (!lb_global_vars_initialized__) lb_initialize_global_variables();
 
-	if (!SB_LOG_INITIALIZED()) sblog_init();
+	if (!LB_LOG_INITIALIZED()) lblog_init();
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "get_sb2context()");
+	LB_LOG(LB_LOGLEVEL_NOISE, "get_lbcontext()");
 
 	if (pthread_detection_done == 0) check_pthread_library();
 
 	if (pthread_library_is_available) {
 		if (pthread_once_fnptr)
-			(*pthread_once_fnptr)(&sb2context_key_once, alloc_sb2context_key);
+			(*pthread_once_fnptr)(&lbcontext_key_once, alloc_lbcontext_key);
 		if (pthread_getspecific_fnptr)
-			ptr = (*pthread_getspecific_fnptr)(sb2context_key);
-		if (!ptr) ptr = alloc_sb2context();
+			ptr = (*pthread_getspecific_fnptr)(lbcontext_key);
+		if (!ptr) ptr = alloc_lbcontext();
 		if (!ptr) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"Something's wrong with"
 				" the pthreads support");
-			fprintf(stderr, "FATAL: sb2 preload library:"
+			fprintf(stderr, "FATAL: lb preload library:"
 				" Something's wrong with"
 				" the pthreads support.\n");
 			exit(1);
 		}
 	} else {
 		/* no pthreads, single-thread application */
-		ptr = my_sb2context;
-		if (!ptr) ptr = alloc_sb2context();
+		ptr = my_lbcontext;
+		if (!ptr) ptr = alloc_lbcontext();
 		if (!ptr) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"Failed to get Lua instance"
 				" (and the pthreads support is "
 				" disabled!)");
-			fprintf(stderr, "FATAL: sb2 preload library:"
+			fprintf(stderr, "FATAL: lb preload library:"
 				" Failed to get Lua instance"
 				" (and the pthreads support is disabled!)\n");
 			exit(1);
 		}
 	}
 
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
-		increment_sb2if_usage_counter(ptr);
+	if (LB_LOG_IS_ACTIVE(LB_LOGLEVEL_DEBUG)) {
+		increment_lbif_usage_counter(ptr);
 	}
 	return(ptr);
 }
 
-/* get access to sb2 context, and make sure that Lua
+/* get access to ldbox context, and make sure that Lua
  * has been initialized.
 */
-struct sb2context *get_sb2context_lua(void)
+struct lbcontext *get_lbcontext_lua(void)
 {
-	struct sb2context *ptr = get_sb2context();
+	struct lbcontext *ptr = get_lbcontext();
 
-	if (ptr) sb2context_initialize_lua(ptr);
+	if (ptr) lbcontext_initialize_lua(ptr);
 	return(ptr);
 }
 
@@ -328,58 +328,58 @@ struct sb2context *get_sb2context_lua(void)
  * be called after other parts of this library have been called
  * if the program uses multiple threads (unbelievable, but true!),
  * so this isn't really too useful. Lua initialization was
- * moved to get_sb2context_lua() because of this.
+ * moved to get_lbcontext_lua() because of this.
 */
-#ifndef SB2_TESTER
+#ifndef LB_TESTER
 #ifdef __GNUC__
-void sb2_preload_library_constructor(void) __attribute((constructor));
+void lb_preload_library_constructor(void) __attribute((constructor));
 #endif
-#endif /* SB2_TESTER */
-void sb2_preload_library_constructor(void)
+#endif /* LB_TESTER */
+void lb_preload_library_constructor(void)
 {
-	SB_LOG(SB_LOGLEVEL_DEBUG, "sb2_preload_library_constructor called");
-	sblog_init();
-	SB_LOG(SB_LOGLEVEL_DEBUG, "sb2_preload_library_constructor: done");
+	LB_LOG(LB_LOGLEVEL_DEBUG, "lb_preload_library_constructor called");
+	lblog_init();
+	LB_LOG(LB_LOGLEVEL_DEBUG, "lb_preload_library_constructor: done");
 }
 
 /* Read string variables from lua.
- * Note that this function is exported from libsb2.so (for sb2-show etc): */
-char *sb2__read_string_variable_from_lua__(const char *name)
+ * Note that this function is exported from liblb.so (for lb-show etc): */
+char *lb__read_string_variable_from_lua__(const char *name)
 {
-	struct sb2context *sb2if;
+	struct lbcontext *lbif;
 	char *cp;
 
-	sb2if = get_sb2context_lua();
-	cp = read_string_variable_from_lua(sb2if, name);
-	release_sb2context(sb2if);
+	lbif = get_lbcontext_lua();
+	cp = read_string_variable_from_lua(lbif, name);
+	release_lbcontext(lbif);
 	return(cp);
 }
 
 /* Return the Lua/C interface version string = the library interface version.
- * Note that this function is exported from libsb2.so (for sb2-show etc): */
-const char *sb2__lua_c_interface_version__(void)
+ * Note that this function is exported from liblb.so (for lb-show etc): */
+const char *lb__lua_c_interface_version__(void)
 {
 	/* currently it is enough to return pointer to the constant string. */
-	return(SB2_LUA_C_INTERFACE_VERSION);
+	return(LB_LUA_C_INTERFACE_VERSION);
 }
 
-/* Read and execute an lua file. Used from sb2-show, useful
+/* Read and execute an lua file. Used from lb-show, useful
  * for debugging and benchmarking since the script is executed
- * in a context which already contains all SB2's varariables etc.
- * Note that this function is exported from libsb2.so:
+ * in a context which already contains all ldbox's varariables etc.
+ * Note that this function is exported from liblb.so:
 */
-void sb2__load_and_execute_lua_file__(const char *filename)
+void lb__load_and_execute_lua_file__(const char *filename)
 {
-	struct sb2context *sb2if;
+	struct lbcontext *lbif;
 
-	sb2if = get_sb2context_lua();
-	load_and_execute_lua_file(sb2if, filename);
-	release_sb2context(sb2if);
+	lbif = get_lbcontext_lua();
+	load_and_execute_lua_file(lbif, filename);
+	release_lbcontext(lbif);
 }
 
-#if 0 /* DISABLED 2008-10-23/LTA: sb_decolonize_path() is not currently available*/
-/* "sb.decolonize_path", to be called from lua code */
-static int lua_sb_decolonize_path(lua_State *l)
+#if 0 /* DISABLED 2008-10-23/LTA: lb_decolonize_path() is not currently available*/
+/* "lb.decolonize_path", to be called from lua code */
+static int lua_lb_decolonize_path(lua_State *l)
 {
 	int n;
 	char *path;
@@ -393,7 +393,7 @@ static int lua_sb_decolonize_path(lua_State *l)
 
 	path = strdup(lua_tostring(l, 1));
 
-	resolved_path = sb_decolonize_path(path);
+	resolved_path = lb_decolonize_path(path);
 	lua_pushstring(l, resolved_path);
 	free(resolved_path);
 	free(path);
@@ -441,7 +441,7 @@ static void strvec_free(char **args)
  * 1. Status (boolean): false if error, true if ok
  * 2. Path to the created union directory.
 */
-static int lua_sb_prep_union_dir(lua_State *l)
+static int lua_lb_prep_union_dir(lua_State *l)
 {
 	char *dst_path = NULL;
 	int num_real_dir_entries;
@@ -468,8 +468,8 @@ static int lua_sb_prep_union_dir(lua_State *l)
 }
 
 #if 0 /* Not used anymore. */
-/* "sb.getdirlisting", to be called from lua code */
-static int lua_sb_getdirlisting(lua_State *l)
+/* "lb.getdirlisting", to be called from lua code */
+static int lua_lb_getdirlisting(lua_State *l)
 {
 	DIR *d;
 	struct dirent *de;
@@ -506,13 +506,13 @@ static int lua_sb_getdirlisting(lua_State *l)
 }
 #endif
 
-static int lua_sb_setenv(lua_State *luastate)
+static int lua_lb_setenv(lua_State *luastate)
 {
 	int	n = lua_gettop(luastate);
 
 	if (n != 2) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"sb_log_from_lua: wrong number of params (%d)", n);
+		LB_LOG(LB_LOGLEVEL_DEBUG,
+			"lb_log_from_lua: wrong number of params (%d)", n);
 		lua_pushstring(luastate, NULL);
 		return 1;
 	}
@@ -520,8 +520,8 @@ static int lua_sb_setenv(lua_State *luastate)
 	return 1;
 }
 
-/* "sb.getcwd", to be called from lua code */
-static int lua_sb_getcwd(lua_State *l)
+/* "lb.getcwd", to be called from lua code */
+static int lua_lb_getcwd(lua_State *l)
 {
 	char cwd[PATH_MAX + 1];
 
@@ -533,58 +533,58 @@ static int lua_sb_getcwd(lua_State *l)
 	return 1;
 }
 
-/* "sb.get_binary_name", to be called from lua code */
-static int lua_sb_get_binary_name(lua_State *l)
+/* "lb.get_binary_name", to be called from lua code */
+static int lua_lb_get_binary_name(lua_State *l)
 {
-	lua_pushstring(l, sbox_binary_name);
+	lua_pushstring(l, ldbox_binary_name);
 	return 1;
 }
 
-/* "sb.get_active_exec_policy_name", to be called from lua code */
-static int lua_sb_get_active_exec_policy_name(lua_State *l)
+/* "lb.get_active_exec_policy_name", to be called from lua code */
+static int lua_lb_get_active_exec_policy_name(lua_State *l)
 {
-	lua_pushstring(l, sbox_active_exec_policy_name);
+	lua_pushstring(l, ldbox_active_exec_policy_name);
 	return 1;
 }
 
-/* "sb.get_forced_mapmode", to be called from lua code */
-static int lua_sb_get_forced_mapmode(lua_State *l)
+/* "lb.get_forced_mapmode", to be called from lua code */
+static int lua_lb_get_forced_mapmode(lua_State *l)
 {
-	if (sbox_session_mode) lua_pushstring(l, sbox_session_mode);
+	if (ldbox_session_mode) lua_pushstring(l, ldbox_session_mode);
 	else lua_pushnil(l);
 	return 1;
 }
 
-/* "sb.get_forced_network_mode", to be called from lua code */
-static int lua_sb_get_forced_network_mode(lua_State *l)
+/* "lb.get_forced_network_mode", to be called from lua code */
+static int lua_lb_get_forced_network_mode(lua_State *l)
 {
-	if (sbox_network_mode) lua_pushstring(l, sbox_network_mode);
+	if (ldbox_network_mode) lua_pushstring(l, ldbox_network_mode);
 	else lua_pushnil(l);
 	return 1;
 }
 
-/* "sb.get_session_perm", to be called from lua code */
+/* "lb.get_session_perm", to be called from lua code */
 /* DEPRECATED. */
-static int lua_sb_get_session_perm(lua_State *l)
+static int lua_lb_get_session_perm(lua_State *l)
 {
 	if (vperm_geteuid() == 0) lua_pushstring(l, "root");
 	else lua_pushnil(l);
 	return 1;
 }
 
-/* "sb.get_session_dir", to be called from lua code */
-static int lua_sb_get_session_dir(lua_State *l)
+/* "lb.get_session_dir", to be called from lua code */
+static int lua_lb_get_session_dir(lua_State *l)
 {
-	if (sbox_session_dir) lua_pushstring(l, sbox_session_dir);
+	if (ldbox_session_dir) lua_pushstring(l, ldbox_session_dir);
 	else lua_pushnil(l);
 	return 1;
 }
 
-/* sb.test_fn_class_match(fn_class, rule.func_class)
+/* lb.test_fn_class_match(fn_class, rule.func_class)
  * - returns true if fn_class is in rule.func_class
  * (Lua does not have bitwise operators)
 */
-static int lua_sb_test_fn_class_match(lua_State *l)
+static int lua_lb_test_fn_class_match(lua_State *l)
 {
 	int	n = lua_gettop(l);
 	int	result = -1;
@@ -594,7 +594,7 @@ static int lua_sb_test_fn_class_match(lua_State *l)
 		int rule_fn_class = lua_tointeger(l, 2);
 
 		result = ((fn_class & rule_fn_class) != 0);
-		SB_LOG(SB_LOGLEVEL_NOISE,
+		LB_LOG(LB_LOGLEVEL_NOISE,
 			"test_fn_class_match 0x%X,0x%X => %d",
 			fn_class, rule_fn_class, result);
 	}
@@ -602,8 +602,8 @@ static int lua_sb_test_fn_class_match(lua_State *l)
 	return 1;
 }
 
-/* "sb.procfs_mapping_request", to be called from lua code */
-static int lua_sb_procfs_mapping_request(lua_State *l)
+/* "lb.procfs_mapping_request", to be called from lua code */
+static int lua_lb_procfs_mapping_request(lua_State *l)
 {
 	int n;
 	char *path;
@@ -641,11 +641,11 @@ int test_if_str_in_colon_separated_list_from_env(
 
 	list = getenv(env_var_name);
 	if (!list) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "no %s", env_var_name);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "no %s", env_var_name);
 		return(0);
 	}
 	list = strdup(list);	/* will be modified by strtok_r */
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s is '%s'", env_var_name, list);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s is '%s'", env_var_name, list);
 
 	tok = strtok_r(list, ":", &tok_state);
 	while (tok) {
@@ -657,20 +657,20 @@ int test_if_str_in_colon_separated_list_from_env(
 	return(result);
 }
 
-/* "sb.test_if_listed_in_envvar", to be called from lua code
+/* "lb.test_if_listed_in_envvar", to be called from lua code
  * Parameters (in stack):
  *	1. string: unmapped path
  *	2. string: name of environment variable containing colon-separated list
  * Returns (in stack):
  *	1. flag (boolean): true if the path is listed in the environment
- *			   variable "SBOX_REDIRECT_IGNORE", false otherwise
- * (this is used to examine values of "SBOX_REDIRECT_IGNORE" and
- * "SBOX_REDIRECT_FORCE")
+ *			   variable "LDBOX_REDIRECT_IGNORE", false otherwise
+ * (this is used to examine values of "LDBOX_REDIRECT_IGNORE" and
+ * "LDBOX_REDIRECT_FORCE")
  *
  * Note: these variables typically can't be cached
  * they can be changed by the current process.
 */
-static int lua_sb_test_if_listed_in_envvar(lua_State *l)
+static int lua_lb_test_if_listed_in_envvar(lua_State *l)
 {
 	int result = 0; /* boolean; default result is "false" */
 	int n;
@@ -679,7 +679,7 @@ static int lua_sb_test_if_listed_in_envvar(lua_State *l)
 
 	n = lua_gettop(l);
 	if (n != 2) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"test_if_listed_in_envvar FAILS: lua_gettop = %d", n);
 	} else {
 		path = lua_tostring(l, 1);
@@ -690,7 +690,7 @@ static int lua_sb_test_if_listed_in_envvar(lua_State *l)
 		}
 	}
 	lua_pushboolean(l, result);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "test_if_listed_in_envvar(%s) => %d",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "test_if_listed_in_envvar(%s) => %d",
 		path, result);
 	return 1;
 }
@@ -698,37 +698,37 @@ static int lua_sb_test_if_listed_in_envvar(lua_State *l)
 /* mappings from c to lua */
 static const luaL_reg reg[] =
 {
-	{"prep_union_dir",		lua_sb_prep_union_dir},
+	{"prep_union_dir",		lua_lb_prep_union_dir},
 #if 0
-	{"getdirlisting",		lua_sb_getdirlisting},
+	{"getdirlisting",		lua_lb_getdirlisting},
 #endif
-	{"readlink",			lua_sb_readlink},
+	{"readlink",			lua_lb_readlink},
 #if 0
-	{"decolonize_path",		lua_sb_decolonize_path},
+	{"decolonize_path",		lua_lb_decolonize_path},
 #endif
-	{"log",				lua_sb_log},
-	{"setenv",			lua_sb_setenv},
-	{"path_exists",			lua_sb_path_exists},
-	{"debug_messages_enabled",	lua_sb_debug_messages_enabled},
-	{"getcwd",			lua_sb_getcwd},
-	{"get_binary_name",		lua_sb_get_binary_name},
-	{"get_active_exec_policy_name",	lua_sb_get_active_exec_policy_name},
-	{"get_forced_mapmode",		lua_sb_get_forced_mapmode},
-	{"get_forced_network_mode",	lua_sb_get_forced_network_mode},
-	{"get_session_perm",		lua_sb_get_session_perm}, /* DEPRECATED. */
-	{"get_session_dir",		lua_sb_get_session_dir},
-	{"isprefix",			lua_sb_isprefix},
-	{"test_path_match",		lua_sb_test_path_match},
-	{"test_fn_class_match",		lua_sb_test_fn_class_match},
-	{"procfs_mapping_request",	lua_sb_procfs_mapping_request},
-	{"test_if_listed_in_envvar",	lua_sb_test_if_listed_in_envvar},
+	{"log",				lua_lb_log},
+	{"setenv",			lua_lb_setenv},
+	{"path_exists",			lua_lb_path_exists},
+	{"debug_messages_enabled",	lua_lb_debug_messages_enabled},
+	{"getcwd",			lua_lb_getcwd},
+	{"get_binary_name",		lua_lb_get_binary_name},
+	{"get_active_exec_policy_name",	lua_lb_get_active_exec_policy_name},
+	{"get_forced_mapmode",		lua_lb_get_forced_mapmode},
+	{"get_forced_network_mode",	lua_lb_get_forced_network_mode},
+	{"get_session_perm",		lua_lb_get_session_perm}, /* DEPRECATED. */
+	{"get_session_dir",		lua_lb_get_session_dir},
+	{"isprefix",			lua_lb_isprefix},
+	{"test_path_match",		lua_lb_test_path_match},
+	{"test_fn_class_match",		lua_lb_test_fn_class_match},
+	{"procfs_mapping_request",	lua_lb_procfs_mapping_request},
+	{"test_if_listed_in_envvar",	lua_lb_test_if_listed_in_envvar},
 	{NULL,				NULL}
 };
 
 
-static int lua_bind_sb_functions(lua_State *l)
+static int lua_bind_lb_functions(lua_State *l)
 {
-	luaL_register(l, "sb", reg);
+	luaL_register(l, "lb", reg);
 	lua_pushliteral(l,"version");
 	lua_pushstring(l, "2.0" );
 	lua_settable(l,-3);

@@ -25,10 +25,10 @@ exec_policy_selection = {
 		{prefix = tools_root, exec_policy_name = "Tools"},
 
                 -- the toolchain, if not from Tools:
-                {dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
+                {dir = ldbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
 
                 -- the home directory is expected to contain target binaries:
-                {dir = sbox_user_home_dir, exec_policy_name = "Target"},
+                {dir = ldbox_user_home_dir, exec_policy_name = "Target"},
 
 		-- DEFAULT RULE (must exist):
 		{prefix = "/", exec_policy_name = "Host"}

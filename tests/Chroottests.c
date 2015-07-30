@@ -1,5 +1,5 @@
 /* Test chroot simulation:
- * (inside a session, use "sb2 -m nomap")
+ * (inside a session, use "lb -m nomap")
  *    gcc -o Chroottests Chroottests.c
  *    ./Chroottests
  * ..then examine the output.

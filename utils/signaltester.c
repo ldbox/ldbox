@@ -1,5 +1,5 @@
 /* signaltester, catch & print signals
- * This is used for testing out sb2-monitor.
+ * This is used for testing out lb-monitor.
  *
  * Copyright (c) 2008 Nokia Corporation. All rights reserved.
  * Author: Lauri T. Aarnio

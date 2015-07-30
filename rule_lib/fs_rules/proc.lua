@@ -18,7 +18,7 @@ rule_lib_proc_rules = {
 	 set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
 
 	-- Default:
-	{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+	{dir = "/proc", custom_map_funct = lb_procfs_mapper,
 	 virtual_path = true},
 }		 
 

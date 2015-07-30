@@ -1,5 +1,5 @@
 objs := wrappers.o privatewrappers.o \
-	libsb2.o sb_l10n.o glob.o glob64.o \
+	liblb.o lb_l10n.o glob.o glob64.o \
 	network.o \
 	execgates.o \
 	miscgates.o \
@@ -11,38 +11,38 @@ objs := wrappers.o privatewrappers.o \
 	fdpathdb.o procfs.o mempcpy.o \
 	union_dirs.o \
 	system.o \
-	sb2context.o
+	lbcontext.o
 
 ifeq ($(shell uname -s),Linux)
-LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
+LIBLB_LDFLAGS = -Wl,-soname=$(LIBLB_SONAME) \
 		-Wl,--version-script=preload/export.map
 
 # DO NOT add any libraries that depend on libpthread to
-# LIBSB2_LIBS or LIBS!! see the comments in luaif.c.
+# LIBLB_LIBS or LIBS!! see the comments in luaif.c.
 
-LIBSB2_LIBS =
+LIBLB_LIBS =
 SHLIBEXT = so
 else
-LIBSB2_LIBS =
+LIBLB_LIBS =
 SHLIBEXT = dylib
 endif
 
 
-$(D)/libsb2.$(SHLIBEXT): $(call O,$(objs))
-# $(D)/libsb2.$(SHLIBEXT): luaif/libluaif.a luaif/liblua.a sblib/libsblib.a
-$(D)/libsb2.$(SHLIBEXT): sblib/libsblib.a
-$(D)/libsb2.$(SHLIBEXT): pathmapping/libpaths.a
-$(D)/libsb2.$(SHLIBEXT): execs/libexecs.a
-$(D)/libsb2.$(SHLIBEXT): network/libsb2net.a
-$(D)/libsb2.$(SHLIBEXT): rule_tree/libruletree.a
-$(D)/libsb2.$(SHLIBEXT): CFLAGS := $(CFLAGS) -fPIC -Wall -W \
+$(D)/liblb.$(SHLIBEXT): $(call O,$(objs))
+# $(D)/liblb.$(SHLIBEXT): luaif/libluaif.a luaif/liblua.a lblib/liblblib.a
+$(D)/liblb.$(SHLIBEXT): lblib/liblblib.a
+$(D)/liblb.$(SHLIBEXT): pathmapping/libpaths.a
+$(D)/liblb.$(SHLIBEXT): execs/libexecs.a
+$(D)/liblb.$(SHLIBEXT): network/liblbnet.a
+$(D)/liblb.$(SHLIBEXT): rule_tree/libruletree.a
+$(D)/liblb.$(SHLIBEXT): CFLAGS := $(CFLAGS) -fPIC -Wall -W \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS)
-$(D)/libsb2.$(SHLIBEXT): LDFLAGS := $(LDFLAGS) $(LIBSB2_LDFLAGS)
-$(D)/libsb2.$(SHLIBEXT): LIBS := -ldl $(LIBSB2_LIBS)
+$(D)/liblb.$(SHLIBEXT): LDFLAGS := $(LDFLAGS) $(LIBLB_LDFLAGS)
+$(D)/liblb.$(SHLIBEXT): LIBS := -ldl $(LIBLB_LIBS)
 
-targets := $(targets) $(D)/libsb2.$(SHLIBEXT)
+targets := $(targets) $(D)/liblb.$(SHLIBEXT)
 
-$(D)/libsb2.o $(D)/sb_l10n.o: preload/exported.h
+$(D)/liblb.o $(D)/lb_l10n.o: preload/exported.h
 $(D)/exported.h $(D)/ldexportlist: preload/wrappers.c
 $(D)/wrappers.c: preload/interface.master preload/gen-interface.pl
 	$(MKOUTPUTDIR)
@@ -53,7 +53,7 @@ $(D)/wrappers.c: preload/interface.master preload/gen-interface.pl
 		-E preload/exported.h \
 		-M preload/export.map \
 		-V $(PACKAGE_VERSION) \
-		-m preload/libsb2_interface.7 \
+		-m preload/liblb_interface.7 \
 		<$(SRCDIR)/preload/interface.master
 
 $(D)/privatewrappers.h: preload/privatewrappers.c

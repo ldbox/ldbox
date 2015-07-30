@@ -1,63 +1,63 @@
 # beware of namespace collisions, all subdir makefiles are included
 # into the top-level Makefile
 
-$(D)/sb2-show: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
+$(D)/lb-show: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include
 
-$(D)/sb2-show.o: preload/exported.h
-$(D)/sb2-show: $(D)/sb2-show.o
+$(D)/lb-show.o: preload/exported.h
+$(D)/lb-show: $(D)/lb-show.o
 	$(MKOUTPUTDIR)
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ldl
 
 #------------
-# sb2-ruletree, a debugging tool
-$(D)/sb2-ruletree: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
+# lb-ruletree, a debugging tool
+$(D)/lb-ruletree: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include
 
-$(D)/sb2-ruletree.o: preload/exported.h
-$(D)/sb2-ruletree: $(D)/sb2-ruletree.o $(D)/../rule_tree/rule_tree.o
+$(D)/lb-ruletree.o: preload/exported.h
+$(D)/lb-ruletree: $(D)/lb-ruletree.o $(D)/../rule_tree/rule_tree.o
 	$(MKOUTPUTDIR)
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ldl
 
 #------------
-# sb2dctl, a tool for communicating with sb2d
-$(D)/sb2dctl: override CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
+# lbrdbdctl, a tool for communicating with lbrdbd
+$(D)/lbrdbdctl: override CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include
 
-$(D)/sb2dctl.o: preload/exported.h
-$(D)/sb2dctl: $(D)/sb2dctl.o 
-$(D)/sb2dctl: rule_tree/rule_tree_rpc_client.o
-$(D)/sb2dctl: sblib/sb_log.o
-$(D)/sb2dctl: sb2d/libsupport.o
+$(D)/lbrdbdctl.o: preload/exported.h
+$(D)/lbrdbdctl: $(D)/lbrdbdctl.o
+$(D)/lbrdbdctl: rule_tree/rule_tree_rpc_client.o
+$(D)/lbrdbdctl: lblib/lb_log.o
+$(D)/lbrdbdctl: lbrdbd/libsupport.o
 	$(MKOUTPUTDIR)
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ldl
 
-targets := $(targets) $(D)/sb2dctl
+targets := $(targets) $(D)/lbrdbdctl
 #------------
 
-$(D)/sb2-monitor: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
+$(D)/lb-monitor: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include
 
-$(D)/sb2-monitor: $(D)/sb2-monitor.o 
+$(D)/lb-monitor: $(D)/lb-monitor.o
 	$(MKOUTPUTDIR)
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
-$(D)/sb2-interp-wrapper: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
+$(D)/lb-interp-wrapper: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include
 
-$(D)/sb2-interp-wrapper: $(D)/sb2-interp-wrapper.o preload/libsb2.$(SHLIBEXT)
+$(D)/lb-interp-wrapper: $(D)/lb-interp-wrapper.o preload/liblb.$(SHLIBEXT)
 	$(MKOUTPUTDIR)
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ldl
 
 
-targets := $(targets) $(D)/sb2-show $(D)/sb2-monitor $(D)/sb2-ruletree
+targets := $(targets) $(D)/lb-show $(D)/lb-monitor $(D)/lb-ruletree

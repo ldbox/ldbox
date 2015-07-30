@@ -1,0 +1,103 @@
+.TH lb-session 1 "30 July 2015" "2.3.90" "lb-session man page"
+.SH NAME
+lb-session \- manage ldbox sessions
+.SH SYNOPSIS
+.B lb-session [COMMAND [PARAMS]]
+
+.SH DESCRIPTION
+.B lb-session
+is used to create attachable ldbox sessions.
+You can save session even when you haven't done '-S session' during
+.I lb
+startup.
+
+Note that you can give parameters to
+.B attach
+command which are passed verbatim to \fIlb\fR. If there is only one
+session to attach, it is selected automatically.
+
+If no command is given, help text is printed.
+
+.SH COMMANDS
+.TP
+help
+shows help text
+.TP
+save
+saves current session
+.TP
+list
+lists detached lb sessions
+.TP
+delete SESSION
+deletes given session
+.TP
+attach [SESSION [PARAMS]]
+attaches to a given session
+.TP
+setenv VARIABLE VALUE
+store a value for an environment variable
+.TP
+showenv
+show stored environment variables
+
+.SH EXAMPLES
+Basic usage is:
+
+.RS 4
+.nf
+[LB .. ] $ lb-session save	# save session
+[LB .. ] $ ^D				# exit
+.fi
+.RE
+
+Later we can then attach to this session:
+
+.RS 4
+.nf
+% lb-session attach
+.fi
+.RE
+
+If there are more than one saved session, then:
+
+.RS 4
+.nf
+% lb-session list
+session.XXXX    TARGET_ARM      My Comment
+session.YYYY    TARGET_ARM      My Comment 2
+session.ZZZZ    TARGET_MIPS
+% lb-session attach session.YYYY
+.fi
+.RE
+
+Here we pass '-eR' to \fIlb\fR and we only have one saved session:
+
+.RS 4
+.nf
+ % lb-session attach -- -eR
+.fi
+.RE
+
+\&'--' marks end of parameter list for lb-session.
+
+.B setenv VARIABLE VALUE
+can be used to add environment variables, that will become active
+when a saved session is later taken into use (either by
+.B lb-session attach
+or by \fBlb -J\fR).
+
+.B setenv VARIABLE VALUE
+does not change environment of sessions that are already active.
+
+.B showenv
+lists environment variable settings which have been stored with this
+tool. It does not show environment variables from other sources.
+
+.SH SEE ALSO
+.BR lb (1)
+
+.SH AUTHOR
+.nf
+Mika Westerberg
+.fi

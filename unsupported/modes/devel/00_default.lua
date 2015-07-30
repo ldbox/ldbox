@@ -16,14 +16,14 @@ if (not tools) then
 	tools = "/"
 end
 
-sb2_share_dir = sbox_user_home_dir.."/.scratchbox2/"..sbox_target.."/share"
+lb_share_dir = ldbox_user_home_dir.."/.ldbox/"..ldbox_target.."/share"
 
 -- =========== Exec policies:  ===========
 
 -- If the permission token exists and contains "root",
 -- use fakeroot
 local fakeroot_ld_preload = ""
-if sb.get_session_perm() == "root" then
+if lb.get_session_perm() == "root" then
 	target_root_is_readonly = false
 	fakeroot_ld_preload = ":"..host_ld_preload_fakeroot
 else
@@ -31,7 +31,7 @@ else
 end
 
 --
--- For tools: If tools_root is set and libsb2 has been installed there,
+-- For tools: If tools_root is set and liblb has been installed there,
 -- then dynamic libraries can be used from tools_root (otherwise we'll
 -- be using the libs from the host OS)
 
@@ -42,7 +42,7 @@ devel_mode_tools_ld_library_path_suffix = ""
 devel_mode_locale_path = nil
 devel_mode_gconv_path = nil
 
-if ((tools_root ~= nil) and conf_tools_sb2_installed) then
+if ((tools_root ~= nil) and conf_tools_lb_installed) then
 	if (conf_tools_ld_so ~= nil) then
 		-- Ok to use dynamic libraries from tools!
 		devel_mode_tools_ld_so = conf_tools_ld_so
@@ -57,7 +57,7 @@ else
 	devel_mode_tools_ld_library_path_prefix =
 		host_ld_library_path_libfakeroot ..
 		host_ld_library_path_prefix ..
-		host_ld_library_path_libsb2
+		host_ld_library_path_liblb
 	devel_mode_tools_ld_library_path_suffix =
 		host_ld_library_path_suffix
 end
@@ -149,7 +149,7 @@ devel_mode_target_ld_so = nil		-- default = not needed
 devel_mode_target_ld_library_path_prefix = ""
 devel_mode_target_ld_library_path_suffix = nil
 
-if (conf_target_sb2_installed) then
+if (conf_target_lb_installed) then
 	if (conf_target_ld_so ~= nil) then
 		-- use dynamic libraries from target, 
 		-- when executing native binaries!
@@ -165,7 +165,7 @@ else
 	devel_mode_target_ld_library_path_prefix =
 		host_ld_library_path_libfakeroot ..
 		host_ld_library_path_prefix ..
-		host_ld_library_path_libsb2
+		host_ld_library_path_liblb
 	devel_mode_target_ld_library_path_suffix =
 		host_ld_library_path_suffix
 end
@@ -305,7 +305,7 @@ devel_mode_rules_bin = {
 		 use_orig_path = true, readonly = true},
 	
 		-- "pwd" from "coreutils" uses a built-in replacement
-		-- for getcwd(), which does not work with sb2, because
+		-- for getcwd(), which does not work with ldbox, because
 		-- the path mapping means that ".." does not necessarily
 		-- contain an i-node that refers to the current directory..
 		{path = "/bin/pwd",
@@ -369,11 +369,11 @@ devel_mode_rules_usr_share = {
 		 chain = devel_mode_rules_usr_share_aclocal},
 
 		-- -----------------------------------------------
-		-- 1. General SB2 environment:
+		-- 1. General ldbox environment:
 
-		{prefix = sbox_dir .. "/share/scratchbox2/host_usr",
+		{prefix = ldbox_dir .. "/share/ldbox/host_usr",
 		 replace_by = "/usr", readonly = true},
-		{prefix = sbox_dir .. "/share/scratchbox2",
+		{prefix = ldbox_dir .. "/share/ldbox",
 		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------
@@ -493,9 +493,9 @@ devel_mode_rules_usr_share = {
 devel_mode_rules_usr_bin = {
 	rules = {
 		-- -----------------------------------------------
-		-- 1. General SB2 environment:
+		-- 1. General ldbox environment:
 
-		{prefix = "/usr/bin/sb2-",
+		{prefix = "/usr/bin/lb-",
 		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------
@@ -516,8 +516,8 @@ devel_mode_rules_usr_bin = {
 		 readonly = true},
 
 		-- 19. perl & python:
-		-- 	processing depends on SBOX_REDIRECT_IGNORE,
-		--	SBOX_REDIRECT_FORCE and 
+		-- 	processing depends on LDBOX_REDIRECT_IGNORE,
+		--	LDBOX_REDIRECT_FORCE and
 		--	name of the current exec policy. 
 		--	(these are real prefixes, version number may
 		--	be included in the name (/usr/bin/python2.5 etc))
@@ -682,7 +682,7 @@ devel_mode_rules_scratchbox1 = {
 		-- (these are marked "virtual"; these won't be reversed)
 		-- "libtool" for arm
 		{prefix = "/scratchbox/compilers/cs2005q3.2-glibc2.5-arm/arch_tools/share/libtool",
-		 replace_by = sb2_share_dir .. "/libtool",
+		 replace_by = lb_share_dir .. "/libtool",
 		 log_level = "warning",
 		 readonly = true, virtual_path = true},
 
@@ -721,7 +721,7 @@ devel_mode_rules_scratchbox1 = {
 		-- "policy-rc.d" checks if scratchbox-version exists, 
 		-- to detect if it is running inside scratchbox..
 		{prefix = "/scratchbox/etc/scratchbox-version",
-		 replace_by = "/usr/share/scratchbox2/version",
+		 replace_by = "/usr/share/ldbox/version",
 		 log_level = "warning",
 		 readonly = true, virtual_path = true},
 
@@ -747,12 +747,12 @@ simple_chain = {
 		-- -----------------------------------------------
 		-- 2. Development environment special destinations:
 
-		{prefix = "/sb2/wrappers",
+		{prefix = "/lb/wrappers",
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 readonly = true},
 
-		{prefix = "/sb2/scripts",
-		 replace_by = sbox_dir.."/share/scratchbox2/scripts",
+		{prefix = "/lb/scripts",
+		 replace_by = ldbox_dir.."/share/ldbox/scripts",
 		 readonly = true},
 
 		-- tools_root should not be mapped twice.
@@ -767,7 +767,7 @@ simple_chain = {
 		-- -----------------------------------------------
 		-- 10. Home directories
 
-		{prefix = sbox_user_home_dir, use_orig_path = true},
+		{prefix = ldbox_user_home_dir, use_orig_path = true},
 
 		-- "user" is a special username at least on the Maemo platform:
 		-- (but note that if the real user name is "user",
@@ -811,7 +811,7 @@ simple_chain = {
 		-- -----------------------------------------------
 		-- 90. Top-level directories that must not be mapped:
 		{prefix = "/dev", use_orig_path = true},
-		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+		{dir = "/proc", custom_map_funct = lb_procfs_mapper,
 		 virtual_path = true},
 		{prefix = "/sys",
 		 use_orig_path = true, readonly = true},
@@ -879,19 +879,19 @@ devel_exec_policies = {
 		{prefix = tools, exec_policy = exec_policy_tools},
 
 		-- ~/bin probably contains programs for the host OS:
-                {prefix = sbox_user_home_dir.."/bin",
+                {prefix = ldbox_user_home_dir.."/bin",
 		 exec_policy = exec_policy_host_os},
 
                 -- Other places under the home directory are expected
                 -- to contain target binaries:
-                {prefix = sbox_user_home_dir, exec_policy = exec_policy_target},
+                {prefix = ldbox_user_home_dir, exec_policy = exec_policy_target},
 
 		-- Target binaries:
 		{prefix = target_root, exec_policy = exec_policy_target},
 
 		-- the place where the session was created is expected
 		-- to contain target binaries:
-		{prefix = sbox_workdir, exec_policy = exec_policy_target},
+		{prefix = ldbox_workdir, exec_policy = exec_policy_target},
 
 		-- -----------------------------------------------
 		-- DEFAULT RULE (must exist):

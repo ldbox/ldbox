@@ -11,13 +11,13 @@
  * Makefile.
 */
 
-#ifndef SB2_PROCESSCLOCK_H__
-#define SB2_PROCESSCLOCK_H__
+#ifndef LB_PROCESSCLOCK_H__
+#define LB_PROCESSCLOCK_H__
 
 #ifdef USE_PROCESSCLOCK
 
 #include <time.h>
-#include "sb2.h"
+#include "lb.h"
 
 typedef struct {
 	struct timespec	pclk_start_time;
@@ -28,17 +28,17 @@ typedef struct {
 
 #define PROCESSCLOCK(v) processclock_t v;
 #define START_PROCESSCLOCK(debuglevel,pclk,name) do { \
-		if (SB_LOG_IS_ACTIVE((debuglevel))) { \
+		if (LB_LOG_IS_ACTIVE((debuglevel))) { \
 			(pclk)->pclk_name = (name); \
 			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &(pclk)->pclk_start_time); \
 		} \
 	} while(0)
 
 #define STOP_AND_REPORT_PROCESSCLOCK(debuglevel,pclk,str_param) do { \
-		if (SB_LOG_IS_ACTIVE((debuglevel))) { \
+		if (LB_LOG_IS_ACTIVE((debuglevel))) { \
 			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &(pclk)->pclk_stop_time); \
 			processclock_finalize((pclk)); \
-			SB_LOG((debuglevel),"PCLOCK: %09lldns <%s> %s", (pclk)->pclk_ns, \
+			LB_LOG((debuglevel),"PCLOCK: %09lldns <%s> %s", (pclk)->pclk_ns, \
 				(pclk)->pclk_name, (str_param)); \
 		} \
 	} while(0)
@@ -56,4 +56,4 @@ typedef char processclock_t;
 
 #endif /* USE_PROCESSCLOCK */
 
-#endif /* SB2_PROCESSCLOCK_H__ */
+#endif /* LB_PROCESSCLOCK_H__ */

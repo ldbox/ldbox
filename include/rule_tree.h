@@ -3,7 +3,7 @@
 */
 
 /* A Rule Tree is a shared-memory repository of mapping-
- * and other kind of rules for SB2.
+ * and other kind of rules for LB.
  *
  * The rule tree is created when a session is created,
  * by writing entries to a file. Once created, it isn't
@@ -15,8 +15,8 @@
  * (relative to the beginning of the file) are used.
 */
 
-#ifndef SB2_RULETREE_H__
-#define SB2_RULETREE_H__
+#ifndef LB_RULETREE_H__
+#define LB_RULETREE_H__
 
 /* object offset must be an unsigned type: */
 typedef uint32_t ruletree_object_offset_t;
@@ -28,21 +28,21 @@ typedef struct ruletree_object_hdr_s {
 	uint32_t	rtree_obj_type;
 } ruletree_object_hdr_t;
 
-#define SB2_RULETREE_MAGIC	0xE7A801FF
+#define LB_RULETREE_MAGIC	0xE7A801FF
 
 /* there are four different types of objects: */
-#define SB2_RULETREE_OBJECT_TYPE_FILEHDR	1	/* the very first thing */
-#define SB2_RULETREE_OBJECT_TYPE_CATALOG	2	/* ruletree_catalog_entry_t */
-#define SB2_RULETREE_OBJECT_TYPE_FSRULE		3	/* ruletree_fsrule_t */
-#define SB2_RULETREE_OBJECT_TYPE_STRING		4	/* ruletree_string_hdr_t */
-#define SB2_RULETREE_OBJECT_TYPE_OBJECTLIST	5	/* ruletree_objectlist_t */
-#define SB2_RULETREE_OBJECT_TYPE_BINTREE	6	/* ruletree_bintree_t */
-#define SB2_RULETREE_OBJECT_TYPE_INODESTAT	7	/* ruletree_inodestat_t */
-#define SB2_RULETREE_OBJECT_TYPE_UINT32		8	/* ruletree_uint32_t */
-#define SB2_RULETREE_OBJECT_TYPE_BOOLEAN	9	/* also ruletree_uint32_t */
-#define SB2_RULETREE_OBJECT_TYPE_EXEC_PP_RULE	14	/* ruletree_exec_preprocessing_rule_t */
-#define SB2_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE	15	/* ruletree_exec_policy_selection_rule_t */
-#define SB2_RULETREE_OBJECT_TYPE_NET_RULE	21	/* ruletree_net_rule_t */
+#define LB_RULETREE_OBJECT_TYPE_FILEHDR	1	/* the very first thing */
+#define LB_RULETREE_OBJECT_TYPE_CATALOG	2	/* ruletree_catalog_entry_t */
+#define LB_RULETREE_OBJECT_TYPE_FSRULE		3	/* ruletree_fsrule_t */
+#define LB_RULETREE_OBJECT_TYPE_STRING		4	/* ruletree_string_hdr_t */
+#define LB_RULETREE_OBJECT_TYPE_OBJECTLIST	5	/* ruletree_objectlist_t */
+#define LB_RULETREE_OBJECT_TYPE_BINTREE	6	/* ruletree_bintree_t */
+#define LB_RULETREE_OBJECT_TYPE_INODESTAT	7	/* ruletree_inodestat_t */
+#define LB_RULETREE_OBJECT_TYPE_UINT32		8	/* ruletree_uint32_t */
+#define LB_RULETREE_OBJECT_TYPE_BOOLEAN	9	/* also ruletree_uint32_t */
+#define LB_RULETREE_OBJECT_TYPE_EXEC_PP_RULE	14	/* ruletree_exec_preprocessing_rule_t */
+#define LB_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE	15	/* ruletree_exec_policy_selection_rule_t */
+#define LB_RULETREE_OBJECT_TYPE_NET_RULE	21	/* ruletree_net_rule_t */
 
 typedef struct ruletree_hdr_s {
 	ruletree_object_hdr_t	rtree_hdr_objhdr;	/* [0], size 8 */
@@ -180,34 +180,34 @@ typedef struct ruletree_uint32_s {
 } ruletree_uint32_t;
 
 /* the three "usual selectors", used in normal rules */
-#define SB2_RULETREE_FSRULE_SELECTOR_PATH		101
-#define SB2_RULETREE_FSRULE_SELECTOR_PREFIX		102
-#define SB2_RULETREE_FSRULE_SELECTOR_DIR		103
+#define LB_RULETREE_FSRULE_SELECTOR_PATH		101
+#define LB_RULETREE_FSRULE_SELECTOR_PREFIX		102
+#define LB_RULETREE_FSRULE_SELECTOR_DIR		103
 
-#define SB2_RULETREE_FSRULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE	200 /* FIXME. To be removed.*/
-#define SB2_RULETREE_FSRULE_ACTION_USE_ORIG_PATH	201
-#define SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH	202
-#define SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH_UNLESS_CHROOT	203
-#define SB2_RULETREE_FSRULE_ACTION_MAP_TO		210
-#define SB2_RULETREE_FSRULE_ACTION_REPLACE_BY		211
-#define SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR 212
-#define SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR 213
-#define SB2_RULETREE_FSRULE_ACTION_SET_PATH		214
-#define SB2_RULETREE_FSRULE_ACTION_CONDITIONAL_ACTIONS	220
-#define SB2_RULETREE_FSRULE_ACTION_SUBTREE		230
-#define SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_MAP_TO	245
-#define SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_REPLACE_BY	246
-#define SB2_RULETREE_FSRULE_ACTION_PROCFS		250	/* /proc */
-#define SB2_RULETREE_FSRULE_ACTION_UNION_DIR		251
-#define SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_IN         252
+#define LB_RULETREE_FSRULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE	200 /* FIXME. To be removed.*/
+#define LB_RULETREE_FSRULE_ACTION_USE_ORIG_PATH	201
+#define LB_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH	202
+#define LB_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH_UNLESS_CHROOT	203
+#define LB_RULETREE_FSRULE_ACTION_MAP_TO		210
+#define LB_RULETREE_FSRULE_ACTION_REPLACE_BY		211
+#define LB_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR 212
+#define LB_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR 213
+#define LB_RULETREE_FSRULE_ACTION_SET_PATH		214
+#define LB_RULETREE_FSRULE_ACTION_CONDITIONAL_ACTIONS	220
+#define LB_RULETREE_FSRULE_ACTION_SUBTREE		230
+#define LB_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_MAP_TO	245
+#define LB_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_REPLACE_BY	246
+#define LB_RULETREE_FSRULE_ACTION_PROCFS		250	/* /proc */
+#define LB_RULETREE_FSRULE_ACTION_UNION_DIR		251
+#define LB_RULETREE_FSRULE_ACTION_IF_EXISTS_IN         252
 
 /* auxiliar conditions */ 
-#define SB2_RULETREE_FSRULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS 301
-#define SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE 302
-#define SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE 303
-#define SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_NOT_EMPTY 304
-#define SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_EMPTY 305
-#define SB2_RULETREE_FSRULE_CONDITION_IF_EXISTS_IN 306
+#define LB_RULETREE_FSRULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS 301
+#define LB_RULETREE_FSRULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE 302
+#define LB_RULETREE_FSRULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE 303
+#define LB_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_NOT_EMPTY 304
+#define LB_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_EMPTY 305
+#define LB_RULETREE_FSRULE_CONDITION_IF_EXISTS_IN 306
 
 typedef struct ruletree_net_rule_s {
 	ruletree_object_hdr_t		rtree_net_objhdr;
@@ -225,9 +225,9 @@ typedef struct ruletree_net_rule_s {
 	ruletree_object_offset_t	rtree_net_rules;	/* offset of a list of subrules */
 } ruletree_net_rule_t;
 
-#define SB2_RULETREE_NET_RULETYPE_DENY	0
-#define SB2_RULETREE_NET_RULETYPE_ALLOW	1
-#define SB2_RULETREE_NET_RULETYPE_RULES	2
+#define LB_RULETREE_NET_RULETYPE_DENY	0
+#define LB_RULETREE_NET_RULETYPE_ALLOW	1
+#define LB_RULETREE_NET_RULETYPE_RULES	2
 
 /* ----------- rule_tree.c: ----------- */
 extern int ruletree_to_memory(void); /* 0 if ok, negative if rule tree is not available. */
@@ -362,4 +362,4 @@ extern void inc_vperm_num_active_inodestats(void);
 extern void dec_vperm_num_active_inodestats(void);
 extern uint32_t get_vperm_num_active_inodestats(void);
 
-#endif /* SB2_RULETREE_H__ */
+#endif /* LB_RULETREE_H__ */

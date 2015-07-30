@@ -54,7 +54,7 @@ gcc_tools = {
 
 local generic_gcc_tools_path_prefixes = {
 	"/usr/bin/",
-	"/sb2/"
+	"/lb/"
 }
 
 function register_gcc_component_path(tmp, gccrule)
@@ -65,7 +65,7 @@ function register_gcc_component_path(tmp, gccrule)
 	--    cross_gcc_dir is needed, too.
 	-- 2. note that cross_gcc_dir is not empty, this file
 	--    won't be loaded at all if it is (see argvenvp.lua),
-	-- 3. Wrappers for host-* tools live in /sb2/wrappers.
+	-- 3. Wrappers for host-* tools live in /lb/wrappers.
 	local gcc_tools_path_prefixes = {}
 
     -- lua array copy wtf
@@ -131,14 +131,14 @@ function add_cross_compiler(gccrule, version)
 				local compiler_name = gcc_compilers[i]
 				tmp.name = prefix .. compiler_name
 				tmp.new_filename = gccrule.cross_gcc_dir .. "/" .. gccrule.cross_gcc_subst_prefix .. compiler_name
-				if not sblib.path_exists(tmp.new_filename) then
+				if not lblib.path_exists(tmp.new_filename) then
 					if compiler_alternative_name[compiler_name] ~= nil then
 						tmp.new_filename = gccrule.cross_gcc_dir .. "/" ..
 							gccrule.cross_gcc_subst_prefix .. compiler_alternative_name[compiler_name]
 					end
 				end
 
-				if sblib.path_exists(tmp.new_filename) then
+				if lblib.path_exists(tmp.new_filename) then
 					gcc_compiler_arg_mods(tmp, gccrule)
 					register_gcc_component_path(tmp, gccrule)
 				end
@@ -151,7 +151,7 @@ function add_cross_compiler(gccrule, version)
 			tmp.name = prefix .. gcc_compilers_with_version[i] .. "-" ..
 				gccrule.cross_gcc_shortversion
 			tmp.new_filename = gccrule.cross_gcc_dir .. "/" .. gccrule.cross_gcc_subst_prefix .. gcc_compilers_with_version[i]
-			if sblib.path_exists(tmp.new_filename) then
+			if lblib.path_exists(tmp.new_filename) then
 				gcc_compiler_arg_mods(tmp, gccrule)
 				register_gcc_component_path(tmp, gccrule)
 			end
@@ -187,23 +187,23 @@ function add_cross_compiler(gccrule, version)
 	end
 end
 
-if (sbox_host_gcc_prefix_list and sbox_host_gcc_prefix_list ~= "") then
+if (ldbox_host_gcc_prefix_list and ldbox_host_gcc_prefix_list ~= "") then
 	-- deal with host-gcc functionality, disables mapping
-	for prefix in string.gmatch(sbox_host_gcc_prefix_list, "[^:]+") do
+	for prefix in string.gmatch(ldbox_host_gcc_prefix_list, "[^:]+") do
 		for i = 1, table.maxn(gcc_compilers) do
 			local tmp = {}
 			tmp.name = prefix .. gcc_compilers[i]
-			tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_compilers[i]
+			tmp.new_filename = ldbox_host_gcc_dir .. "/" .. ldbox_host_gcc_subst_prefix .. gcc_compilers[i]
 			tmp.add_tail = {}
 			tmp.remove = {}
 			tmp.disable_mapping = 1
-			if (sbox_extra_host_compiler_args and sbox_extra_host_compiler_args ~= "") then
-				for gcc_extra in string.gmatch(sbox_extra_host_compiler_args, "[^ ]+") do
+			if (ldbox_extra_host_compiler_args and ldbox_extra_host_compiler_args ~= "") then
+				for gcc_extra in string.gmatch(ldbox_extra_host_compiler_args, "[^ ]+") do
 					table.insert(tmp.add_tail, gcc_extra)
 				end
 			end
-			if (sbox_block_host_compiler_args and sbox_block_host_compiler_args ~= "") then
-				for gcc_block in string.gmatch(sbox_block_host_compiler_args, "[^ ]+") do
+			if (ldbox_block_host_compiler_args and ldbox_block_host_compiler_args ~= "") then
+				for gcc_block in string.gmatch(ldbox_block_host_compiler_args, "[^ ]+") do
 					table.insert(tmp.remove, gcc_block)
 				end
 			end
@@ -214,14 +214,14 @@ if (sbox_host_gcc_prefix_list and sbox_host_gcc_prefix_list ~= "") then
 		for i = 1, table.maxn(gcc_linkers) do
 			local tmp = {}
 			tmp.name = prefix .. gcc_linkers[i]
-			tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_linkers[i]
+			tmp.new_filename = ldbox_host_gcc_dir .. "/" .. ldbox_host_gcc_subst_prefix .. gcc_linkers[i]
 			tmp.disable_mapping = 1
 			register_gcc_component_path(tmp, nil)
 		end
 		for i = 1, table.maxn(gcc_tools) do
 			local tmp = {}
 			tmp.name = prefix .. gcc_tools[i]
-			tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_tools[i]
+			tmp.new_filename = ldbox_host_gcc_dir .. "/" .. ldbox_host_gcc_subst_prefix .. gcc_tools[i]
 			tmp.disable_mapping = 1
 			register_gcc_component_path(tmp, nil)
 		end
@@ -230,8 +230,8 @@ end
 
 gcc_rule_file_path = session_dir .. "/gcc-conf.lua"
 
-if (sblib.path_exists(gcc_rule_file_path)) then
-	sblib.log("debug", "Loading GCC rules")
+if (lblib.path_exists(gcc_rule_file_path)) then
+	lblib.log("debug", "Loading GCC rules")
 	do_file(gcc_rule_file_path)
 end
 

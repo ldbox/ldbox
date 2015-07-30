@@ -5,7 +5,7 @@
 # package management tools can do; for example, packages must not be
 # installed in the "maemo" mode which has been designed for compiling packages.
 # This wrapper first checks if the operation is permitted, and executes the
-# real tool only if it hasn't been denied by SB2's configuration.
+# real tool only if it hasn't been denied by ldbox's configuration.
 #
 # Following tools and operations are controlled here:
 # - "dpkg": "-i" and "--install" can be disabled
@@ -21,43 +21,43 @@ args="$*"
 prog="$0"
 progbase=`basename $0`
 
-function error_not_inside_sb2()
+function error_not_inside_lb()
 {
-	echo "SB2: $progbase wrapper: This wrapper can only be used from inside"
-	echo "the scratchbox 2'ed environment"
+	echo "ldbox: $progbase wrapper: This wrapper can only be used from inside"
+	echo "the ldbox'ed environment"
 	exit 1
 }
 
-if [ -z "$SBOX_SESSION_DIR" ]
+if [ -z "$LDBOX_SESSION_DIR" ]
 then
-	error_not_inside_sb2
+	error_not_inside_lb
 fi
 
-. $SBOX_SESSION_DIR/sb2-session.conf
+. $LDBOX_SESSION_DIR/lb-session.conf
 
-if [ -z "$sbox_mapmode" -o -z "$sbox_dir" ]
+if [ -z "$ldbox_mapmode" -o -z "$ldbox_dir" ]
 then
-	error_not_inside_sb2
+	error_not_inside_lb
 fi
 
 # read-in mode-specific settings
-if [ -f $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc ]
+if [ -f $LDBOX_SESSION_DIR/modes/$ldbox_mapmode/lbrc ]
 then
-	. $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc "$progbase"
+	. $LDBOX_SESSION_DIR/modes/$ldbox_mapmode/lbrc "$progbase"
 fi
 
 function deny_operation()
 {
-	echo "SB2: $progbase wrapper: Operation denied in this mode ($sbox_mapmode)"
-	echo "SB2: $progbase wrapper: You need to use another mode for installing and"
-	echo "SB2: $progbase wrapper: removing packages (typically the 'emulate' mode will do)"
+	echo "ldbox: $progbase wrapper: Operation denied in this mode ($ldbox_mapmode)"
+	echo "ldbox: $progbase wrapper: You need to use another mode for installing and"
+	echo "ldbox: $progbase wrapper: removing packages (typically the 'emulate' mode will do)"
 	exit 1
 }
 
 case "$progbase" in
 (dpkg)
 	realtool=/usr/bin/dpkg
-	if [ -n "$SBOX_DPKG_WRAPPER_DENY_INSTALL" ]
+	if [ -n "$LDBOX_DPKG_WRAPPER_DENY_INSTALL" ]
 	then
 		for i in $args
 		do
@@ -79,7 +79,7 @@ case "$progbase" in
 	;;
 (apt-get)
 	realtool=/usr/bin/apt-get
-	if [ -n "$SBOX_APT_GET_WRAPPER_DENY_INSTALL" ]
+	if [ -n "$LDBOX_APT_GET_WRAPPER_DENY_INSTALL" ]
 	then
 		for i in $args
 		do
@@ -93,7 +93,7 @@ case "$progbase" in
 	fi
 	;;
 (*)
-	echo "SB2: $progbase wrapper: FATAL ERROR: don't know where to find real $progbase"
+	echo "ldbox: $progbase wrapper: FATAL ERROR: don't know where to find real $progbase"
 	exit 1
 	;;
 esac

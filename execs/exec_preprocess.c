@@ -9,7 +9,7 @@
  * ------------------------------------
  *
  * function apply_exec_preprocessing_rules() is called to decide WHAT FILE
- * should be started (see description of the algorithm in sb_exec.c)
+ * should be started (see description of the algorithm in lb_exec.c)
  * (this also typically adds, deletes, or modifies arguments whenever needed)
 */
 
@@ -41,13 +41,13 @@
 #endif
 
 #include "mapping.h"
-#include "sb2.h"
-#include "libsb2.h"
+#include "lb.h"
+#include "liblb.h"
 #include "exported.h"
 
 #include <sys/mman.h>
 
-#include "sb2_execs.h"
+#include "lb_execs.h"
 
 static int add_elements_to_argv(
 	const char *table_name,
@@ -69,7 +69,7 @@ static int add_elements_to_argv(
 		str = offset_to_ruletree_string_ptr(str_offs, NULL);
 		
 		argv[add_idx] = strdup(str);
-		SB_LOG(SB_LOGLEVEL_NOISE,
+		LB_LOG(LB_LOGLEVEL_NOISE,
 			"%s: add from %s to argv[%d] = '%s'",
 				__func__, table_name, add_idx, str);
 		add_idx++;
@@ -90,7 +90,7 @@ static int check_path_prefix_match(
 	prefix_table_offs = execpp_rule->rtree_xpr_path_prefixes_table_offs;
 
 	if (!prefix_table_offs) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: no path prefixes, assume match",
 			__func__);
 		return(1);
@@ -98,7 +98,7 @@ static int check_path_prefix_match(
 	dirname_len = file_basename - filename;
 	if (!dirname_len) {
 		/* relative name, never matches */
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: relative filename, no match",
 			__func__);
 		return(0);
@@ -115,16 +115,16 @@ static int check_path_prefix_match(
 		if (((int)prefix_len == dirname_len) ||
 		    ((int)prefix_len + 1 == dirname_len)) {
 			if (!strncmp(filename, prefix, prefix_len)) {
-				SB_LOG(SB_LOGLEVEL_DEBUG,
+				LB_LOG(LB_LOGLEVEL_DEBUG,
 					"%s: prefix match found",
 					__func__);
 				return(1);
 			}
-			SB_LOG(SB_LOGLEVEL_NOISE,
+			LB_LOG(LB_LOGLEVEL_NOISE,
 				"%s: didn't match match %s",
 				__func__, prefix);
 		} else {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: didn't match match %s (%d,%d)",
 				__func__, prefix, prefix_len, dirname_len);
 		}
@@ -150,7 +150,7 @@ static ruletree_exec_preprocessing_rule_t *find_exec_preprocessing_rule(
 		file_basename = filename;
 	}
 	file_basename_len = strlen(file_basename);
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"%s: check %d rules, file='%s'",
 		__func__, list_size, file_basename);
 	for (i = 0; i < (int)list_size; i++) {
@@ -167,7 +167,7 @@ static ruletree_exec_preprocessing_rule_t *find_exec_preprocessing_rule(
 					rule_bin_name = offset_to_ruletree_string_ptr(
 						execpp_rule->rtree_xpr_binary_name_offs,
 						&rule_bin_name_len);
-					SB_LOG(SB_LOGLEVEL_NOISE3,
+					LB_LOG(LB_LOGLEVEL_NOISE3,
 						"%s: cmp '%s','%s'",
 						__func__, file_basename, rule_bin_name);
 					if (((int)rule_bin_name_len == file_basename_len) &&
@@ -175,7 +175,7 @@ static ruletree_exec_preprocessing_rule_t *find_exec_preprocessing_rule(
 
 						if (check_path_prefix_match(
 							execpp_rule, filename, file_basename)) {
-							SB_LOG(SB_LOGLEVEL_DEBUG,
+							LB_LOG(LB_LOGLEVEL_DEBUG,
 								"%s: Found preprocessing rule '%s'",
 								__func__, rule_bin_name);
 							return(execpp_rule);
@@ -185,7 +185,7 @@ static ruletree_exec_preprocessing_rule_t *find_exec_preprocessing_rule(
 			}
 		}
 	}
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"%s: No exec preprocessing rules for '%s'.",
 		__func__, file_basename);
 	return(NULL);
@@ -203,7 +203,7 @@ int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp)
 	if (!*file || !**file) return(0); /* file is required. */
 
 	if (!argvmods_rules_offs) {
-		const char *modename = sbox_session_mode;
+		const char *modename = ldbox_session_mode;
 		uint32_t   use_gcc_rules = 0;
 
 		if (!modename)
@@ -218,7 +218,7 @@ int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp)
 			argvmods_rules_offs = ruletree_catalog_get("argvmods",
 				(use_gcc_rules ? "gcc" : "misc"));
 
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: argvmods rules @%u, use_gcc_rules=%d",
 				__func__, argvmods_rules_offs, use_gcc_rules);
                 }
@@ -236,7 +236,7 @@ int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp)
 
 	/* count original number of arguments */
 	for (orig_argc=0; (*argv)[orig_argc]; orig_argc++) {
-		SB_LOG(SB_LOGLEVEL_NOISE,
+		LB_LOG(LB_LOGLEVEL_NOISE,
 			"%s: orig. argv[%d] = '%s'",
 			__func__, orig_argc, (*argv)[orig_argc]);
 	}
@@ -256,7 +256,7 @@ int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp)
 	/* set up argv[] */
 	if (max_new_argv_elements > 0) {
 
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: allocating new argv, size = %d",
 			__func__, orig_argc + max_new_argv_elements);
 		new_argv = (char **)calloc(orig_argc + max_new_argv_elements + 1, sizeof(char *));
@@ -307,12 +307,12 @@ int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp)
 					}
 				}
 				if (remove_this) {
-					SB_LOG(SB_LOGLEVEL_DEBUG,
+					LB_LOG(LB_LOGLEVEL_DEBUG,
 						"%s: remove argv[%d], '%s'",
 						__func__, k, str);
 				} else {
 					new_argv[i] = strdup((*argv)[k]);
-					SB_LOG(SB_LOGLEVEL_DEBUG,
+					LB_LOG(LB_LOGLEVEL_DEBUG,
 						"%s: argv[%d]='%s'",
 						__func__, i, new_argv[i]);
 					i++;
@@ -324,7 +324,7 @@ int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp)
 		/* nothing to remove, copy old argv */
 		for (k = 1; k < orig_argc; i++, k++) {
 			new_argv[i] = strdup((*argv)[k]);
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: move argv[%d] -> argv[%d], '%s'",
 				__func__, k, i, new_argv[i]);
 		}
@@ -345,7 +345,7 @@ int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp)
 		 * the problem will disappear soon anyway..
 		*/
 		*argv = new_argv;
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: argv (new_argc=%d) was replaced.", __func__, i);
 	}
 
@@ -358,7 +358,7 @@ int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp)
 			if (*file) free(*file);
 #endif
 			*file = strdup(new_file_name);
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: new filename '%s'.",
 				__func__, new_file_name);
 			(*argv)[0] = strdup(*file);
@@ -371,7 +371,7 @@ int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp)
 		int k;
 
 		for (orig_envc=0; (*envp)[orig_envc]; orig_envc++);
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: num.env.vars = %d, allocate +2",
 			__func__, orig_envc);
 		new_envp = (char **)calloc(orig_envc + 2 + 1, sizeof(char *));
@@ -379,8 +379,8 @@ int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp)
 		for (k = 0; k < orig_envc; k++) {
 			new_envp[k] = strdup((*envp)[k]);
 		}
-		new_envp[orig_envc] = strdup("SBOX_DISABLE_MAPPING=1");
-		new_envp[orig_envc+1] = strdup("SBOX_DISABLE_ARGVENVP=1");
+		new_envp[orig_envc] = strdup("LDBOX_DISABLE_MAPPING=1");
+		new_envp[orig_envc+1] = strdup("LDBOX_DISABLE_ARGVENVP=1");
 		new_envp[orig_envc+2] = NULL;
 		*envp = new_envp;
 	}

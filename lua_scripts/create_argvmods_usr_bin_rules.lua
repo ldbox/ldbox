@@ -3,7 +3,7 @@
 --
 -- Licensed under MIT license
 
--- This script is executed after a new SB2 session has been created,
+-- This script is executed after a new ldbox session has been created,
 -- to create mapping rules for toolchain components:
 -- For example, /usr/bin/gcc will be mapped to the toolchain. These rules
 -- are used for other filesystem operations than exec*
@@ -13,7 +13,7 @@
 
 gcc_rule_file_path = session_dir .. "/gcc-conf.lua"
 
-default_rule = os.getenv("SBOX_ARGVMODS_USR_BIN_DEFAULT_RULE")
+default_rule = os.getenv("LDBOX_ARGVMODS_USR_BIN_DEFAULT_RULE")
 
 function argvmods_to_mapping_rules(prefix)
 	local n
@@ -22,7 +22,7 @@ function argvmods_to_mapping_rules(prefix)
 		-- print("-- rule ", n, " new_filename=", rule.new_filename)
 		local process_now = true
 		if prefix ~= nil then
-			if not sb.isprefix(prefix, n) then
+			if not lb.isprefix(prefix, n) then
 				process_now = false
 			end
 		end
@@ -35,7 +35,7 @@ function argvmods_to_mapping_rules(prefix)
 				   rule.new_filename ~= nil then
 					-- this rule maps "n" from /usr/bin to
 					-- another file
-					if sb.path_exists(rule.new_filename) then
+					if lb.path_exists(rule.new_filename) then
 						print("  {path=\"/usr/bin/"..n.."\",")
 						print("   replace_by=\"" ..
 							rule.new_filename.."\"},")
@@ -61,7 +61,7 @@ print("-- Automatically generated mapping rules. Do not edit:")
 --
 ruletree.attach_ruletree()
 
-local modename_in_ruletree = sb.get_forced_mapmode()
+local modename_in_ruletree = lb.get_forced_mapmode()
 if modename_in_ruletree == nil then
 	print("-- ERROR: modename_in_ruletree = nil")
 	os.exit(14)
@@ -80,7 +80,7 @@ else
         tools_prefix = tools
 end
 
-do_file(session_dir .. "/share/scratchbox2/modes/"..modename_in_ruletree.."/config.lua")
+do_file(session_dir .. "/share/ldbox/modes/"..modename_in_ruletree.."/config.lua")
 
 ruletree.catalog_set("Conf."..modename_in_ruletree, "enable_cross_gcc_toolchain",
         ruletree.new_boolean(enable_cross_gcc_toolchain))
@@ -94,27 +94,27 @@ load_argvmods_file(nil)
 
 -- Next, the argvmods stuff.
 
-print("argvmods_rules_for_usr_bin_"..sbox_cpu.." = {")
-argvmods_to_mapping_rules(sbox_cpu)
+print("argvmods_rules_for_usr_bin_"..ldbox_cpu.." = {")
+argvmods_to_mapping_rules(ldbox_cpu)
 if (default_rule ~= nil) then
 	print("  -- default:")
 	print("  ", default_rule)
 end
 print("}")
-local prefixrule1 = "  {prefix=\"/usr/bin/"..sbox_cpu..
-	"\",rules=argvmods_rules_for_usr_bin_"..sbox_cpu.."},"
+local prefixrule1 = "  {prefix=\"/usr/bin/"..ldbox_cpu..
+	"\",rules=argvmods_rules_for_usr_bin_"..ldbox_cpu.."},"
 local prefixrule2 = ""
 
-if sbox_cpu ~= sbox_uname_machine then
-	print("argvmods_rules_for_usr_bin_"..sbox_uname_machine.." = {")
-	argvmods_to_mapping_rules(sbox_uname_machine)
+if ldbox_cpu ~= ldbox_uname_machine then
+	print("argvmods_rules_for_usr_bin_"..ldbox_uname_machine.." = {")
+	argvmods_to_mapping_rules(ldbox_uname_machine)
 	if (default_rule ~= nil) then
 		print("  -- default:")
 		print("  ", default_rule)
 	end
 	print("}")
-	prefixrule2 = "  {prefix=\"/usr/bin/"..sbox_uname_machine..
-		"\",rules=argvmods_rules_for_usr_bin_"..sbox_uname_machine.."},"
+	prefixrule2 = "  {prefix=\"/usr/bin/"..ldbox_uname_machine..
+		"\",rules=argvmods_rules_for_usr_bin_"..ldbox_uname_machine.."},"
 end
 
 print("argvmods_rules_for_usr_bin = {")

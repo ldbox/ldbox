@@ -21,7 +21,7 @@
 
 #include <assert.h>
 
-#include "sb2.h"
+#include "lb.h"
 #include "rule_tree.h"
 
 /* ----- utility functions for managing counters in the "vperm" catalog ----- */

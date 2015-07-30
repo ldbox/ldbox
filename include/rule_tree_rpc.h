@@ -4,13 +4,13 @@
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
 */
 
-#ifndef SB2_RULETREE_RPC_H__
-#define SB2_RULETREE_RPC_H__
+#ifndef LB_RULETREE_RPC_H__
+#define LB_RULETREE_RPC_H__
 
 /* ------------ Rule tree RPC messages ------------
- * - for communicating with sb2d; any process running
+ * - for communicating with lbrdbd; any process running
  *   inside a session may make a remote procedure call
- *   to sb2d. Those calls are typically used to add/change
+ *   to lbrdbd. Those calls are typically used to add/change
  *   information to the rule tree.
 */
 
@@ -75,4 +75,4 @@ extern void ruletree_rpc__vperm_set_mode(uint64_t dev, uint64_t ino,
 	mode_t real_mode, mode_t virt_mode, mode_t suid_sgid_bits);
 extern void ruletree_rpc__vperm_release_mode(uint64_t dev, uint64_t ino);
 
-#endif /* SB2_RULETREE_H__ */
+#endif /* LB_RULETREE_H__ */

@@ -1,5 +1,5 @@
 /*
- * libsb2 -- misc. GATE fucntions of the scratchbox2 preload library
+ * liblb -- misc. GATE fucntions of the ldbox preload library
  *
  * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
  * parts contributed by 
@@ -30,7 +30,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <signal.h>
-#include "libsb2.h"
+#include "liblb.h"
 #include "exported.h"
 #include "rule_tree.h"
 
@@ -62,9 +62,9 @@ FTS * fts_open_gate(
 
 		clear_mapping_results_struct(&res);
 		path = *p;
-		sbox_map_path(realfnname, path,
+		ldbox_map_path(realfnname, path,
 			0/*flags*/, &res,
-			SB2_INTERFACE_CLASS_FTSOPEN);
+			LB_INTERFACE_CLASS_FTSOPEN);
 		if (res.mres_result_path) {
 			/* Mapped OK */
 			*np = strdup(res.mres_result_path);
@@ -88,7 +88,7 @@ char * get_current_dir_name_gate(
 	char * (*real_get_current_dir_name_ptr)(void),
 	const char *realfnname)
 {
-	char *sbox_path = NULL;
+	char *ldbox_path = NULL;
 	char *cwd;
 
 	errno = *result_errno_ptr; /* restore to orig.value */
@@ -98,12 +98,12 @@ char * get_current_dir_name_gate(
 	}
 	*result_errno_ptr = errno;
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_reverse_path(realfnname, cwd,
-				SB2_INTERFACE_CLASS_GETCWD);
+		ldbox_path = scratchbox_reverse_path(realfnname, cwd,
+				LB_INTERFACE_CLASS_GETCWD);
 	}
-	if (sbox_path) {
+	if (ldbox_path) {
 		free(cwd);
-		return sbox_path;
+		return ldbox_path;
 	}
 	return(cwd); /* failed to reverse it */
 }
@@ -111,23 +111,23 @@ char * get_current_dir_name_gate(
 static char *getcwd_common(char *buf, size_t size,
 	const char *realfnname, char *cwd)
 {
-	char *sbox_path = NULL;
+	char *ldbox_path = NULL;
 
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_reverse_path(realfnname, cwd,
-				SB2_INTERFACE_CLASS_GETCWD);
+		ldbox_path = scratchbox_reverse_path(realfnname, cwd,
+				LB_INTERFACE_CLASS_GETCWD);
 	}
-	if (sbox_path) {
-SB_LOG(SB_LOGLEVEL_DEBUG, "GETCWD: '%s'", sbox_path);
+	if (ldbox_path) {
+LB_LOG(LB_LOGLEVEL_DEBUG, "GETCWD: '%s'", ldbox_path);
 		if(buf) {
-			if (strlen(sbox_path) >= size) {
+			if (strlen(ldbox_path) >= size) {
 				/* path does not fit to the buffer */
-				free(sbox_path);
+				free(ldbox_path);
 				errno = ERANGE;
 				return(NULL);
 			}
-			strncpy(buf, sbox_path, size);
-			free(sbox_path);
+			strncpy(buf, ldbox_path, size);
+			free(ldbox_path);
 		} else {
 			/* buf==NULL: real getcwd() used malloc() to 
 			 * allocate cwd (some implementations) [or the
@@ -136,10 +136,10 @@ SB_LOG(SB_LOGLEVEL_DEBUG, "GETCWD: '%s'", sbox_path);
 			 * getcwd() already returned a pointer to us...
 			*/
 			free(cwd);
-			cwd = sbox_path;
+			cwd = ldbox_path;
 		}
 	}
-SB_LOG(SB_LOGLEVEL_DEBUG, "GETCWD: returns '%s'", cwd);
+LB_LOG(LB_LOGLEVEL_DEBUG, "GETCWD: returns '%s'", cwd);
 	return cwd;
 }
 
@@ -184,24 +184,24 @@ char *__getcwd_chk_gate(
 
 static char *getwd_common(char *cwd, const char *realfnname, char *buf)
 {
-	char *sbox_path = NULL;
+	char *ldbox_path = NULL;
 
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_reverse_path(realfnname, cwd,
-				SB2_INTERFACE_CLASS_GETCWD);
+		ldbox_path = scratchbox_reverse_path(realfnname, cwd,
+				LB_INTERFACE_CLASS_GETCWD);
 	}
-	if (sbox_path) {
+	if (ldbox_path) {
 		if(buf) {
-			if (strlen(sbox_path) >= PATH_MAX) {
-				free(sbox_path);
+			if (strlen(ldbox_path) >= PATH_MAX) {
+				free(ldbox_path);
 				return(NULL);
 			}
-			strcpy(buf, sbox_path);
-			free(sbox_path);
+			strcpy(buf, ldbox_path);
+			free(ldbox_path);
 		} else {
 			/* buf==NULL: next_getwd used malloc() to allocate cwd */
 			free(cwd);
-			cwd = sbox_path;
+			cwd = ldbox_path;
 		}
 	}
 	return cwd;
@@ -250,7 +250,7 @@ char *realpath_gate(
 	const mapping_results_t *mapped_name,
 	char *resolved)
 {
-	char *sbox_path = NULL;
+	char *ldbox_path = NULL;
 	char *rp;
 	char *rpath = resolved;
 
@@ -272,22 +272,22 @@ char *realpath_gate(
 	}
 	*result_errno_ptr = errno;
 	if (*rp != '\0') {
-		sbox_path = scratchbox_reverse_path(realfnname, rp,
-				SB2_INTERFACE_CLASS_REALPATH);
-		if (sbox_path) {
+		ldbox_path = scratchbox_reverse_path(realfnname, rp,
+				LB_INTERFACE_CLASS_REALPATH);
+		if (ldbox_path) {
 			if (resolved) {
-				strncpy(resolved, sbox_path, PATH_MAX);
+				strncpy(resolved, ldbox_path, PATH_MAX);
 				rp = resolved;
-				free(sbox_path);
+				free(ldbox_path);
 			} else {
 				/* resolved was null - assume that glibc 
 				 * allocated memory */
 				free(rp);
-				rp = sbox_path;
+				rp = ldbox_path;
 			}
 		} /* else not reversed, just return rp */
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE, "REALPATH: returns '%s'", rp);
+	LB_LOG(LB_LOGLEVEL_NOISE, "REALPATH: returns '%s'", rp);
 	return(rp);
 }
 
@@ -305,7 +305,7 @@ char *__realpath_chk_gate(
 	char *__restrict __resolved,
 	size_t __resolvedlen)
 {
-	char *sbox_path = NULL;
+	char *ldbox_path = NULL;
 	char *rp;
 	
 	errno = *result_errno_ptr; /* restore to orig.value */
@@ -317,30 +317,30 @@ char *__realpath_chk_gate(
 	}
 	*result_errno_ptr = errno;
 	if (*rp != '\0') {
-		sbox_path = scratchbox_reverse_path(realfnname, rp,
-				SB2_INTERFACE_CLASS_REALPATH);
-		if (sbox_path) {
+		ldbox_path = scratchbox_reverse_path(realfnname, rp,
+				LB_INTERFACE_CLASS_REALPATH);
+		if (ldbox_path) {
 			if (__resolved) {
-				strncpy(__resolved, sbox_path, __resolvedlen);
+				strncpy(__resolved, ldbox_path, __resolvedlen);
 				rp = __resolved;
-				free(sbox_path);
+				free(ldbox_path);
 			} else {
 				/* resolved was null - assume that glibc 
 				 * allocated memory */
 				free(rp);
-				rp = sbox_path;
+				rp = ldbox_path;
 			}
 		} /* else not reversed, just return rp */
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE, "REALPATH: returns '%s'", rp);
+	LB_LOG(LB_LOGLEVEL_NOISE, "REALPATH: returns '%s'", rp);
 	return(rp);
 }
 
 
-/* "SB2_WRAP_GLOB" needs to be defined on systems where the C library
+/* "LB_WRAP_GLOB" needs to be defined on systems where the C library
  * is not based on glibc (or not compatible with glob() from glibc 2.7)
 */
-#ifdef SB2_WRAP_GLOB
+#ifdef LB_WRAP_GLOB
 static char *check_and_prepare_glob_pattern(
 	const char *realfnname,
 	const char *pattern)
@@ -353,15 +353,15 @@ static char *check_and_prepare_glob_pattern(
 	 * log the mapped pattern (NOTICE level) if it was mapped
 	*/
 	if (*pattern == '/') { /* if absolute path in pattern.. */
-		mapped__pattern = sbox_map_path(realfnname, pattern,
+		mapped__pattern = ldbox_map_path(realfnname, pattern,
 			NULL/*RO-flag*/, 0/*flags*/,
-			SB2_INTERFACE_CLASS_GLOB);
+			LB_INTERFACE_CLASS_GLOB);
 		if (!strcmp(mapped__pattern, pattern)) {
 			/* no change */
 			free(mapped__pattern);
 			return(NULL);
 		}
-		SB_LOG(SB_LOGLEVEL_NOTICE, "%s: mapped pattern '%s' => '%s'",
+		LB_LOG(LB_LOGLEVEL_NOTICE, "%s: mapped pattern '%s' => '%s'",
 			realfnname, pattern, mapped__pattern);
 	}
 	return(mapped__pattern);
@@ -380,11 +380,11 @@ static int test_if_address_is_in_glibc(const char *sym_name, void *ptr)
 	Dl_info	dli;
 	Dl_info	dli_glibc;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: testing dladdr()", sym_name);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: testing dladdr()", sym_name);
 	if (dladdr(ptr, &dli)) {
 		void *ptr_to_something_in_glibc;
 
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: dladdr => 0x%p, fname='%s'",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: dladdr => 0x%p, fname='%s'",
 			sym_name, ptr, dli.dli_fname);
 
 		/* assume _IO_feof is in glibc, always
@@ -395,7 +395,7 @@ static int test_if_address_is_in_glibc(const char *sym_name, void *ptr)
 		ptr_to_something_in_glibc = dlsym(RTLD_NEXT,
 			SYMBOL_WHICH_IS_ASSUMED_TO_BE_INSIDE_GLIBC);
 		if (!ptr_to_something_in_glibc) {
-			SB_LOG(SB_LOGLEVEL_INFO, "%s: %s was not found,"
+			LB_LOG(LB_LOGLEVEL_INFO, "%s: %s was not found,"
 				" can't check if address of %s resides in glibc",
 				sym_name, SYMBOL_WHICH_IS_ASSUMED_TO_BE_INSIDE_GLIBC,
 				sym_name);
@@ -404,16 +404,16 @@ static int test_if_address_is_in_glibc(const char *sym_name, void *ptr)
 
 		/* find out the path to glibc, and compare */
 		if (dladdr(ptr_to_something_in_glibc, &dli_glibc)) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: _IO_feof is in fname='%s'",
+			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: _IO_feof is in fname='%s'",
 				sym_name, dli_glibc.dli_fname);
 			if (dli.dli_fname && dli_glibc.dli_fname) {
 				/* found files for both symbols */
 				if (!strcmp(dli.dli_fname, dli_glibc.dli_fname)) {
-					SB_LOG(SB_LOGLEVEL_DEBUG, "%s: is in glibc",
+					LB_LOG(LB_LOGLEVEL_DEBUG, "%s: is in glibc",
 						sym_name);
 					return(1);
 				}
-				SB_LOG(SB_LOGLEVEL_DEBUG, "%s: not in glibc",
+				LB_LOG(LB_LOGLEVEL_DEBUG, "%s: not in glibc",
 					sym_name);
 				return(0);
 			}
@@ -436,7 +436,7 @@ int glob_gate(
 	glob_t *pglob)
 {
 	int rc;
-#ifdef SB2_WRAP_GLOB
+#ifdef LB_WRAP_GLOB
 	char *mapped__pattern;
 
 	mapped__pattern = check_and_prepare_glob_pattern(realfnname, pattern);
@@ -455,7 +455,7 @@ int glob_gate(
 		 * glibc and those calls will be directed to us
 		 * => we'll do pathmapping later.
 		*/
-		SB_LOG(SB_LOGLEVEL_INFO, "%s: using the real function", realfnname);
+		LB_LOG(LB_LOGLEVEL_INFO, "%s: using the real function", realfnname);
 		rc = (*real_glob_ptr)(pattern, flags, errfunc, pglob);
 		*result_errno_ptr = errno;
 		return(rc);
@@ -463,16 +463,16 @@ int glob_gate(
 	/* else glob() is in glibc, and must be replaced completely
 	 * (uses a modified copy, copied from glibc) */
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%d, flags=0x%X",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%d, flags=0x%X",
 		realfnname, pattern, pglob->gl_offs, flags);
 	errno = *result_errno_ptr; /* restore to orig.value */
 	rc = do_glob(pattern, flags, errfunc, pglob);
 	*result_errno_ptr = errno;
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%d)",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%d)",
 		realfnname, rc, pglob->gl_pathc);
 	for (i=0; i < pglob->gl_pathc; i++) {
 		char *cp = pglob->gl_pathv[i + pglob->gl_offs];
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: [%d='%s']",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: [%d='%s']",
 			realfnname, i, cp ? cp : "<NULL>");
 	}
 #endif
@@ -492,7 +492,7 @@ int glob64_gate(
 	glob64_t *pglob)
 {
 	int rc;
-#ifdef SB2_WRAP_GLOB
+#ifdef LB_WRAP_GLOB
 	char *mapped__pattern;
 
 	mapped__pattern = check_and_prepare_glob_pattern(realfnname, pattern);
@@ -511,7 +511,7 @@ int glob64_gate(
 		 * glibc and those calls will be directed to us
 		 * => we'll do pathmapping later.
 		*/
-		SB_LOG(SB_LOGLEVEL_INFO, "%s: using the real function", realfnname);
+		LB_LOG(LB_LOGLEVEL_INFO, "%s: using the real function", realfnname);
 		rc = (*real_glob64_ptr)(pattern, flags, errfunc, pglob);
 		*result_errno_ptr = errno;
 		return(rc);
@@ -519,16 +519,16 @@ int glob64_gate(
 	/* else glob64() needs to be replaced;
 	 * use a modified copy (copied from glibc) */
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%d, flags=0x%X",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%d, flags=0x%X",
 		realfnname, pattern, pglob->gl_offs, flags);
 	errno = *result_errno_ptr; /* restore to orig.value */
 	rc = do_glob64(pattern, flags, errfunc, pglob);
 	*result_errno_ptr = errno;
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%d)",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%d)",
 		realfnname, rc, pglob->gl_pathc);
 	for (i=0; i < pglob->gl_pathc; i++) {
 		char *cp = pglob->gl_pathv[i + pglob->gl_offs];
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: [%d='%s']",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: [%d='%s']",
 			realfnname, i, cp ? cp : "<NULL>");
 	}
 #endif
@@ -555,11 +555,11 @@ int uname_gate(
 	}
 	*result_errno_ptr = errno;
 
-	if (sbox_session_dir) {
-		/* sb2 has been initialized. */
+	if (ldbox_session_dir) {
+		/* ldbox has been initialized. */
 		if (!uname_machine || !*uname_machine) {
 			uname_machine = ruletree_catalog_get_string(
-				"config", "sbox_uname_machine");
+				"config", "ldbox_uname_machine");
 		}
 		if (uname_machine && *uname_machine && buf)
 			snprintf(buf->machine, sizeof(buf->machine),
@@ -575,11 +575,11 @@ void exit_gate(
 {
 	(void)result_errno_ptr; /* not used */
 
-	/* NOTE: Following SB_LOG() call is used by the log
-	 *       postprocessor script "sb2-logz". Do not change
+	/* NOTE: Following LB_LOG() call is used by the log
+	 *       postprocessor script "lb-logz". Do not change
 	 *       without making a corresponding change to the script!
 	*/
-	SB_LOG(SB_LOGLEVEL_INFO, "%s: status=%d", realfnname, status);
+	LB_LOG(LB_LOGLEVEL_INFO, "%s: status=%d", realfnname, status);
 	(real_exit_ptr)(status);
 }
 
@@ -590,11 +590,11 @@ void _exit_gate(
 {
 	(void)result_errno_ptr; /* not used */
 
-	/* NOTE: Following SB_LOG() call is used by the log
-	 *       postprocessor script "sb2-logz". Do not change
+	/* NOTE: Following LB_LOG() call is used by the log
+	 *       postprocessor script "lb-logz". Do not change
 	 *       without making a corresponding change to the script!
 	*/
-	SB_LOG(SB_LOGLEVEL_INFO, "%s: status=%d", realfnname, status);
+	LB_LOG(LB_LOGLEVEL_INFO, "%s: status=%d", realfnname, status);
 	(real__exit_ptr)(status);
 }
 
@@ -606,46 +606,46 @@ void _Exit_gate(
 {
 	(void)result_errno_ptr; /* not used */
 
-	/* NOTE: Following SB_LOG() call is used by the log
-	 *       postprocessor script "sb2-logz". Do not change
+	/* NOTE: Following LB_LOG() call is used by the log
+	 *       postprocessor script "lb-logz". Do not change
 	 *       without making a corresponding change to the script!
 	*/
-	SB_LOG(SB_LOGLEVEL_INFO, "%s: status=%d", realfnname, status);
+	LB_LOG(LB_LOGLEVEL_INFO, "%s: status=%d", realfnname, status);
 	(real__Exit_ptr)(status);
 }
 //void _Exit_gate() __attribute__ ((noreturn));
 
 static void log_wait_result(const char *realfnname, pid_t pid, int status)
 {
-	/* NOTE: Following SB_LOG() calls are used by the log
-	 *       postprocessor script "sb2logz". Do not change
+	/* NOTE: Following LB_LOG() calls are used by the log
+	 *       postprocessor script "lblogz". Do not change
 	 *       without making a corresponding changes to the script!
 	*/
 	if (WIFEXITED(status)) {
-		SB_LOG(SB_LOGLEVEL_INFO, "%s: child %d exit status=%d",
+		LB_LOG(LB_LOGLEVEL_INFO, "%s: child %d exit status=%d",
 			realfnname, (int)pid, WEXITSTATUS(status));
 		return;
 	}
 	if (WIFSIGNALED(status)) {
 #ifdef WCOREDUMP
-		SB_LOG(SB_LOGLEVEL_INFO,
+		LB_LOG(LB_LOGLEVEL_INFO,
 			"%s: child %d terminated by signal %d%s",
 			realfnname, (int)pid, WTERMSIG(status),
 			(WCOREDUMP(status) ? " (core dumped)" : ""));
 #else
-		SB_LOG(SB_LOGLEVEL_INFO,
+		LB_LOG(LB_LOGLEVEL_INFO,
 			"%s: child %d terminated by signal %d",
 			realfnname, (int)pid, WTERMSIG(status));
 #endif
 		return;
 	}
 	if (WIFSTOPPED(status)) {
-		SB_LOG(SB_LOGLEVEL_INFO, "%s: child %d stopped by signal %d",
+		LB_LOG(LB_LOGLEVEL_INFO, "%s: child %d stopped by signal %d",
 			realfnname, (int)pid, WSTOPSIG(status));
 		return;
 	}
 	if (WIFCONTINUED(status)) {
-		SB_LOG(SB_LOGLEVEL_INFO, "%s: child %d continued",
+		LB_LOG(LB_LOGLEVEL_INFO, "%s: child %d continued",
 			realfnname, (int)pid);
 		return;
 	}

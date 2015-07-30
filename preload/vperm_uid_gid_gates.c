@@ -1,5 +1,5 @@
 /* 
- * libsb2 -- GATE functions for UID/GID simulation (setuid(),getuid() etc)
+ * liblb -- GATE functions for UID/GID simulation (setuid(),getuid() etc)
  *
  * Copyright (C) 2011 Nokia Corporation.
  * Author: Lauri T. Aarnio
@@ -21,10 +21,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 */
 
-#include "sb2.h"
-#include "libsb2.h"
+#include "lb.h"
+#include "liblb.h"
 #include "exported.h"
-#include "sb2_vperm.h"
+#include "lb_vperm.h"
 
 
 static struct vperm_uids_gids_s {
@@ -61,16 +61,16 @@ static void initialize_simulated_ids(void)
 	v_real_egid = getegid_nomap_nolog();
 	
 	/* UIDs */
-	if (sbox_vperm_ids && (cp = strchr(sbox_vperm_ids, 'u')) &&
+	if (ldbox_vperm_ids && (cp = strchr(ldbox_vperm_ids, 'u')) &&
 	    (sscanf(cp, "u%d:%d:%d:%d", &i1, &i2, &i3, &i4) == 4)) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: Initializing UIDs from env: %d %d %d %d",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: Initializing UIDs from env: %d %d %d %d",
 			__func__, i1, i2, i3, i4);
 		vperm_simulated_ids.v_uid = i1;
 		vperm_simulated_ids.v_euid = i2;
 		vperm_simulated_ids.v_saved_uid = i3;
 		vperm_simulated_ids.v_fsuid = i4;
 	} else {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: Initializing UIDs from OS.",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: Initializing UIDs from OS.",
 			__func__);
 		vperm_simulated_ids.v_euid = v_real_euid;
 		vperm_simulated_ids.v_uid = getuid_nomap_nolog();
@@ -79,16 +79,16 @@ static void initialize_simulated_ids(void)
 	}
 
 	/* GIDs */
-	if (sbox_vperm_ids && (cp = strchr(sbox_vperm_ids, 'g')) &&
+	if (ldbox_vperm_ids && (cp = strchr(ldbox_vperm_ids, 'g')) &&
 	    (sscanf(cp, "g%d:%d:%d:%d", &i1, &i2, &i3, &i4) == 4)) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: Initializing GIDs from env: %d %d %d %d",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: Initializing GIDs from env: %d %d %d %d",
 			__func__, i1, i2, i3, i4);
 		vperm_simulated_ids.v_gid = i1;
 		vperm_simulated_ids.v_egid = i2;
 		vperm_simulated_ids.v_saved_gid = i3;
 		vperm_simulated_ids.v_fsgid = i4;
 	} else {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: Initializing GIDs from OS.",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: Initializing GIDs from OS.",
 			__func__);
 		vperm_simulated_ids.v_egid = v_real_egid;
 		vperm_simulated_ids.v_gid = getgid_nomap_nolog();
@@ -96,16 +96,16 @@ static void initialize_simulated_ids(void)
 		vperm_simulated_ids.v_saved_gid = vperm_simulated_ids.v_egid;
 	}
 
-	if (sbox_vperm_ids && (cp = strchr(sbox_vperm_ids, 'f')) &&
+	if (ldbox_vperm_ids && (cp = strchr(ldbox_vperm_ids, 'f')) &&
 	    (sscanf(cp, "f%d.%d", &i1, &i2) == 2)) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: Initializing unknown file owner and group info from env: %d %d",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: Initializing unknown file owner and group info from env: %d %d",
 			__func__, i1, i2);
 		vperm_simulated_ids.v_set_owner_and_group_of_unknown_files = 1;
 		vperm_simulated_ids.v_unknown_file_owner = i1;
 		vperm_simulated_ids.v_unknown_file_group = i2;
 	}
 
-	if (sbox_vperm_ids && (cp = strchr(sbox_vperm_ids, 'p'))) {
+	if (ldbox_vperm_ids && (cp = strchr(ldbox_vperm_ids, 'p'))) {
 		vperm_simulated_ids.v_simulate_root_fs_permissions = 0;
 	}
 
@@ -175,7 +175,7 @@ char *vperm_export_ids_as_string_for_exec(const char *prefix,
 	if (vperm_simulated_ids.initialized == 0) {
 		if ((mode & (S_ISUID | S_ISGID)) == 0) {
 			/* not initialized and not SUID/SGID, reuse existing value */
-			if (asprintf(&r, "%s%s", prefix, sbox_vperm_ids) < 0)
+			if (asprintf(&r, "%s%s", prefix, ldbox_vperm_ids) < 0)
 				return(NULL);
 		}
 		/* else need to do SUID/SGID simulation. */
@@ -188,7 +188,7 @@ char *vperm_export_ids_as_string_for_exec(const char *prefix,
 		const char *cp = strchr(user_vperm_request, '=');
 		cp = cp ? cp + 1 : user_vperm_request;
 		if (asprintf(&r, "%s%s", prefix, cp) < 0) return(NULL);
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: user_vperm_request => '%s'",
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: user_vperm_request => '%s'",
 			__func__, r);
 		return(r);
 	}
@@ -226,7 +226,7 @@ char *vperm_export_ids_as_string_for_exec(const char *prefix,
 	     ufbuf,
 	     ((vperm_simulated_ids.v_simulate_root_fs_permissions == 0) ? ",p" : "")) < 0)
 		return(NULL);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: packed IDs => '%s'",
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: packed IDs => '%s'",
 		__func__, r);
 	return(r);
 }
@@ -240,7 +240,7 @@ char *vperm_export_ids_as_string_for_exec(const char *prefix,
 		(void)real_fn_ptr;	/* real fn is never used directly */ \
 		if (vperm_simulated_ids.initialized == 0) \
 			initialize_simulated_ids(); \
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %d", realfnname, \
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: %d", realfnname, \
 			vperm_simulated_ids.Field); \
 		return (vperm_simulated_ids.Field); \
 	}
@@ -263,7 +263,7 @@ GET_SINGLE_ID_GATE(uid_t, getuid_gate, v_uid)
 		(void)real_fn_ptr;	/* real fn is never used directly */ \
 		if (vperm_simulated_ids.initialized == 0) \
 			initialize_simulated_ids(); \
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %d,%d,%d", realfnname, \
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: %d,%d,%d", realfnname, \
 			(int)vperm_simulated_ids.Field_real, \
 			(int)vperm_simulated_ids.Field_eff, \
 			(int)vperm_simulated_ids.Field_saved); \
@@ -310,7 +310,7 @@ int seteuid_gate(int *result_errno_ptr,
 		Id_type r_id, Id_type e_id, Id_type s_id) \
 	{ \
 		(void)real_fn_ptr;	/* real fn is never used */ \
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: set (%d,%d,%d)", realfnname, \
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: set (%d,%d,%d)", realfnname, \
 			(int)r_id, (int)e_id, (int)s_id); \
 		if (vperm_simulated_ids.initialized == 0) \
 			initialize_simulated_ids(); \
@@ -367,10 +367,10 @@ int setuid_gate(int *result_errno_ptr,
 		}
 	    	vperm_simulated_ids.v_euid = uid;
 	    	vperm_simulated_ids.v_fsuid = uid;
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: set %d", realfnname, uid);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: set %d", realfnname, uid);
 		return(0);
 	} /* else no permission to do it. */
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: EPERM", realfnname);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: EPERM", realfnname);
 	*result_errno_ptr = EPERM;
 	return(-1);
 }
@@ -396,10 +396,10 @@ int setgid_gate(int *result_errno_ptr,
 		}
 	    	vperm_simulated_ids.v_egid = gid;
 	    	vperm_simulated_ids.v_fsgid = gid;
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: set %d", realfnname, gid);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: set %d", realfnname, gid);
 		return(0);
 	} /* else no permission to do it. */
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: EPERM", realfnname);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: EPERM", realfnname);
 	*result_errno_ptr = EPERM;
 	return(-1);
 }
@@ -423,7 +423,7 @@ int setgid_gate(int *result_errno_ptr,
 		    (fs_id == vperm_simulated_ids.Field)) { \
 			vperm_simulated_ids.Field = fs_id; \
 		} \
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %d,%d", realfnname, \
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: %d,%d", realfnname, \
 			fs_id, vperm_simulated_ids.Field); \
 		return (vperm_simulated_ids.Field); \
 	}

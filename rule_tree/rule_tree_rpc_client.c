@@ -6,8 +6,8 @@
 */
 
 /* Rule tree client-side library:
- * To be used from inside an active SB2 session for
- * connecting to sb2d, the rule tree db server process.
+ * To be used from inside an active ldbox session for
+ * connecting to lbrdbd, the rule tree db server process.
 */
 
 #include <stdio.h>
@@ -25,8 +25,8 @@
 #include <sys/un.h>
 
 #include "mapping.h"
-#include "sb2.h"
-#include "libsb2.h"
+#include "lb.h"
+#include "liblb.h"
 #include "rule_tree.h"
 #include "rule_tree_rpc.h"
 
@@ -59,13 +59,13 @@ static int initialize_server_address(void)
 
 	if (server_address_initialized) return(0);
 
-	if (!sbox_session_dir) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
+	if (!ldbox_session_dir) {
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"ruletree_rpc: session directory is missing.");
 		return(-1);
 	}
-	if (asprintf(&sock_path, "%s/sb2d-sock.d/ssock", sbox_session_dir) < 0) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
+	if (asprintf(&sock_path, "%s/lbrdbd-sock.d/ssock", ldbox_session_dir) < 0) {
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"ruletree_rpc: asprintf failed");
 		return(-1);
 	}
@@ -74,7 +74,7 @@ static int initialize_server_address(void)
 		/* This should never happen, server should not start
 		 * if address would be too long
 		 * (and session creation should fail), but check anyways */
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"ruletree_rpc: server socket address is too long (%s)",
 			sock_path);
 		return(-1);
@@ -90,7 +90,7 @@ static int initialize_server_address(void)
 
 static void cleanup_client_socket(void)
 {
-	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_rpc: cleanup");
+	LB_LOG(LB_LOGLEVEL_DEBUG, "ruletree_rpc: cleanup");
 
 	/* double-check the that socket is belongs to this process
 	 * (if this is a forked child of the original socket owner..)
@@ -116,7 +116,7 @@ static int create_client_socket(void)
 
 	client_socket = socket(PF_UNIX, SOCK_DGRAM, 0);
 	if (client_socket < 0) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"ruletree_rpc: Failed to create client socket");
 		goto error_out;
 	}
@@ -125,20 +125,20 @@ static int create_client_socket(void)
 		/* find lowest free fd above min_fd */
 		int new_fd = fcntl(client_socket, F_DUPFD, (long)min_fd);
 		if (new_fd < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"ruletree_rpc: failed to move socket FD > %d",
 				min_fd);
 		} else {
 			close(client_socket);
 			client_socket = new_fd;
-			SB_LOG(SB_LOGLEVEL_NOISE,
+			LB_LOG(LB_LOGLEVEL_NOISE,
 				"ruletree_rpc: client socket FD = %d",
 				client_socket);
 		}
 	}
 	client_pid = getpid();
-	if (asprintf(&client_socket_path, "%s/sock/%d", sbox_session_dir, (int)client_pid) < 0) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
+	if (asprintf(&client_socket_path, "%s/sock/%d", ldbox_session_dir, (int)client_pid) < 0) {
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"ruletree_rpc: asprintf failed");
 		goto error_out;
 	}
@@ -147,7 +147,7 @@ static int create_client_socket(void)
 		/* This should never happen, server should not start
 		 * if address would be too long
 		 * (and session creation should fail), but check anyways */
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"ruletree_rpc: client socket address is too long (%s)",
 			client_socket_path);
 		goto error_out;
@@ -159,7 +159,7 @@ static int create_client_socket(void)
 	client_addr_len = sizeof(sa_family_t) + sock_path_len + 1;
 	
 	if (bind_nomap_nolog(client_socket, (struct sockaddr*)&client_address, client_addr_len) < 0) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"ruletree_rpc: Failed to bind client socket address (%s)",
 			client_socket_path);
 		goto error_out;
@@ -171,7 +171,7 @@ static int create_client_socket(void)
 	*/
 	chmod_nomap_nolog(client_socket_path, 0777);
 
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"ruletree_rpc: client socket = (%s)",
 		client_socket_path);
 	/* client socket has been initialized. */
@@ -199,13 +199,13 @@ static int send_command_receive_reply(
 
 	if (pthread_library_is_available) {
 		use_locking = 1;
-		SB_LOG(SB_LOGLEVEL_NOISE, "Going to lock client_socket_mutex");
+		LB_LOG(LB_LOGLEVEL_NOISE, "Going to lock client_socket_mutex");
 		(*pthread_mutex_lock_fnptr)(&client_socket_mutex);
 	}
 
 	if (server_address_initialized == 0) {
 		if (initialize_server_address() < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"Failed to initialize server socket address (ruletree_rpc)");
 			goto error_out;
 		}
@@ -221,7 +221,7 @@ static int send_command_receive_reply(
     reopen_socket:
 	if (client_socket < 0) {
 		if (create_client_socket() < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"Failed to create client socket (ruletree_rpc)");
 			goto error_out;
 		}
@@ -242,16 +242,16 @@ static int send_command_receive_reply(
 			goto reopen_socket;
 		}
 
-		SB_LOG(SB_LOGLEVEL_ERROR,
+		LB_LOG(LB_LOGLEVEL_ERROR,
 			"Failed to send command to server (ruletree_rpc)");
 		goto error_out;
 	}
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_rpc: sendto => %d", (int)sent_msg_size);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "ruletree_rpc: sendto => %d", (int)sent_msg_size);
 		
 	received_msg_size = recvfrom_nomap_nolog(client_socket, reply, sizeof(*reply), 0,
 		(struct sockaddr*)NULL, (socklen_t*)NULL);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_rpc: recvfrom => %d", (int)received_msg_size);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "ruletree_rpc: recvfrom => %d", (int)received_msg_size);
 	/* FIXME: check serial */
 	/* FIXME: check sender address? */
 	if (received_msg_size <= 0) {
@@ -260,16 +260,16 @@ static int send_command_receive_reply(
 	/* FIXME: If message is too small... */
 	if (use_locking) {
 		(*pthread_mutex_unlock_fnptr)(&client_socket_mutex);
-		SB_LOG(SB_LOGLEVEL_NOISE, "unlocked client_socket_mutex");
+		LB_LOG(LB_LOGLEVEL_NOISE, "unlocked client_socket_mutex");
 	}
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"%s: Received reply type=%u", __func__, reply->hdr.rimr_message_type);
 	return(0);
 
     error_out:
 	if (use_locking) {
 		(*pthread_mutex_unlock_fnptr)(&client_socket_mutex);
-		SB_LOG(SB_LOGLEVEL_NOISE, "unlocked client_socket_mutex");
+		LB_LOG(LB_LOGLEVEL_NOISE, "unlocked client_socket_mutex");
 	}
 	return(-1);
 }
@@ -279,15 +279,15 @@ void ruletree_rpc__ping(void)
 	ruletree_rpc_msg_command_t	command;
 	ruletree_rpc_msg_reply_t	reply;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"ruletree_rpc: Sending command 'ping'");
 	memset(&command, 0, sizeof(command));
 	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__PING;
 	send_command_receive_reply(&command, &reply);
 }
 
-/* called from sb2dctl */
-void sb2__ruletree_rpc__ping__(void)
+/* called from lbrdbdctl */
+void lb__ruletree_rpc__ping__(void)
 {
 	ruletree_rpc__ping();
 }
@@ -298,7 +298,7 @@ char *ruletree_rpc__init2(void)
 	ruletree_rpc_msg_reply_t	reply;
 	char *cp;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"ruletree_rpc: Sending command 'init2'");
 	memset(&command, 0, sizeof(command));
 	memset(&reply, 0, sizeof(reply));
@@ -323,8 +323,8 @@ char *ruletree_rpc__init2(void)
 	return(NULL);
 }
 
-/* called from sb2dctl */
-char *sb2__ruletree_rpc__init2__(void)
+/* called from lbrdbdctl */
+char *lb__ruletree_rpc__init2__(void)
 {
 	return(ruletree_rpc__init2());
 }
@@ -349,9 +349,9 @@ void ruletree_rpc__vperm_set_ids(uint64_t dev, uint64_t ino,
 	ruletree_rpc_msg_reply_t	reply;
 
 	if (set_uid) 
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: uid=%d", __func__, uid);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: uid=%d", __func__, uid);
 	if (set_gid) 
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: gid=%d", __func__, gid);
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: gid=%d", __func__, gid);
 	memset(&command, 0, sizeof(command));
 	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__SETFILEINFO;
 	command.rim_message.rimm_fileinfo.inodesimu_dev = dev;
@@ -370,7 +370,7 @@ void ruletree_rpc__vperm_release_ids(uint64_t dev, uint64_t ino,
 	ruletree_rpc_msg_command_t	command;
 	ruletree_rpc_msg_reply_t	reply;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s %s", __func__,
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: %s %s", __func__,
 		(release_uid?"rel.uid":""), (release_gid?"rel.gid":""));
 	memset(&command, 0, sizeof(command));
 	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__RELEASEFILEINFO;

@@ -1,0 +1,112 @@
+#!/bin/bash
+# lb-parse-lb-init-args:
+#   Parses lb-init's arguments and prints them out as assignments.
+#   Used from lb-init and lb-upgrade-config.
+# Copyright (C) 2009 Nokia Corporation.
+# Licensed under GPL version 2
+
+# Use an array to preserve spaces in original arguments:
+declare -a init_orig_args_array
+init_orig_args_array=("$@")
+
+# make a printable version:
+LBINIT_INIT_ORIG_ARGS=""
+for arg in "${init_orig_args_array[@]}"; do
+	case "$arg" in
+	(*[[:space:]]*)	pr_arg="'""$arg""'";;
+	(*)		pr_arg="$arg";;
+	esac
+
+	if [ -z "$LBINIT_INIT_ORIG_ARGS" ]; then
+		LBINIT_INIT_ORIG_ARGS="$pr_arg"
+	else
+		LBINIT_INIT_ORIG_ARGS="$LBINIT_INIT_ORIG_ARGS $pr_arg"
+	fi
+done
+
+
+LBINIT_REMOTEHOST=
+LBINIT_LOCALHOST=
+
+LBINIT_SET_AS_DEFAULT=0
+LBINIT_WITH_LIBTOOL=1
+LBINIT_WITH_LOCALES=1
+LBINIT_SKIP_CHECKS=false
+
+LBINIT_LDBOX_EXTRA_CROSS_COMPILER_ARGS=""
+
+LBINIT_SHOW_USAGE=0
+LBINIT_SHOW_VERSION=0
+LBINIT_ERROR=0
+
+# Parse the same options what lb-init uses:
+while getopts A:M:c:C:L:r:l:m:p:dhnNst:v foo
+do
+	case $foo in
+	(A) LBINIT_ARCH=$OPTARG ;;
+	(M) LBINIT_MACHINE_ARCH=$OPTARG ;;
+	(c) LBINIT_CPUTRANSP=$OPTARG ;;
+	(p) LBINIT_CPUTRANSP_NATIVE=$OPTARG ;;
+	(r) LBINIT_REMOTEHOST=$OPTARG ;;
+	(l) LBINIT_LOCALHOST=$OPTARG ;;
+	(d) LBINIT_SET_AS_DEFAULT=1 ;;
+	(h) LBINIT_SHOW_USAGE=1 ;;
+	(m) LBINIT_MAPPING_MODE=$OPTARG ;;
+	(n) LBINIT_WITH_LIBTOOL=0 ;;
+	(N) LBINIT_WITH_LOCALES=0 ;;
+	(s) LBINIT_SKIP_CHECKS=true ;;
+	(t) LBINIT_TOOLS_ROOT=$OPTARG ;;
+	(v) LBINIT_SHOW_VERSION=1 ;;
+	(C) LBINIT_LDBOX_EXTRA_CROSS_COMPILER_ARGS="$LDBOX_EXTRA_CROSS_COMPILER_ARGS $OPTARG " ;;
+	(L) LBINIT_LDBOX_EXTRA_CROSS_LD_ARGS="$LDBOX_EXTRA_CROSS_LD_ARGS $OPTARG " ;;
+	(*) LBINIT_ERROR=1 ;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+LBINIT_TARGET=$1
+shift
+LBINIT_COMPILERS=$*
+
+if [ -z "$LBINIT_TARGET_ROOT" ]; then
+	# use current directory as the target root
+	LBINIT_TARGET_ROOT=$(readlink -f "$PWD")
+fi
+
+# LBINIT_INIT_* variables are used to record who initialized, and when and
+# how it was initialized.
+# It is possible to set LDBOX_INIT_ID externally (for example, if
+# another program is used to initialize the system)
+LBINIT_INIT_TIME=`date +%Y-%m-%d_%H:%M:%S`
+if [ -z "$LDBOX_INIT_ID" ]; then
+        LDBOX_INIT_ID="user '$USER'"
+fi
+
+cat <<END
+LBINIT_INIT_ORIG_ARGS="$LBINIT_INIT_ORIG_ARGS"
+LBINIT_INIT_TIME="$LBINIT_INIT_TIME"
+LBINIT_INIT_ID="$LDBOX_INIT_ID"
+
+LBINIT_TARGET_ROOT="$LBINIT_TARGET_ROOT"
+LBINIT_ARCH="$LBINIT_ARCH"
+LBINIT_MACHINE_ARCH="$LBINIT_MACHINE_ARCH"
+LBINIT_CPUTRANSP="$LBINIT_CPUTRANSP"
+LBINIT_CPUTRANSP_NATIVE="$LBINIT_CPUTRANSP_NATIVE"
+LBINIT_REMOTEHOST="$LBINIT_REMOTEHOST"
+LBINIT_LOCALHOST="$LBINIT_LOCALHOST"
+LBINIT_SET_AS_DEFAULT="$LBINIT_SET_AS_DEFAULT"
+LBINIT_MAPPING_MODE="$LBINIT_MAPPING_MODE"
+LBINIT_WITH_LIBTOOL="$LBINIT_WITH_LIBTOOL"
+LBINIT_WITH_LOCALES="$LBINIT_WITH_LOCALES"
+LBINIT_SKIP_CHECKS="$LBINIT_SKIP_CHECKS"
+LBINIT_TOOLS_ROOT="$LBINIT_TOOLS_ROOT"
+LBINIT_LDBOX_EXTRA_CROSS_COMPILER_ARGS="$LBINIT_LDBOX_EXTRA_CROSS_COMPILER_ARGS"
+LBINIT_LDBOX_EXTRA_CROSS_LD_ARGS="$LBINIT_LDBOX_EXTRA_CROSS_LD_ARGS"
+LBINIT_TARGET="$LBINIT_TARGET"
+LBINIT_COMPILERS="$LBINIT_COMPILERS"
+
+LBINIT_SHOW_USAGE="$LBINIT_SHOW_USAGE"
+LBINIT_SHOW_VERSION="$LBINIT_SHOW_VERSION"
+LBINIT_ERROR="$LBINIT_ERROR"
+END
+

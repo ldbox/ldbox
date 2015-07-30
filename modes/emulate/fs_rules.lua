@@ -6,29 +6,29 @@
 rule_file_interface_version = "105"
 ----------------------------------
 
-sb1_compat_dir = sbox_target_root .. "/scratchbox1-compat"
+sb1_compat_dir = ldbox_target_root .. "/scratchbox1-compat"
 --
 -- scratchbox1-compat is symlink that points to
 -- the real sb1 compat directory.  To avoid mapping
 -- problems later, we resolve this symlink right now.
 --
-local resolved_compat_dir = sblib.readlink(sb1_compat_dir)
+local resolved_compat_dir = lblib.readlink(sb1_compat_dir)
 if resolved_compat_dir ~= nil then
 	sb1_compat_dir = resolved_compat_dir
 end
 
--- Don't map the working directory where sb2 was started, unless
+-- Don't map the working directory where ldbox was started, unless
 -- that happens to be the root directory.
-if sbox_workdir == "/" then
+if ldbox_workdir == "/" then
 	-- FIXME. There should be a way to skip a rule...
 	unmapped_workdir = "/XXXXXX" 
 else
-	unmapped_workdir = sbox_workdir
+	unmapped_workdir = ldbox_workdir
 end
 
 -- use "==" to test options as long as there is only one possible option,
 -- string.match() is slow..
-if sbox_mode_specific_options == "use-global-tmp" then
+if ldbox_mode_specific_options == "use-global-tmp" then
 	tmp_dir_dest = "/tmp"
 	var_tmp_dir_dest = "/var/tmp"
 else
@@ -83,15 +83,15 @@ emulate_mode_map_to_sb1compat_unless_dpkg = {
 
 emulate_mode_rules_usr = {
 		-- gdb wants to have access to our dynamic linker also,
-		-- /usr/lib/libsb2/wrappers/*, etc.
-		{dir = "/usr/lib/libsb2", use_orig_path = true,
+		-- /usr/lib/liblb/wrappers/*, etc.
+		{dir = "/usr/lib/liblb", use_orig_path = true,
 		 protection = readonly_fs_always},
 
-		{path = "/usr/bin/sb2-show", use_orig_path = true,
+		{path = "/usr/bin/lb-show", use_orig_path = true,
 		 protection = readonly_fs_always},
-		{path = "/usr/bin/sb2-qemu-gdbserver-prepare",
+		{path = "/usr/bin/lb-qemu-gdbserver-prepare",
 		    use_orig_path = true, protection = readonly_fs_always},
-		{path = "/usr/bin/sb2-session", use_orig_path = true,
+		{path = "/usr/bin/lb-session", use_orig_path = true,
 		 protection = readonly_fs_always},
 
 		{ path = "/usr/bin/scratchbox-launcher.sh",
@@ -147,7 +147,7 @@ emulate_mode_rules_scratchbox1 = {
 		-- "policy-rc.d" checks if scratchbox-version exists, 
 		-- to detect if it is running inside scratchbox..
 		{prefix = "/scratchbox/etc/scratchbox-version",
-		 replace_by = "/usr/share/scratchbox2/version",
+		 replace_by = "/usr/share/ldbox/version",
 		 protection = readonly_fs_always, virtual_path = true},
 
 		-- Stupid references to /scratchbox/tools/bin
@@ -177,7 +177,7 @@ emulate_mode_rules = {
 		-- First paths that should never be mapped:
 		{dir = session_dir, use_orig_path = true},
 
-		{path = sbox_cputransparency_cmd, use_orig_path = true,
+		{path = ldbox_cputransparency_cmd, use_orig_path = true,
 		 protection = readonly_fs_always},
 
 		{prefix = target_root, use_orig_path = true,
@@ -188,7 +188,7 @@ emulate_mode_rules = {
 		-- ldconfig is static binary, and needs to be wrapped
 		-- Gdb needs some special parameters before it
 		-- can be run so we wrap it.
-		{prefix = "/sb2/wrappers",
+		{prefix = "/lb/wrappers",
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 protection = readonly_fs_always},
 
@@ -202,26 +202,26 @@ emulate_mode_rules = {
 
 		{dir = "/dev", rules = import_from_fs_rule_library("dev")},
 
-		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+		{dir = "/proc", custom_map_funct = lb_procfs_mapper,
 		 virtual_path = true},
 
 		{dir = "/sys", rules = import_from_fs_rule_library("sys_hide_selinux")},
 
-		{prefix = sbox_dir .. "/share/scratchbox2",
+		{prefix = ldbox_dir .. "/share/ldbox",
 		 use_orig_path = true},
 
-		-- The real sbox_dir.."/lib/libsb2" must be available:
+		-- The real ldbox_dir.."/lib/liblb" must be available:
 		--
-		-- When libsb2 is installed to target we don't want to map
+		-- When liblb is installed to target we don't want to map
 		-- the path where it is found.  For example gdb needs access
 		-- to the library and dynamic linker, and these may be in
-		-- target_root, or under sbox_dir.."/lib/libsb2", or
-		-- under ~/.scratchbox2.
-		{dir = sbox_dir .. "/lib/libsb2",
+		-- target_root, or under ldbox_dir.."/lib/liblb", or
+		-- under ~/.ldbox.
+		{dir = ldbox_dir .. "/lib/liblb",
 		 actions = test_first_target_then_host_default_is_target},
 
 		-- -----------------------------------------------
-		{prefix = sbox_user_home_dir, use_orig_path = true},
+		{prefix = ldbox_user_home_dir, use_orig_path = true},
 
 		-- "user" is a special username, and should be mapped
 		-- to target_root
@@ -237,7 +237,7 @@ emulate_mode_rules = {
 
 		-- The default is to map everything to target_root,
 		-- except that we don't map the directory tree where
-		-- sb2 was started.
+		-- ldbox was started.
 		{prefix = unmapped_workdir, use_orig_path = true},
 
 		{dir = "/usr", rules = emulate_mode_rules_usr},

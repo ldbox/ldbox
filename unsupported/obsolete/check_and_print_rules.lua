@@ -3,9 +3,9 @@
 --
 -- A Lua script for checking the rules.
 -- Usage:
---	sb2 sb2-show execluafile lua_scripts/check_and_print_rules.lua
---	sb2 -e sb2-show execluafile lua_scripts/check_and_print_rules.lua
---	sb2 -m tools sb2-show execluafile lua_scripts/check_and_print_rules.lua
+--	lb lb-show execluafile lua_scripts/check_and_print_rules.lua
+--	lb -e lb-show execluafile lua_scripts/check_and_print_rules.lua
+--	lb -m tools lb-show execluafile lua_scripts/check_and_print_rules.lua
 --	...
 
 valid_keywords_in_rules = {
@@ -30,7 +30,7 @@ valid_keywords_in_rules = {
 	rules = "table",
 
 	-- ========= Fields used to translate the path =========
-	-- (sbox_translate_path(), sbox_execute_rule())
+	-- (ldbox_translate_path(), ldbox_execute_rule())
 
 	-- Logging:
         log_level = "string",
@@ -66,7 +66,7 @@ valid_keywords_in_actions = {
 	log_message = "string",
 
 	-- conditionals:
-	-- (these are handled in sbox_execute_conditional_actions())
+	-- (these are handled in ldbox_execute_conditional_actions())
 	if_exists_then_replace_by = "string",
 	if_exists_then_map_to = "string",
 	if_active_exec_policy_is = "string",
@@ -74,7 +74,7 @@ valid_keywords_in_actions = {
 	if_redirect_force_is_active = "string",
 
 	-- unconditional actions:
-	-- (handled by calling sbox_execute_rule())
+	-- (handled by calling ldbox_execute_rule())
 	-- (there should be only one action, but this
 	-- script does not check that - yet)
         replace_by = "string",

@@ -3,7 +3,7 @@
 --
 -- Licensed under MIT license
 
--- This script is executed by sb2d, while initializing a new session,
+-- This script is executed by lbrdbd, while initializing a new session,
 -- to create mapping rules for toolchain components:
 -- For example, /usr/bin/gcc will be mapped to the toolchain. These rules
 -- are used for other filesystem operations than exec*
@@ -12,7 +12,7 @@
 --
 -- This file is based on "create_argvmods_usr_bin_rules.lua", which
 -- did the same thing (but was executed to process just one mapping mode,
--- from the "sb2" script during session setup) 
+-- from the "lb" script during session setup)
 
 function argvmods_to_mapping_rules(rule_file, prefix)
 	local n
@@ -21,7 +21,7 @@ function argvmods_to_mapping_rules(rule_file, prefix)
 		-- rule_file:write("-- rule ", n, " new_filename=", rule.new_filename.."\n")
 		local process_now = true
 		if prefix ~= nil then
-			if not sblib.isprefix(prefix, n) then
+			if not lblib.isprefix(prefix, n) then
 				process_now = false
 			end
 		end
@@ -34,7 +34,7 @@ function argvmods_to_mapping_rules(rule_file, prefix)
 				   rule.new_filename ~= nil then
 					-- this rule maps "n" from /usr/bin to
 					-- another file
-					if sblib.path_exists(rule.new_filename) then
+					if lblib.path_exists(rule.new_filename) then
 						rule_file:write("  {path=\"/usr/bin/"..n.."\",\n")
 						rule_file:write("   replace_by=\"" ..
 							rule.new_filename.."\"},\n")
@@ -80,7 +80,7 @@ function create_mapping_rule_file(filename, modename_in_ruletree)
 		tools_prefix = tools
 	end
 
-	do_file(session_dir .. "/share/scratchbox2/modes/"..modename_in_ruletree.."/config.lua")
+	do_file(session_dir .. "/share/ldbox/modes/"..modename_in_ruletree.."/config.lua")
 
 	ruletree.catalog_set("Conf."..modename_in_ruletree, "enable_cross_gcc_toolchain",
 		ruletree.new_boolean(enable_cross_gcc_toolchain))
@@ -94,20 +94,20 @@ function create_mapping_rule_file(filename, modename_in_ruletree)
 
 	-- Next, the argvmods stuff.
 
-	rule_file:write("argvmods_rules_for_usr_bin_"..sbox_cpu.." = {\n")
-	argvmods_to_mapping_rules(rule_file, sbox_cpu)
+	rule_file:write("argvmods_rules_for_usr_bin_"..ldbox_cpu.." = {\n")
+	argvmods_to_mapping_rules(rule_file, ldbox_cpu)
 
 	rule_file:write("}\n")
-	local prefixrule1 = "  {prefix=\"/usr/bin/"..sbox_cpu..
-		"\",rules=argvmods_rules_for_usr_bin_"..sbox_cpu.."},"
+	local prefixrule1 = "  {prefix=\"/usr/bin/"..ldbox_cpu..
+		"\",rules=argvmods_rules_for_usr_bin_"..ldbox_cpu.."},"
 	local prefixrule2 = ""
 
-	if sbox_cpu ~= sbox_uname_machine then
-		rule_file:write("argvmods_rules_for_usr_bin_"..sbox_uname_machine.." = {\n")
-		argvmods_to_mapping_rules(rule_file, sbox_uname_machine)
+	if ldbox_cpu ~= ldbox_uname_machine then
+		rule_file:write("argvmods_rules_for_usr_bin_"..ldbox_uname_machine.." = {\n")
+		argvmods_to_mapping_rules(rule_file, ldbox_uname_machine)
 		rule_file:write("}\n")
-		prefixrule2 = "  {prefix=\"/usr/bin/"..sbox_uname_machine..
-			"\",rules=argvmods_rules_for_usr_bin_"..sbox_uname_machine.."},"
+		prefixrule2 = "  {prefix=\"/usr/bin/"..ldbox_uname_machine..
+			"\",rules=argvmods_rules_for_usr_bin_"..ldbox_uname_machine.."},"
 	end
 
 	rule_file:write("argvmods_rules_for_usr_bin = {\n")

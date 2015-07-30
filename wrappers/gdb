@@ -8,29 +8,29 @@
 prog="$0"
 progbase=`basename $0`
 
-error_not_inside_sb2()
+error_not_inside_lb()
 {
-	echo "SB2: $progbase wrapper: This wrapper can only be used from inside"
+	echo "ldbox: $progbase wrapper: This wrapper can only be used from inside"
 	echo "the scratchbox 2'ed environment"
 	exit 1
 }
 
-if [ -z "$SBOX_SESSION_DIR" ]
+if [ -z "$LDBOX_SESSION_DIR" ]
 then
-	error_not_inside_sb2
+	error_not_inside_lb
 fi
 
-. $SBOX_SESSION_DIR/sb2-session.conf
+. $LDBOX_SESSION_DIR/lb-session.conf
 
-if [ -z "$sbox_mapmode" -o -z "$sbox_dir" ]
+if [ -z "$ldbox_mapmode" -o -z "$ldbox_dir" ]
 then
-	error_not_inside_sb2
+	error_not_inside_lb
 fi
 
 # read-in mode-specific settings
-if [ -f $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc ]
+if [ -f $LDBOX_SESSION_DIR/modes/$ldbox_mapmode/lbrc ]
 then
-	. $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc "$progbase"
+	. $LDBOX_SESSION_DIR/modes/$ldbox_mapmode/lbrc "$progbase"
 fi
 
 #
@@ -38,14 +38,14 @@ fi
 # macro that is used to stop running process before main()
 # gets called.
 #
-cat > $SBOX_SESSION_DIR/gdbinit << EOF
-def sb2-prepare
+cat > $LDBOX_SESSION_DIR/gdbinit << EOF
+def lb-prepare
 	set breakpoint pending on
 	tbreak _dl_debug_state
 	set breakpoint pending off
 end
 
-document sb2-prepare
+document lb-prepare
 Prepares the target process for being debugged.
 
 If you are attaching to an already running process or examining a core
@@ -57,23 +57,23 @@ called. After the breakpoint is hit, you are able to set further
 breakpoints and do normal debugging actions.
 
 Example:
-(sb2-emulate-gdb) sb2-prepare
-(sb2-emulate-gdb) run
+(lb-emulate-gdb) lb-prepare
+(lb-emulate-gdb) run
 ...
 and now gdb will stop and you are able to set further breakpoints etc.
 end
 
-set prompt (sb2-$sbox_mapmode-gdb) 
-echo \ngdb: read 'help sb2-prepare' before running programs.\n
+set prompt (lb-$ldbox_mapmode-gdb)
+echo \ngdb: read 'help lb-prepare' before running programs.\n
 EOF
 
 #
-# sb2 script sets SHELL to tools by default but in emulation
+# lb script sets SHELL to tools by default but in emulation
 # mode, we don't have access there so we reset SHELL to correct
 # value in case we are in emulation mode.
 #
-if [ "$sbox_mapmode" = "emulate" ]
+if [ "$ldbox_mapmode" = "emulate" ]
 then
 	SHELL=/bin/sh
 fi
-exec $sbox_target_root/usr/bin/gdb -command $SBOX_SESSION_DIR/gdbinit "$@"
+exec $ldbox_target_root/usr/bin/gdb -command $LDBOX_SESSION_DIR/gdbinit "$@"

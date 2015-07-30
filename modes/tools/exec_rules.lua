@@ -28,7 +28,7 @@ tools_mode_tools_ld_library_path = nil	-- default = not needed
 tools_mode_tools_ld_library_path_prefix = ""
 tools_mode_tools_ld_library_path_suffix = nil
 
-if (conf_tools_sb2_installed) then
+if (conf_tools_lb_installed) then
 	if (conf_tools_ld_so ~= nil) then
 		-- use dynamic libraries from tools,
 		-- when executing native binaries!
@@ -43,7 +43,7 @@ if (conf_tools_sb2_installed) then
 else
 	tools_mode_tools_ld_library_path_prefix =
 		host_ld_library_path_prefix ..
-		host_ld_library_path_libsb2
+		host_ld_library_path_liblb
 	tools_mode_tools_ld_library_path_suffix =
 		host_ld_library_path_suffix
 end

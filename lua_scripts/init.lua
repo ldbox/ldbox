@@ -3,20 +3,20 @@
 --
 -- Licensed under LGPL version 2.1, see top level LICENSE file for details.
 
--- This script is executed by sb2d at startup, this
+-- This script is executed by lbrdbd at startup, this
 -- initializes the rule tree database (which is empty
 -- but attached when this script is started)
 
-session_dir = os.getenv("SBOX_SESSION_DIR")
-debug_messages_enabled = sblib.debug_messages_enabled()
+session_dir = os.getenv("LDBOX_SESSION_DIR")
+debug_messages_enabled = lblib.debug_messages_enabled()
 
 -- This version string is used to check that the lua scripts offer 
--- what sb2d expects, and v.v.
+-- what lbrdbd expects, and v.v.
 -- Increment the number whenever the interface beween Lua and C is changed.
 --
--- NOTE: the corresponding identifier for C is in include/sb2.h,
+-- NOTE: the corresponding identifier for C is in include/lb.h,
 -- see that file for description about differences
-sb2d_lua_c_interface_version = "301"
+lbrdbd_lua_c_interface_version = "301"
 
 -- Create the "vperm" catalog
 --	vperm::inodestats is the binary tree, initially empty,
@@ -28,7 +28,7 @@ ruletree.catalog_set("vperm", "num_active_inodestats",
 
 function do_file(filename)
 	if (debug_messages_enabled) then
-		sblib.log("debug", string.format("Loading '%s'", filename))
+		lblib.log("debug", string.format("Loading '%s'", filename))
 	end
 	local f, err = loadfile(filename)
 	if (f == nil) then
@@ -51,9 +51,9 @@ function import_from_fs_rule_library(libname)
 	error("\nIncorrect fs_rule_lib_interface_version while loading FS rule library "..libname.."\n")
 end
 
--- A dummy sb2_procfs_mapper function is needed for the rules,
+-- A dummy lb_procfs_mapper function is needed for the rules,
 -- now when the real function is gone
-function sb2_procfs_mapper()
+function lb_procfs_mapper()
 	return true
 end
 
@@ -67,14 +67,14 @@ function basename(path)
 end
 
 -- Load session-specific settings
-do_file(session_dir .. "/sb2-session.conf")
+do_file(session_dir .. "/lb-session.conf")
 
-target_root = sbox_target_root
+target_root = ldbox_target_root
 if (not target_root or target_root == "") then
 	target_root = "/"
 end
 
-tools_root = sbox_tools_root
+tools_root = ldbox_tools_root
 if (tools_root == "") then
 	tools_root = nil
 end
@@ -91,14 +91,14 @@ else
 end
 
 -- Load session configuration, and add variables to ruletree.
-do_file(session_dir .. "/sb2-session.conf")
+do_file(session_dir .. "/lb-session.conf")
 
-ruletree.catalog_set("config", "sbox_cpu",
-        ruletree.new_string(sbox_cpu))
-ruletree.catalog_set("config", "sbox_uname_machine",
-        ruletree.new_string(sbox_uname_machine))
-ruletree.catalog_set("config", "sbox_emulate_sb1_bugs",
-        ruletree.new_string(sbox_emulate_sb1_bugs))
+ruletree.catalog_set("config", "ldbox_cpu",
+        ruletree.new_string(ldbox_cpu))
+ruletree.catalog_set("config", "ldbox_uname_machine",
+        ruletree.new_string(ldbox_uname_machine))
+ruletree.catalog_set("config", "ldbox_emulate_sb1_bugs",
+        ruletree.new_string(ldbox_emulate_sb1_bugs))
 
 -- Load exec config.
 -- NOTE: At this point all conf_cputransparency_* variables
@@ -112,7 +112,7 @@ ruletree.catalog_set("config", "host_ld_preload", ruletree.new_string(host_ld_pr
 ruletree.catalog_set("config", "host_ld_library_path", ruletree.new_string(host_ld_library_path))
 
 -- Build "all_modes" table. all_modes[1] will be name of default mode.
-all_modes_str = os.getenv("SB2_ALL_MODES")
+all_modes_str = os.getenv("LB_ALL_MODES")
 all_modes = {}
 
 if (all_modes_str) then
@@ -145,8 +145,8 @@ do_file(session_dir .. "/lua_scripts/add_rules_to_rule_tree.lua")
 do_file(session_dir .. "/lua_scripts/init_net_modes.lua")
 
 -- Done. conf_cputransparency_* are still missing from the rule tree,
--- but those can't be added yet (see the "sb2" script - it finds
--- values for those variables only after sb2d has executed this
+-- but those can't be added yet (see the "lb" script - it finds
+-- values for those variables only after lbrdbd has executed this
 -- script)
 
 io.stdout:flush()

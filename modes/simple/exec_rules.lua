@@ -25,7 +25,7 @@ default_exec_policy = {
 
 	native_app_ld_library_path_prefix = 
 		host_ld_library_path_prefix ..
-		host_ld_library_path_libsb2,
+		host_ld_library_path_liblb,
 	native_app_ld_library_path_suffix = host_ld_library_path_suffix,
 }
 

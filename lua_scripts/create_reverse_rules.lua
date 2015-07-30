@@ -3,11 +3,11 @@
 --
 -- Licensed under MIT license
 
--- This script is executed once after a new SB2 session has been created,
--- to create reversing rules for path mapping (see utils/sb2).
+-- This script is executed once after a new ldbox session has been created,
+-- to create reversing rules for path mapping (see utils/lb).
 -- This is still simple, and may not work in all cases: This script 
 -- will shut down if problems are detected (then path reversing won't be
--- available and SB2 works just as it did before this feature was implemented)
+-- available and ldbox works just as it did before this feature was implemented)
 --
 
 local allow_reversing = true	-- default = create reverse rules.
@@ -19,7 +19,7 @@ function test_rev_rule_position(output_rules, d_path)
         for n=1,table.maxn(output_rules) do
 		local rule = output_rules[n]
 		local cmp_result
-		cmp_result = sblib.test_path_match(d_path,
+		cmp_result = lblib.test_path_match(d_path,
 			rule.dir, rule.prefix, rule.path)
 		if (cmp_result >= 0) then
 			return n

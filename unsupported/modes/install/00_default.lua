@@ -15,7 +15,7 @@ else
 	tools_target = "/"
 end
 
-interp_wrapper = sbox_dir .. "/bin/sb2-interp-wrapper"
+interp_wrapper = ldbox_dir .. "/bin/lb-interp-wrapper"
 
 default_chain = {
 	next_chain = nil,
@@ -32,17 +32,17 @@ default_chain = {
 		{ prefix = "/usr/local/bin", func_name = ".*exec.*", map_to = tools_target },
 
 		{ prefix = "/dev", func_name = "open.*", use_orig_path = true },
-		{ dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+		{ dir = "/proc", custom_map_funct = lb_procfs_mapper,
 		 virtual_path = true},
 		{ prefix = "/sys", use_orig_path = true },
 
 		{ prefix = "/tmp", map_to = session_dir },
 
-		{ prefix = sbox_user_home_dir, use_orig_path = true },
-		{ prefix = sbox_workdir, use_orig_path = true },
-		{ prefix = sbox_dir .. "/share/scratchbox2", use_orig_path = true, readonly = true },
-		{ prefix = sbox_dir .. "/bin", use_orig_path = true, readonly = true },
-		{ prefix = sbox_target_toolchain_dir, use_orig_path = true, readonly = true },
+		{ prefix = ldbox_user_home_dir, use_orig_path = true },
+		{ prefix = ldbox_workdir, use_orig_path = true },
+		{ prefix = ldbox_dir .. "/share/ldbox", use_orig_path = true, readonly = true },
+		{ prefix = ldbox_dir .. "/bin", use_orig_path = true, readonly = true },
+		{ prefix = ldbox_target_toolchain_dir, use_orig_path = true, readonly = true },
 
 		{ prefix = "/", map_to = target_root },
 	}
@@ -70,7 +70,7 @@ sh_chain = {
 
 interp_wrapper_chain = {
 	next_chain = default_chain,
-	binary = "sb2-interp-wrapper",
+	binary = "lb-interp-wrapper",
 	rules = {
 		{ prefix = "/bin",           func_name = "__xstat.*", map_to = tools_target },
 		{ prefix = "/usr/bin",       func_name = "__xstat.*", map_to = tools_target },

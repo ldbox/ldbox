@@ -36,13 +36,13 @@
 #include <lauxlib.h>
 
 #include "mapping.h"
-#include "sb2.h"
-#include "libsb2.h"
+#include "lb.h"
+#include "liblb.h"
 #include "exported.h"
 
 #include <sys/mman.h>
 
-#include "sb2_execs.h"
+#include "lb_execs.h"
 
 /* "argvmods" rules: */
 ruletree_object_offset_t add_exec_preprocessing_rule_to_ruletree(
@@ -74,9 +74,9 @@ ruletree_object_offset_t add_exec_preprocessing_rule_to_ruletree(
 	new_rule.rtree_xpr_disable_mapping = disable_mapping;
 
 	rule_location = append_struct_to_ruletree_file(&new_rule, sizeof(new_rule),
-		SB2_RULETREE_OBJECT_TYPE_EXEC_PP_RULE);
+		LB_RULETREE_OBJECT_TYPE_EXEC_PP_RULE);
 	
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"Added exec preprocessing rule: %s @ %u",
 			binary_name, rule_location);
 
@@ -104,9 +104,9 @@ ruletree_object_offset_t add_exec_policy_selection_rule_to_ruletree(
 	}
 
 	rule_location = append_struct_to_ruletree_file(&new_rule, sizeof(new_rule),
-		SB2_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE);
+		LB_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE);
 	
-	SB_LOG(SB_LOGLEVEL_DEBUG,
+	LB_LOG(LB_LOGLEVEL_DEBUG,
 		"Added exec policy selection rule @ %u",
 			rule_location);
 

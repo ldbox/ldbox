@@ -7,13 +7,13 @@
  *
  * ----------------
  *
- * Pathmapping subsystem: Public interfaces (exported to other parts of SB2)
+ * Pathmapping subsystem: Public interfaces (exported to other parts of ldbox)
  *
 */
 
 #include <mapping.h>
-#include <sb2.h>
-#include "libsb2.h"
+#include <lb.h>
+#include "liblb.h"
 #include "exported.h"
 #include "processclock.h"
 
@@ -34,7 +34,7 @@ static void fwd_map_path(
 	uint32_t fn_class,
 	mapping_results_t *res)
 {
-	struct sb2context *sb2ctx = NULL;
+	struct lbcontext *lbctx = NULL;
 
 	(void)exec_mode; /* not used */
 
@@ -44,19 +44,19 @@ static void fwd_map_path(
 	} else {
 		PROCESSCLOCK(clk1)
 
-		sb2ctx = get_sb2context();
+		lbctx = get_lbcontext();
 
-		START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "fwd_map_path");
-		sbox_map_path_internal__c_engine(sb2ctx, binary_name,
+		START_PROCESSCLOCK(LB_LOGLEVEL_INFO, &clk1, "fwd_map_path");
+		ldbox_map_path_internal__c_engine(lbctx, binary_name,
 			func_name, virtual_path,
 			flags, 0, fn_class, res, 0);
 		if (res->mres_errormsg) {
-			SB_LOG(SB_LOGLEVEL_NOTICE,
+			LB_LOG(LB_LOGLEVEL_NOTICE,
 				"C path mapping engine failed (%s) (%s)",
 				res->mres_errormsg, virtual_path);
 		}
-		release_sb2context(sb2ctx);
-		STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, virtual_path);
+		release_lbcontext(lbctx);
+		STOP_AND_REPORT_PROCESSCLOCK(LB_LOGLEVEL_INFO, &clk1, virtual_path);
 	}
 }
 
@@ -75,9 +75,9 @@ void custom_map_path(
 	mapping_results_t *res,
 	ruletree_object_offset_t rule_list_offset)
 {
-	struct sb2context *sb2ctx = NULL;
+	struct lbcontext *lbctx = NULL;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: Map %s", __func__, virtual_path);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: Map %s", __func__, virtual_path);
 
 	if (!virtual_path) {
 		res->mres_result_buf = res->mres_result_path = NULL;
@@ -85,22 +85,22 @@ void custom_map_path(
 	} else {
 		PROCESSCLOCK(clk1)
 
-		sb2ctx = get_sb2context();
+		lbctx = get_lbcontext();
 
-		START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, __func__);
+		START_PROCESSCLOCK(LB_LOGLEVEL_INFO, &clk1, __func__);
 
-		sbox_map_path_internal__c_engine(sb2ctx, binary_name,
+		ldbox_map_path_internal__c_engine(lbctx, binary_name,
 			func_name, virtual_path,
 			flags, 0, fn_class, res, rule_list_offset);
 
 		if (res->mres_fallback_to_lua_mapping_engine &&
 		    (res->mres_fallback_to_lua_mapping_engine[0] == '#')) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
+			LB_LOG(LB_LOGLEVEL_ERROR,
 				"C path mapping engine failed (%s), can't fallback to Lua (%s) - %s",
 				res->mres_fallback_to_lua_mapping_engine, virtual_path, __func__);
 		}
 	}
-	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, virtual_path);
+	STOP_AND_REPORT_PROCESSCLOCK(LB_LOGLEVEL_INFO, &clk1, virtual_path);
 }
 #endif
 
@@ -120,7 +120,7 @@ char *custom_map_abstract_path(
 	ruletree_object_offset_t	rule_offs;
 
 	if (!virtual_orig_path || (*virtual_orig_path != '/')) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: path '%s' is relative => return(NULL)",
 			__func__, virtual_orig_path);
 		return(NULL);
@@ -133,13 +133,13 @@ char *custom_map_abstract_path(
 	ctx.pmc_fn_class = fn_class;
 	ctx.pmc_virtual_orig_path = virtual_orig_path;
 	ctx.pmc_dont_resolve_final_symlink = 0;
-	ctx.pmc_sb2ctx = get_sb2context();
+	ctx.pmc_lbctx = get_lbcontext();
 
 	split_path_to_path_list(virtual_orig_path,
 		&abs_virtual_source_path_list);
 
 	if (is_clean_path(&abs_virtual_source_path_list) != 0) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: path '%s' is not a clean path => return(NULL)",
 			__func__, virtual_orig_path);
 		free_path_list(&abs_virtual_source_path_list);
@@ -149,8 +149,8 @@ char *custom_map_abstract_path(
 	rule_offs = ruletree_get_mapping_requirements(
 		rule_list_offs, &ctx, &abs_virtual_source_path_list,
 		&min_path_len, NULL/*call_translate_for_all_p*/,
-		SB2_INTERFACE_CLASS_EXEC);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: rule_offs = %u", __func__, rule_offs);
+		LB_INTERFACE_CLASS_EXEC);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "%s: rule_offs = %u", __func__, rule_offs);
 
 	if (rule_offs) {
 		const char 	*errormsg = NULL;
@@ -159,10 +159,10 @@ char *custom_map_abstract_path(
 
 		ctx.pmc_ruletree_offset = rule_offs;
 		mapping_result = ruletree_translate_path(
-			&ctx, SB_LOGLEVEL_DEBUG, virtual_orig_path, &flags,
+			&ctx, LB_LOGLEVEL_DEBUG, virtual_orig_path, &flags,
 			&new_exec_policy, &errormsg);
 		if (new_exec_policy_p) *new_exec_policy_p = new_exec_policy;
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: mapping_result = %s", __func__,
+		LB_LOG(LB_LOGLEVEL_DEBUG, "%s: mapping_result = %s", __func__,
 			(mapping_result ? mapping_result : "NULL"));
 	}
 	free_path_list(&abs_virtual_source_path_list);
@@ -180,18 +180,18 @@ char *reverse_map_path(
 		return(NULL);
 	}
 
-	virtual_path = sbox_reverse_path_internal__c_engine(
+	virtual_path = ldbox_reverse_path_internal__c_engine(
 		ctx, abs_host_path, 1/*drop_chroot_prefix=true*/);
 	if (!virtual_path) {
 		/* no answer */
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"No result for path reversing from C engine (%s)",
 				abs_host_path);
 	}
 	return(virtual_path);
 }
 
-void sbox_map_path_for_sb2show(
+void ldbox_map_path_for_lbshow(
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_path,
@@ -203,7 +203,7 @@ void sbox_map_path_for_sb2show(
 	while (ifp && ifp->fn_name) {
 		if (!strcmp(func_name, ifp->fn_name)) {
 			fn_class = ifp->fn_classmask;
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			LB_LOG(LB_LOGLEVEL_DEBUG,
 				"%s: Found func_class 0x%X (%s)",
 				__func__, fn_class, func_name);
 			break;
@@ -211,7 +211,7 @@ void sbox_map_path_for_sb2show(
 		ifp++;
 	}
 	if (!fn_class) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"%s: No func_class for %s",
 			__func__, func_name);
 	}
@@ -220,7 +220,7 @@ void sbox_map_path_for_sb2show(
 		0/*flags*/, 0/*exec_mode*/, fn_class, res);
 }
 
-void sbox_map_path(
+void ldbox_map_path(
 	const char *func_name,
 	const char *virtual_path,
 	uint32_t flags,
@@ -228,13 +228,13 @@ void sbox_map_path(
 	uint32_t classmask)
 {
 	fwd_map_path(
-		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
+		(ldbox_binary_name ? ldbox_binary_name : "UNKNOWN"),
 		func_name, virtual_path,
 		flags, 0/*exec_mode*/, classmask, res);
 }
 
 
-void sbox_map_path_at(
+void ldbox_map_path_at(
 	const char *func_name,
 	int dirfd,
 	const char *virtual_path,
@@ -255,9 +255,9 @@ void sbox_map_path_at(
 	    || (dirfd == AT_FDCWD)
 #endif
 	   ) {
-		/* same as sbox_map_path() */
+		/* same as ldbox_map_path() */
 		fwd_map_path(
-			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
+			(ldbox_binary_name ? ldbox_binary_name : "UNKNOWN"),
 			func_name, virtual_path,
 			flags, 0/*exec_mode*/, classmask, res);
 		return;
@@ -274,12 +274,12 @@ void sbox_map_path_at(
 			/* asprintf failed */
 			abort();
 		}
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		LB_LOG(LB_LOGLEVEL_DEBUG,
 			"Synthetic path for %s(%d,'%s') => '%s'",
 			func_name, dirfd, virtual_path, virtual_abs_path_at_fd);
 
 		fwd_map_path(
-			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
+			(ldbox_binary_name ? ldbox_binary_name : "UNKNOWN"),
 			func_name,
 			virtual_abs_path_at_fd, flags, 0/*exec_mode*/, classmask, res);
 		free(virtual_abs_path_at_fd);
@@ -290,7 +290,7 @@ void sbox_map_path_at(
 	/* name not found. Can't do much here, log a warning and return
 	 * the original relative path. That will work if we are lucky, but
 	 * not always..  */
-	SB_LOG(SB_LOGLEVEL_WARNING, "Path not found for FD %d, for %s(%s)",
+	LB_LOG(LB_LOGLEVEL_WARNING, "Path not found for FD %d, for %s(%s)",
 		dirfd, func_name, virtual_path);
 	res->mres_result_buf = res->mres_result_path = strdup(virtual_path);
 	res->mres_readonly = 0;
@@ -299,16 +299,16 @@ void sbox_map_path_at(
 /* this maps the path and then leaves "rule" and "exec_policy" to the stack, 
  * because exec post-processing needs them
 */
-void sbox_map_path_for_exec(
+void ldbox_map_path_for_exec(
 	const char *func_name,
 	const char *virtual_path,
 	mapping_results_t *res)
 {
 	fwd_map_path(
-		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
+		(ldbox_binary_name ? ldbox_binary_name : "UNKNOWN"),
 		func_name,
 		virtual_path, 0/*flags*/, 1/*exec mode*/,
-		SB2_INTERFACE_CLASS_EXEC, res);
+		LB_INTERFACE_CLASS_EXEC, res);
 }
 
 char *scratchbox_reverse_path(
@@ -320,15 +320,15 @@ char *scratchbox_reverse_path(
 	path_mapping_context_t	ctx;
 
 	clear_path_mapping_context(&ctx);
-	ctx.pmc_binary_name = (sbox_binary_name ? sbox_binary_name : "UNKNOWN");
+	ctx.pmc_binary_name = (ldbox_binary_name ? ldbox_binary_name : "UNKNOWN");
 	ctx.pmc_func_name = func_name;
 	ctx.pmc_fn_class = classmask;
 	ctx.pmc_virtual_orig_path = "";
 	ctx.pmc_dont_resolve_final_symlink = 0;
-	ctx.pmc_sb2ctx = get_sb2context();
+	ctx.pmc_lbctx = get_lbcontext();
 
 	virtual_path = reverse_map_path(&ctx, abs_host_path);
-	release_sb2context(ctx.pmc_sb2ctx);
+	release_lbcontext(ctx.pmc_lbctx);
 	return(virtual_path);
 }
 

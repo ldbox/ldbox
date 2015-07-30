@@ -39,8 +39,8 @@
 #endif
 
 #include <mapping.h>
-#include <sb2.h>
-#include "libsb2.h"
+#include <lb.h>
+#include "liblb.h"
 #include "exported.h"
 
 #include "pathmapping.h" /* get private definitions of this subsystem */
@@ -145,7 +145,7 @@ char *path_list_to_string(const struct path_entry_list *listp)
 
 static void free_path_entry(struct path_entry *work)
 {
-	SB_LOG(SB_LOGLEVEL_NOISE3,
+	LB_LOG(LB_LOGLEVEL_NOISE3,
 		"free_path_entry %lX <p=%lX n=%lX> len=%d '%s' (link_dest=%s)",
 		(long)work, (long)work->pe_prev, (long)work->pe_next,
 		work->pe_path_component_len, work->pe_path_component,
@@ -179,7 +179,7 @@ struct path_entry *split_path_to_path_entries(
 	const char *next_slash;
 	int flags = 0;
 
-	SB_LOG(SB_LOGLEVEL_NOISE3, "going to split '%s'", cpath);
+	LB_LOG(LB_LOGLEVEL_NOISE3, "going to split '%s'", cpath);
 
 	start = cpath;
 	if (*start == '/') {
@@ -218,7 +218,7 @@ struct path_entry *split_path_to_path_entries(
 			if(work) work->pe_next = new;
 			new->pe_next = NULL;
 			work = new;
-			SB_LOG(SB_LOGLEVEL_NOISE3,
+			LB_LOG(LB_LOGLEVEL_NOISE3,
 				"created entry 0x%lX '%s'",
 				(unsigned long int)work, new->pe_path_component);
 		}
@@ -235,10 +235,10 @@ void split_path_to_path_list(
 {
 	listp->pl_first = split_path_to_path_entries(cpath, &(listp->pl_flags));
 
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE2)) {
+	if (LB_LOG_IS_ACTIVE(LB_LOGLEVEL_NOISE2)) {
 		char *tmp_path_buf = path_list_to_string(listp);
 
-		SB_LOG(SB_LOGLEVEL_NOISE2, "split->'%s'", tmp_path_buf);
+		LB_LOG(LB_LOGLEVEL_NOISE2, "split->'%s'", tmp_path_buf);
 		free(tmp_path_buf);
 	}
 }
@@ -250,7 +250,7 @@ struct path_entry *duplicate_path_entries_until(
 	struct path_entry *first = NULL;
 	struct path_entry *dest_path_ptr = NULL;
 
-	SB_LOG(SB_LOGLEVEL_NOISE3, "Duplicating path:");
+	LB_LOG(LB_LOGLEVEL_NOISE3, "Duplicating path:");
 
 	while (source_path) {
 		struct path_entry *new;
@@ -272,17 +272,17 @@ struct path_entry *duplicate_path_entries_until(
 		if (dest_path_ptr) dest_path_ptr->pe_next = new;
 		new->pe_next = NULL;
 		dest_path_ptr = new;
-		SB_LOG(SB_LOGLEVEL_NOISE3,
+		LB_LOG(LB_LOGLEVEL_NOISE3,
 			"dup: entry 0x%X '%s'",
 			(unsigned long int)dest_path_ptr, new->pe_path_component);
 		if (duplicate_until_this_component == source_path) break;
 		source_path = source_path->pe_next;
 	}
 
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
+	if (LB_LOG_IS_ACTIVE(LB_LOGLEVEL_NOISE3)) {
 		char *tmp_path_buf = path_entries_to_string(first, 0);
 
-		SB_LOG(SB_LOGLEVEL_NOISE3, "dup->'%s'", tmp_path_buf);
+		LB_LOG(LB_LOGLEVEL_NOISE3, "dup->'%s'", tmp_path_buf);
 		free(tmp_path_buf);
 	}
 	return(first);
@@ -311,18 +311,18 @@ struct path_entry *remove_path_entry(
 {
 	struct path_entry *ret = p_entry->pe_next;
 
-	SB_LOG(SB_LOGLEVEL_NOISE3,
+	LB_LOG(LB_LOGLEVEL_NOISE3,
 		"remove_path_entry at %lX, next=%lX",
 		(long)p_entry, (long)ret);
 	if (p_entry->pe_prev) {
 		/* not the first element in the list */
-		SB_LOG(SB_LOGLEVEL_NOISE3,
+		LB_LOG(LB_LOGLEVEL_NOISE3,
 			"remove_path_entry, not first");
 		p_entry->pe_prev->pe_next = p_entry->pe_next;
 		if(p_entry->pe_next)
 			p_entry->pe_next->pe_prev = p_entry->pe_prev;
 	} else {
-		SB_LOG(SB_LOGLEVEL_NOISE3,
+		LB_LOG(LB_LOGLEVEL_NOISE3,
 			"remove_path_entry, first");
 		/* removing first element from the list */
 		assert(p_entry == listp->pl_first);
@@ -353,7 +353,7 @@ int is_clean_path(struct path_entry_list *listp)
 				found_dot = 1;
 			} else if (cp[1] == '.' && cp[2] == '\0') {
 				/* found ".." */
-				SB_LOG(SB_LOGLEVEL_NOISE,
+				LB_LOG(LB_LOGLEVEL_NOISE,
 					"is_clean_path: dirty, found ..");
 				return(2);
 			}
@@ -362,10 +362,10 @@ int is_clean_path(struct path_entry_list *listp)
 	}
 
 	if (found_dot) {
-		SB_LOG(SB_LOGLEVEL_NOISE, "is_clean_path: dirty, found .");
+		LB_LOG(LB_LOGLEVEL_NOISE, "is_clean_path: dirty, found .");
 		return(1);
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE, "is_clean_path: clean");
+	LB_LOG(LB_LOGLEVEL_NOISE, "is_clean_path: clean");
 	return(0);
 }
 
@@ -398,11 +398,11 @@ char *clean_and_log_fs_mapping_result(
 		 * warning about this? However, cleaning is
 		 * easy in this case; the result is a host
 		 * path => cleanup doesn't need to make
-		 * recursive calls to sb_path_resolution.
+		 * recursive calls to lb_path_resolution.
 		*/
 		remove_dots_from_path_list(&list);
 		if (clean_dotdots_from_path(ctx, &list)) {
-			SB_LOG(result_log_level, "fail: %s '%s'",
+			LB_LOG(result_log_level, "fail: %s '%s'",
 				ctx->pmc_func_name, abs_clean_virtual_path);
 			free_path_list(&list);
 			return(NULL);
@@ -414,33 +414,33 @@ char *clean_and_log_fs_mapping_result(
 
 	if (*cleaned_host_path != '/') {
 		/* oops, got a relative path. CWD is too long. */
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"OOPS, call_lua_function_sbox_translate_path:"
+		LB_LOG(LB_LOGLEVEL_DEBUG,
+			"OOPS, call_lua_function_ldbox_translate_path:"
 			" relative");
 	}
 
 	/* log the result */
-	if (flags & SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT) {
+	if (flags & LB_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT) {
 		readonly = " (readonly-if-not-root)";
-	} else if (flags & (SB2_MAPPING_RULE_FLAGS_READONLY |
-			    SB2_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS)) {
+	} else if (flags & (LB_MAPPING_RULE_FLAGS_READONLY |
+			    LB_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS)) {
 		readonly = " (readonly)";
 	}
 	if (strcmp(cleaned_host_path, abs_clean_virtual_path) == 0) {
-		/* NOTE: Following SB_LOG() call is used by the log
-		 *       postprocessor script "sb2logz". Do not change
+		/* NOTE: Following LB_LOG() call is used by the log
+		 *       postprocessor script "lblogz". Do not change
 		 *       without making a corresponding change to
 		 *       the script!
 		*/
-		SB_LOG(result_log_level, "pass: %s '%s'%s",
+		LB_LOG(result_log_level, "pass: %s '%s'%s",
 			ctx->pmc_func_name, abs_clean_virtual_path, readonly);
 	} else {
-		/* NOTE: Following SB_LOG() call is used by the log
-		 *       postprocessor script "sb2logz". Do not change
+		/* NOTE: Following LB_LOG() call is used by the log
+		 *       postprocessor script "lblogz". Do not change
 		 *       without making a corresponding change to
 		 *       the script!
 		*/
-		SB_LOG(result_log_level, "mapped: %s '%s' -> '%s'%s",
+		LB_LOG(result_log_level, "mapped: %s '%s' -> '%s'%s",
 			ctx->pmc_func_name, abs_clean_virtual_path,
 			cleaned_host_path, readonly);
 	}

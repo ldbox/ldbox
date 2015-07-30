@@ -8,7 +8,7 @@
 do_file(session_dir .. "/exec_config.lua")
 do_file(session_dir .. "/cputransp_config.lua")
 
-isprefix = sb.isprefix
+isprefix = lb.isprefix
 
 all_exec_policies = nil
 
@@ -47,7 +47,7 @@ function load_and_check_exec_rules()
 	--   in mode's "config.lua" file (which is
 	--   never loaded directly)
 	-- Version 203:
-	-- - exec policy is selected by sb_exec.c always.
+	-- - exec policy is selected by lb_exec.c always.
 	local current_rule_interface_version = "203"
 
 	do_file(exec_rule_file_path)
@@ -55,14 +55,14 @@ function load_and_check_exec_rules()
 	-- fail and die if interface version is incorrect
 	if (rule_file_interface_version == nil) or 
            (type(rule_file_interface_version) ~= "string") then
-		sb.log("error", string.format(
+		lb.log("error", string.format(
 			"Fatal: Exec rule file interface version check failed: "..
 			"No version information in %s",
 			rule_file_path))
 		os.exit(99)
 	end
 	if rule_file_interface_version ~= current_rule_interface_version then
-		sb.log("error", string.format(
+		lb.log("error", string.format(
 			"Fatal: Exec rule file interface version check failed: "..
 			"got %s, expected %s", rule_file_interface_version,
 			current_rule_interface_version))
@@ -87,8 +87,8 @@ end
 function get_users_ld_library_path(envp)
 	local k
 	for k = 1, table.maxn(envp) do
-		if (string.match(envp[k], "^__SB2_LD_LIBRARY_PATH=")) then
-			return string.gsub(envp[k], "^__SB2_LD_LIBRARY_PATH=", "", 1)
+		if (string.match(envp[k], "^__LB_LD_LIBRARY_PATH=")) then
+			return string.gsub(envp[k], "^__LB_LD_LIBRARY_PATH=", "", 1)
 		end
 	end
 	return ""
@@ -107,8 +107,8 @@ end
 function get_users_ld_preload(envp)
 	local k
 	for k = 1, table.maxn(envp) do
-		if (string.match(envp[k], "^__SB2_LD_PRELOAD=")) then
-			return string.gsub(envp[k], "^__SB2_LD_PRELOAD=", "", 1)
+		if (string.match(envp[k], "^__LB_LD_PRELOAD=")) then
+			return string.gsub(envp[k], "^__LB_LD_PRELOAD=", "", 1)
 		end
 	end
 	return ""
@@ -134,12 +134,12 @@ function set_ld_library_path(envp, new_path)
 		envp[ld_library_path_index] =
 			"LD_LIBRARY_PATH=" .. new_path
 		if debug_messages_enabled then
-			sb.log("debug", "Replaced LD_LIBRARY_PATH")
+			lb.log("debug", "Replaced LD_LIBRARY_PATH")
 		end
 	else
 		table.insert(envp, "LD_LIBRARY_PATH=" .. new_path)
 		if debug_messages_enabled then
-			sb.log("debug", "Added LD_LIBRARY_PATH")
+			lb.log("debug", "Added LD_LIBRARY_PATH")
 		end
 	end
 end
@@ -167,7 +167,7 @@ function setenv_native_app_ld_library_path(exec_policy, envp)
 	-- Set the value:
 	if (new_path == nil) then
 		if debug_messages_enabled then
-			sb.log("debug", "No value for LD_LIBRARY_PATH, using host's path")
+			lb.log("debug", "No value for LD_LIBRARY_PATH, using host's path")
 		end
 		-- Use host's original value
 		new_path = host_ld_library_path
@@ -183,12 +183,12 @@ function set_ld_preload(envp, new_preload)
 	if (ld_preload_index > 0) then
 		envp[ld_preload_index] = "LD_PRELOAD=" .. new_preload
 		if debug_messages_enabled then
-			sb.log("debug", "Replaced LD_PRELOAD="..new_preload)
+			lb.log("debug", "Replaced LD_PRELOAD="..new_preload)
 		end
 	else
 		table.insert(envp, "LD_PRELOAD=" .. new_preload)
 		if debug_messages_enabled then
-			sb.log("debug", "Added LD_PRELOAD="..new_preload)
+			lb.log("debug", "Added LD_PRELOAD="..new_preload)
 		end
 	end
 end
@@ -216,8 +216,8 @@ end
 
 -- ------------------------------------
 -- Exec postprocessing.
--- function sb_execve_postprocess is called to decide HOW the executable
--- should be started (see description of the algorithm in sb_exec.c)
+-- function lb_execve_postprocess is called to decide HOW the executable
+-- should be started (see description of the algorithm in lb_exec.c)
 -- 
 -- returns: status, mapped_file, file, argc, argv, envc, envp
 -- "status":
@@ -225,12 +225,12 @@ end
 --    0 = argc&argv were updated, OK to execute with the new params
 --    1 = ok to exec directly with orig.arguments
 
-function sb_execve_postprocess_native_executable(exec_policy,
+function lb_execve_postprocess_native_executable(exec_policy,
 	exec_type, mapped_file, filename, argv, envp)
 
 	-- Native binary. See what we need to do with it...
 	if debug_messages_enabled then
-		sb.log("debug", "sb_execve_postprocess_native_executable")
+		lb.log("debug", "lb_execve_postprocess_native_executable")
 	end
 
 	local new_argv = {}
@@ -271,7 +271,7 @@ function sb_execve_postprocess_native_executable(exec_policy,
 		--
 		-- We now have a patch for ld.so which introduces a new
 		-- option, "--argv0 argument", and a flag is used to tell
-		-- if a patched ld.so is available (the "sb2" script finds 
+		-- if a patched ld.so is available (the "lb" script finds
 		-- that out during startup phase).
 		--
 		if (exec_policy.native_app_ld_so_supports_argv0) then
@@ -309,7 +309,7 @@ function sb_execve_postprocess_native_executable(exec_policy,
 	--
 	if exec_policy.native_app_locale_path ~= nil then
 		if debug_messages_enabled then
-			sb.log("debug", string.format("setting LOCPATH=%s",
+			lb.log("debug", string.format("setting LOCPATH=%s",
 			    exec_policy.native_app_locale_path))
 		end
 		table.insert(new_envp, "LOCPATH=" ..
@@ -321,7 +321,7 @@ function sb_execve_postprocess_native_executable(exec_policy,
 
 	if exec_policy.native_app_gconv_path ~= nil then
 		if debug_messages_enabled then
-			sb.log("debug", string.format("setting GCONV_PATH=%s",
+			lb.log("debug", string.format("setting GCONV_PATH=%s",
 			    exec_policy.native_app_gconv_path))
 		end
 		table.insert(new_envp, "GCONV_PATH=" ..
@@ -383,27 +383,27 @@ function pick_and_remove_elems_from_string_table(tbl,pattern)
 	return(res)
 end
 
-function sb_execve_postprocess_sbrsh(exec_policy,
+function lb_execve_postprocess_sbrsh(exec_policy,
 	exec_type, mapped_file, filename, argv, envp)
 
-	local new_argv = split_to_tokens(sbox_cputransparency_method,"[^%s]+")
+	local new_argv = split_to_tokens(ldbox_cputransparency_method,"[^%s]+")
 
 	if #new_argv < 1 then
-		sb.log("error", "Invalid sbox_cputransparency_method set");
+		lb.log("error", "Invalid ldbox_cputransparency_method set");
 		-- deny
 		return -1, mapped_file, filename, #argv, argv, #envp, envp
 	end
-	if (sbox_target_root == nil) or (sbox_target_root == "") then
-		sb.log("error", 
-			"sbox_target_root not set, "..
+	if (ldbox_target_root == nil) or (ldbox_target_root == "") then
+		lb.log("error",
+			"ldbox_target_root not set, "..
 			"unable to execute the target binary");
 		return -1, mapped_file, filename, #argv, argv, #envp, envp
 	end
 
-	sb.log("info", string.format("Exec:sbrsh (%s,%s,%s)",
-		new_argv[1], sbox_target_root, mapped_file));
+	lb.log("info", string.format("Exec:sbrsh (%s,%s,%s)",
+		new_argv[1], ldbox_target_root, mapped_file));
 
-	local s_target_root = sbox_target_root
+	local s_target_root = ldbox_target_root
 	if not string.match(s_target_root, "/$") then
 		-- Add a trailing /
 		s_target_root = s_target_root.."/"
@@ -416,38 +416,38 @@ function sb_execve_postprocess_sbrsh(exec_policy,
 	if isprefix(s_target_root, mapped_file) then
 		local trlen = string.len(s_target_root)
 		file_in_device = string.sub(file_in_device, trlen)
-	elseif isprefix(sbox_user_home_dir, mapped_file) then
+	elseif isprefix(ldbox_user_home_dir, mapped_file) then
 		-- no change
 	else
-		sb.log("error", string.format(
+		lb.log("error", string.format(
 			"Binary must be under target (%s) or"..
 			" home when using sbrsh", s_target_root))
 		return -1, mapped_file, filename, #argv, argv, #envp, envp
 	end
 
 	-- Check directory
-	local dir_in_device = sb.getcwd()
+	local dir_in_device = lb.getcwd()
 
 	if isprefix(s_target_root, dir_in_device) then
 		local trlen = string.len(s_target_root)
 		dir_in_device = string.sub(dir_in_device, trlen)
-	elseif isprefix(sbox_user_home_dir, dir_in_device) then
+	elseif isprefix(ldbox_user_home_dir, dir_in_device) then
 		-- no change
 	else
-		sb.log("warning", string.format(
+		lb.log("warning", string.format(
 			"Executing binary with bogus working"..
 			" directory (/tmp) because sbrsh can only"..
 			" see %s and %s\n",
-			s_target_root, sbox_user_home_dir))
+			s_target_root, ldbox_user_home_dir))
 		dir_in_device = "/tmp"
 	end
 
 	local new_envp = envp
 	local new_filename = new_argv[1] -- first component of method
 	
-	if (sbox_sbrsh_config ~= nil) and (sbox_sbrsh_config ~= "") then
+	if (ldbox_sbrsh_config ~= nil) and (ldbox_sbrsh_config ~= "") then
 		table.insert(new_argv, "--config")
-		table.insert(new_argv, sbox_sbrsh_config)
+		table.insert(new_argv, ldbox_sbrsh_config)
 	end
 	table.insert(new_argv, "--directory")
 	table.insert(new_argv, dir_in_device)
@@ -459,35 +459,35 @@ function sb_execve_postprocess_sbrsh(exec_policy,
 		table.insert(new_argv, argv[i])
 	end
 
-	-- remove libsb2 from LD_PRELOAD
+	-- remove liblb from LD_PRELOAD
 	local ld_preload_tbl = pick_and_remove_elems_from_string_table(
 		new_envp, "^LD_PRELOAD=")
 	if ld_preload_tbl == nil then
 		if debug_messages_enabled then
-			sb.log("debug", "LD_PRELOAD not found")
+			lb.log("debug", "LD_PRELOAD not found")
 		end
 	else
 		if debug_messages_enabled then
-			sb.log("debug", string.format("LD_PRELOAD was %s",
+			lb.log("debug", string.format("LD_PRELOAD was %s",
 				ld_preload_tbl[1]))
 		end
 		local ld_preload_path = string.gsub(ld_preload_tbl[1],
 			"^LD_PRELOAD=", "", 1)
 		local ld_preload_components = split_to_tokens(ld_preload_path,
 			"[^:]+")
-		-- pick & throw away libsb2.so
+		-- pick & throw away liblb.so
 		pick_and_remove_elems_from_string_table(ld_preload_components,
-			sbox_libsb2)
+			ldbox_liblb)
 		if #ld_preload_components > 0 then
 			local new_ld_preload = table.concat(
 				ld_preload_components, ":")
 			table.insert(new_envp, "LD_PRELOAD="..new_ld_preload)
 			if debug_messages_enabled then
-				sb.log("debug", "set LD_PRELOAD to "..new_ld_preload)
+				lb.log("debug", "set LD_PRELOAD to "..new_ld_preload)
 			end
 		else
 			if debug_messages_enabled then
-				sb.log("debug", "nothing left, run without LD_PRELOAD")
+				lb.log("debug", "nothing left, run without LD_PRELOAD")
 			end
 		end
 	end
@@ -497,11 +497,11 @@ function sb_execve_postprocess_sbrsh(exec_policy,
 		#new_envp, new_envp
 end
 
-function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
+function lb_execve_postprocess_cpu_transparency_executable(exec_policy,
     exec_type, mapped_file, filename, argv, envp, conf_cputransparency)
 
 	if debug_messages_enabled then
-		sb.log("debug", "postprocessing cpu_transparency for " .. filename)
+		lb.log("debug", "postprocessing cpu_transparency for " .. filename)
 	end
 
 	if conf_cputransparency.method_is_qemu then
@@ -552,7 +552,7 @@ function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
 					-- .. and move to qemu command line 
 					table.insert(new_argv, "-E")
 					table.insert(new_argv, envp[i])
-				elseif string.match(envp[i], "^__SB2_LD_PRELOAD=.*") then
+				elseif string.match(envp[i], "^__LB_LD_PRELOAD=.*") then
 					-- FIXME: This will now drop application's
 					-- LD_PRELOAD. This is not really what should 
 					-- be done... To Be Fixed.
@@ -578,7 +578,7 @@ function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
 		end
 		new_envp, hack_envp = hack_envp, nil
 
-		-- libsb2 will replace LD_PRELOAD and LD_LIBRARY_PATH
+		-- liblb will replace LD_PRELOAD and LD_LIBRARY_PATH
 		-- env.vars, we don't need to worry about what the
 		-- application will see in those - BUT we need
 		-- to set those variables for Qemu itself.
@@ -613,7 +613,7 @@ function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
 		return 0, new_filename, filename, #new_argv, new_argv,
 			#new_envp, new_envp
 	elseif conf_cputransparency.method_is_sbrsh then
-		return sb_execve_postprocess_sbrsh(exec_policy,
+		return lb_execve_postprocess_sbrsh(exec_policy,
     			exec_type, mapped_file, filename, argv, envp)
 	end
 
@@ -626,36 +626,36 @@ function get_exec_policy_by_name(ep_name)
 		for i = 1, table.maxn(all_exec_policies) do
 			if all_exec_policies[i].name == ep_name then
 				if (debug_messages_enabled) then
-					sb.log("debug", "Found Exec policy "..ep_name)
+					lb.log("debug", "Found Exec policy "..ep_name)
 				end
 				return all_exec_policies[i]
 			end
 		end
 	end
 	if (debug_messages_enabled) then
-		sb.log("debug", "FAILED to find Exec policy "..ep_name)
+		lb.log("debug", "FAILED to find Exec policy "..ep_name)
 	end
 	return nil
 end
 
 
 -- This is called from C:
-function sb_execve_postprocess(exec_policy_name, exec_type,
+function lb_execve_postprocess(exec_policy_name, exec_type,
 	mapped_file, filename, binaryname, argv, envp)
 
 	assert(exec_policy_name ~= nil)
 
-	sb.log("error", "sb_execve_postprocess called. "..exec_policy_name.." "..mapped_file.." "..filename);
+	lb.log("error", "lb_execve_postprocess called. "..exec_policy_name.." "..mapped_file.." "..filename);
 
 	local exec_policy = get_exec_policy_by_name(exec_policy_name)
 	if exec_policy == nil then
-		sb.log("error", "Exec policy '"..exec_policy_name.."' not found.")
+		lb.log("error", "Exec policy '"..exec_policy_name.."' not found.")
 		-- Allow direct exec.
 		return 1, mapped_file, filename, #argv, argv, #envp, envp
 	end
 
 	if (exec_policy.log_level ~= nil) then
-		sb.log(exec_policy.log_level, exec_policy.log_message)
+		lb.log(exec_policy.log_level, exec_policy.log_message)
 	end
 
 	if (exec_policy.deny_exec == true) then
@@ -664,38 +664,38 @@ function sb_execve_postprocess(exec_policy_name, exec_type,
 
 	if debug_messages_enabled then
 		if (exec_policy.name == nil) then
-			sb.log("debug", "Applying nameless exec_policy")
+			lb.log("debug", "Applying nameless exec_policy")
 		else
-			sb.log("debug", string.format("Applying exec_policy '%s'",
+			lb.log("debug", string.format("Applying exec_policy '%s'",
 				exec_policy.name))
 		end
-		sb.log("debug", string.format("sb_execve_postprocess:type=%s",
+		lb.log("debug", string.format("lb_execve_postprocess:type=%s",
 			exec_type))
 	end
 
 	if (exec_policy.name) then
-		table.insert(envp, "__SB2_EXEC_POLICY_NAME="..exec_policy.name)
+		table.insert(envp, "__LB_EXEC_POLICY_NAME="..exec_policy.name)
 	end
 
 	-- End of generic part. Rest of postprocessing depends on type of
 	-- the executable.
 
 	if (exec_type == "native") then
-		sb.log("error", "sb_execve_postprocess called to process native binary "..binaryname..", "..mapped_file)
-		return sb_execve_postprocess_native_executable(
+		lb.log("error", "lb_execve_postprocess called to process native binary "..binaryname..", "..mapped_file)
+		return lb_execve_postprocess_native_executable(
 			exec_policy, exec_type, mapped_file,
 			filename, argv, envp)
 	elseif (exec_type == "cpu_transparency") then
-		return sb_execve_postprocess_cpu_transparency_executable(
+		return lb_execve_postprocess_cpu_transparency_executable(
 			exec_policy, exec_type, mapped_file,
 			filename, argv, envp, conf_cputransparency_target)
 	elseif (exec_type == "static") then
 		if (conf_cputransparency_native ~= nil and conf_cputransparency_native.cmd ~= "") then
-			return sb_execve_postprocess_cpu_transparency_executable(
+			return lb_execve_postprocess_cpu_transparency_executable(
 				exec_policy, exec_type, mapped_file,
 				filename, argv, envp, conf_cputransparency_native)
 		end
-		-- [see comment in sb_exec.c]
+		-- [see comment in lb_exec.c]
 		set_ld_preload(envp, host_ld_preload)
 		set_ld_library_path(envp, host_ld_library_path)
 		return 0, mapped_file, filename, #argv, argv, #envp, envp

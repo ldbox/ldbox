@@ -5,7 +5,7 @@
 */
 
 /* Fakeroot wrapper: Emulate the "fakeroot" command within
- * SB2 session, by using SB2's features.
+ * ldbox session, by using ldbox's features.
 */
 
 #include <stdio.h>
@@ -38,11 +38,11 @@ int main(int argc, char *argv[])
 		case -1: /* end of options */
 			break;
 		case '0': /* long option */
-			fprintf(stderr, "SB2 %s: Long option '%s', ignored.\n",
+			fprintf(stderr, "ldbox %s: Long option '%s', ignored.\n",
 				progname, long_fakeroot_opts[opt_ind].name);
 			break;
 		default: /* short option */
-			fprintf(stderr, "SB2 %s: option '%c', ignored.\n",
+			fprintf(stderr, "ldbox %s: option '%c', ignored.\n",
 				progname, opt);
 			break;
 		case 'u':
@@ -51,13 +51,13 @@ int main(int argc, char *argv[])
 			break;
 		case 'h':
 		case 'v':
-			fprintf(stderr, "SB2 %s: A wrapper which emulates 'fakeroot'\n",
+			fprintf(stderr, "ldbox %s: A wrapper which emulates 'fakeroot'\n",
 				progname);
 			return(0);
 		}
 	}
-	setenv("PS1", "[SB2-root] \\u@\\h \\W # ", 1);
-	setenv("SBOX_VPERM_REQUEST", vperm_request, 1);
+	setenv("PS1", "[LB-root] \\u@\\h \\W # ", 1);
+	setenv("LDBOX_VPERM_REQUEST", vperm_request, 1);
 	if (argv[optind]) {
 		execvp(argv[optind], argv+optind);
 	} else {

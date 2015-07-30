@@ -30,8 +30,8 @@
 #include <sysdep-cancel.h>
 #endif
 
-#if 1 /* sb2 */
-#include "libsb2.h"
+#if 1 /* ldbox */
+#include "liblb.h"
 #include "exported.h"
 
 #if 0
@@ -153,7 +153,7 @@ do_system (const char *line)
       INIT_LOCK ();
 
       /* Exec the shell.  */
-      SB_LOG(SB_LOGLEVEL_DEBUG, "system(%s)", line);
+      LB_LOG(LB_LOGLEVEL_DEBUG, "system(%s)", line);
       (void) __execve (SHELL_PATH, (char *const *) new_argv, __environ);
       _exit (127);
     }
@@ -168,7 +168,7 @@ do_system (const char *line)
 	 have to do anything here.  */
       if (TEMP_FAILURE_RETRY (__waitpid (pid, &status, 0)) != pid)
 	status = -1;
-      SB_LOG(SB_LOGLEVEL_DEBUG, "system: waitpid => status=%d", status);
+      LB_LOG(LB_LOGLEVEL_DEBUG, "system: waitpid => status=%d", status);
     }
 
 #ifdef CLEANUP_HANDLER
@@ -196,7 +196,7 @@ do_system (const char *line)
 }
 
 static int
-sb2_libc_system (const char *line)
+lb_libc_system (const char *line)
 {
   if (line == NULL)
     /* Check that we have a command processor available.  It might
@@ -204,7 +204,7 @@ sb2_libc_system (const char *line)
     return do_system ("exit 0") == 0;
 
 #if 0
-  /* FIXME: sb2 now uses this as if the program
+  /* FIXME: ldbox now uses this as if the program
    * was single-threaded always. this is of course
    * false assumption.
   */
@@ -225,7 +225,7 @@ sb2_libc_system (const char *line)
 
 /* ------------ End Of glibc-Based Code ------------ */
 
-/* sb2: */
+/* ldbox: */
 int system_gate(
 	int *result_errno_ptr,
 	int (*real_system_ptr)(const char *line),
@@ -235,9 +235,9 @@ int system_gate(
 
 	(void)real_system_ptr;
 	(void)realfnname;
-	SB_LOG(SB_LOGLEVEL_DEBUG, "system(%s)", line);
+	LB_LOG(LB_LOGLEVEL_DEBUG, "system(%s)", line);
 	errno = *result_errno_ptr; /* restore to orig.value */
-	result = sb2_libc_system(line);
+	result = lb_libc_system(line);
 	*result_errno_ptr = errno;
 	return(result);
 }

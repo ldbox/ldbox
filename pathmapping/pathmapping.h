@@ -4,7 +4,7 @@
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  * Author: Lauri T. Aarnio
  *
- * This file contians private defitions and interfaces of sb2's
+ * This file contians private defitions and interfaces of ldbox's
  * pathmapping subsystem.
 */
 
@@ -89,7 +89,7 @@ typedef struct path_mapping_context_s {
 	int			pmc_file_must_exist;
 	int			pmc_must_be_directory;
 	int			pmc_allow_nonexistent;
-	struct sb2context	*pmc_sb2ctx;
+	struct lbcontext	*pmc_lbctx;
 
 	/* for paths_ruletree_mapping.c: */
 	ruletree_object_offset_t pmc_ruletree_offset;
@@ -107,21 +107,21 @@ extern char *reverse_map_path(
 	const char *abs_host_path);
 
 /* ----------- paths_luaif.c ----------- */
-extern char *call_lua_function_sbox_translate_path(
+extern char *call_lua_function_ldbox_translate_path(
 	const path_mapping_context_t *ctx,
 	int result_log_level,
 	const char *abs_clean_virtual_path,
 	int *flagsp,
 	char **exec_policy_name_ptr);
-extern int call_lua_function_sbox_get_mapping_requirements(
+extern int call_lua_function_ldbox_get_mapping_requirements(
 	const path_mapping_context_t *ctx,
 	const struct path_entry_list *abs_virtual_source_path_list,
 	int *min_path_lenp,
 	int *call_translate_for_all_p);
-extern char *call_lua_function_sbox_reverse_path(
+extern char *call_lua_function_ldbox_reverse_path(
 	const path_mapping_context_t *ctx,
 	const char *abs_host_path);
-extern void drop_rule_from_lua_stack(struct sb2context *sb2ctx);
+extern void drop_rule_from_lua_stack(struct lbcontext *lbctx);
 
 extern char *clean_and_log_fs_mapping_result(
 	const path_mapping_context_t *ctx,
@@ -158,8 +158,8 @@ extern int clean_dotdots_from_path(
 	const path_mapping_context_t *ctx,
 	struct path_entry_list *abs_path);
 
-extern void sbox_map_path_internal__lua_engine(
-	struct sb2context *sb2ctx,
+extern void ldbox_map_path_internal__lua_engine(
+	struct lbcontext *lbctx,
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,
@@ -168,8 +168,8 @@ extern void sbox_map_path_internal__lua_engine(
 	uint32_t fn_class,
 	mapping_results_t *res);
 
-extern void sbox_map_path_internal__c_engine(
-	struct sb2context *sb2ctx,
+extern void ldbox_map_path_internal__c_engine(
+	struct lbcontext *lbctx,
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,
@@ -179,7 +179,7 @@ extern void sbox_map_path_internal__c_engine(
 	mapping_results_t *res,
 	ruletree_object_offset_t rule_list_offset);
 
-extern char *sbox_reverse_path_internal__c_engine(
+extern char *ldbox_reverse_path_internal__c_engine(
         const path_mapping_context_t  *ctx,
         const char *abs_host_path,
 	int drop_chroot_prefix); /* flag */

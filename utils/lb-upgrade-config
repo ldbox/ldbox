@@ -1,0 +1,219 @@
+#!/bin/bash
+# lb-upgrade-config:
+# - This script is used to automatically update/upgrade configuration files.
+# - Called from the "lb" script whenever needed; see the configuration
+#   version check in load_configuration() of "lb".
+# - Should not be called directly from the command line!
+#
+# Copyright (C) 2009 Nokia Corporation.
+# Licensed under GPL version 2
+
+my_path=$_
+if [ $(basename $my_path) != $(basename $0) ]; then
+	my_path=$0
+	if [ $(basename $my_path) = $my_path ]; then
+		my_path=$(which $my_path)
+	fi
+fi
+
+LDBOX_SHARE_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
+LDBOX_DIR=$(readlink -f $LDBOX_SHARE_DIR/../..)
+LDBOX_TARGET=$1
+LDBOX_CONFIG_DIR=~/.ldbox/$LDBOX_TARGET/lb.config.d
+
+function exit_error()
+{
+	echo "$my_path: Error: $@"
+	exit 1
+}
+
+if [ -z "$LDBOX_TARGET" ]; then
+	exit_error "this script is intended for lb's internal use only!"
+fi 
+
+function log_config_action()
+{
+	tstamp=`/bin/date '+%Y-%m-%d %H:%M:%S'`
+	echo "$tstamp	$*" >>$LDBOX_CONFIG_DIR/CONFIG-LOG
+}
+
+# Get the original arguments that were specified to lb-init from
+# the old configuration file; we only need three variables from that file..
+function get_lb_init_arguments_from_old_config_file()
+{
+	OLD_CONFIG_FILE=$HOME/.ldbox/$LDBOX_TARGET/lb.config
+
+	if [ ! -f $OLD_CONFIG_FILE ]; then
+		exit_error "$OLD_CONFIG_FILE does not exist"
+	fi
+
+	# Check version
+	vers=`egrep -m 1 '^LDBOX_CONFIG_VERSION=' $OLD_CONFIG_FILE`
+	LDBOX_CONFIG_VERSION=0
+	eval $vers
+
+	if [ "$LDBOX_CONFIG_VERSION" -lt 5 ]; then
+		exit_error "configuration file version is too old ($OLD_CONFIG_FILE)"
+	fi
+
+	# Get original options & target name & compiler(s)
+	args=`egrep -m 1 '^LDBOX_INIT_ORIG_ARGS=' $OLD_CONFIG_FILE`
+	eval $args
+
+	# Get original target_root
+	targetroot=`egrep -m 1 '^LDBOX_TARGET_ROOT=' $OLD_CONFIG_FILE`
+	eval $targetroot
+	export LBINIT_TARGET_ROOT=$LDBOX_TARGET_ROOT
+
+	$LDBOX_SHARE_DIR/scripts/lb-parse-lb-init-args $LDBOX_INIT_ORIG_ARGS \
+		> $LDBOX_CONFIG_DIR/lb-init-args
+	log_config_action "Config upgrade: arguments of original lb-init restored from old config file"
+}
+
+function update_toolchain_configs()
+{
+	secondary_compiler=""
+
+	if [ -n "$LBINIT_ARCH" ]; then
+		gccconfig_arch_option="-A $LBINIT_ARCH"
+	else
+		gccconfig_arch_option=""
+	fi
+	if [ -n "$LBINIT_MACHINE_ARCH" ]; then
+		gccconfig_arch_option2="-M $LBINIT_MACHINE_ARCH"
+	else
+		gccconfig_arch_option2=""
+	fi
+	for compiler_path in $*; do
+		# echo "Updating compiler $compiler_path"
+		log_config_action "Config upgrade: settings for compiler $compiler_path"
+		$LDBOX_SHARE_DIR/scripts/lb-config-gcc-toolchain \
+			$secondary_compiler \
+			$gccconfig_arch_option \
+			$gccconfig_arch_option2 \
+			-R "$LBINIT_TARGET_ROOT" \
+			-S "$LDBOX_SHARE_DIR/../.." \
+			-t "$LBINIT_TARGET" \
+			-m "$LBINIT_MAPPING_MODE" \
+			-C "$LBINIT_LDBOX_EXTRA_CROSS_COMPILER_ARGS" \
+			-L "$LBINIT_LDBOX_EXTRA_CROSS_LD_ARGS" \
+			-- \
+			$compiler_path
+		if [ $? != 0 ]; then
+			log_config_action "failed to configure $compiler_path"
+			echo "Failed to configure $compiler_path"
+			exit 1
+		fi
+		secondary_compiler="-V"
+	done
+}
+
+# "host-ld_library_path.conf" contains settings that are needed for running
+# host-compatible binaries in host mode (i.e. started directly, not 
+# indirectly by running ld.so).
+function update_host_ld_library_path()
+{
+	# Old versions of lb.config will set $LD_LIBRARY_PATH,
+	# which is not nice... save the current value and restore it later.
+	saved_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+
+	# Make sure that these stay in the library path:
+
+	# Prefix to be added (trailing colon is needed, if not empty!)
+	HOST_LD_LIBRARY_PATH_PREFIX=""
+
+	HOST_LD_LIBRARY_PATH_LIBLB="$LDBOX_DIR/lib/liblb:$LDBOX_DIR/lib64/liblb:$LDBOX_DIR/lib32/liblb:/emul/lib64/liblb:/emul/lib32/liblb"
+
+	# Suffix to be added (leading colon is needed, if not empty!)
+	HOST_LD_LIBRARY_PATH_SUFFIX=""
+
+	OLD_CONFIG_FILE=$HOME/.ldbox/$LDBOX_TARGET/lb.config
+
+	if [ ! -f $OLD_CONFIG_FILE ]; then
+		exit_error "$OLD_CONFIG_FILE does not exist"
+	fi
+	# Old version of the config file expects to see LD_LIBRARY_PATH set
+	# to the following:
+	old_cfg_file_expects_LDLBRPATH="$LDBOX_DIR/lib/liblb:$LDBOX_DIR/lib64/liblb:$LDBOX_DIR/lib32/liblb:/emul/lib64/liblb:/emul/lib32/liblb"
+	LD_LIBRARY_PATH="$old_cfg_file_expects_LDLBRPATH"
+	. $OLD_CONFIG_FILE
+	if [ "$LD_LIBRARY_PATH" != "$old_cfg_file_expects_LDLBRPATH" ]; then
+		# Old version of lb.config, it set the path.
+		HOST_LD_LIBRARY_PATH_LIBLB="$LD_LIBRARY_PATH"
+	else
+		# Newer version of lb.config,
+		# LD_LIBRARY_PATH not set there (good), can use separate 
+		# components...
+		if [ -n "$LDBOX_TOOLS_ROOT" ]; then
+			# Prefix to be added (notice the trailing colon!)
+			HOST_LD_LIBRARY_PATH_PREFIX="/usr/local/lib:/usr/lib/:/usr/lib64:/lib:/lib64:"
+		fi
+	fi
+	LD_LIBRARY_PATH=$saved_LD_LIBRARY_PATH
+
+	echo "HOST_LD_LIBRARY_PATH_PREFIX=\"$HOST_LD_LIBRARY_PATH_PREFIX\"" >$LDBOX_CONFIG_DIR/host-ld_library_path.conf
+	echo "HOST_LD_LIBRARY_PATH_LIBLB=\"$HOST_LD_LIBRARY_PATH_LIBLB\"" >>$LDBOX_CONFIG_DIR/host-ld_library_path.conf
+	echo "HOST_LD_LIBRARY_PATH_SUFFIX=\"$HOST_LD_LIBRARY_PATH_SUFFIX\"" >>$LDBOX_CONFIG_DIR/host-ld_library_path.conf
+	log_config_action "Created LD_LIBRARY_PATH configuration file for host-compatible binaries"
+}
+
+function update_debian_config()
+{
+	$LDBOX_DIR/share/ldbox/scripts/lb-config-debian -t $LDBOX_TARGET
+}
+
+if [ ! -d $LDBOX_CONFIG_DIR ]; then
+	mkdir $LDBOX_CONFIG_DIR 
+	log_config_action "Config upgrade: Created configuration directory"
+fi
+
+if [ ! -f $LDBOX_CONFIG_DIR/lb-init-args ]; then
+	# This is an old target.
+	# Need to get lb-init's parameters from the old config file
+	get_lb_init_arguments_from_old_config_file
+fi
+
+# read in the values that were used when lb-init was executed:
+. $LDBOX_CONFIG_DIR/lb-init-args
+
+if [ -z "$LBINIT_MAPPING_MODE" ]; then
+	# Mapping mode was not specified when lb-init was executed
+	# => use the default mode.
+	LBINIT_MAPPING_MODE="simple"
+fi
+
+#==============================================
+# Finally:
+
+# check if we need to actually update something:
+# version "11" added separate config files for gcc toolchains:
+# version "12" version-specific specs files for gcc compilers:
+# version "13" version- and architecture-specific specs files for gcc compilers:
+# version "14" fixes a bug in previous ones; "-A" was not relayed to gcc config
+# version "15" just forces a reconfiguration (to check that the "specs" file is
+#              used, due to a bug in the top-level Makefile of ldbox)
+# version "16" added "host-ld_library_path.conf"; technically, we
+#		don't have to reconfigure gcc when moving from 15 to 16,
+#		but it is easier to just do everything..
+# version "17" added a separate tool for configuring DEB_* variables
+#		and gcc configuration sets LDBOX_GCC_TARGET even if
+#		-A option was given to lb-init
+# version "18" added cross_gcc_progs_path to gcc configuration
+# version "19": changed detection of -Wno-poison-system-directories (gcc config)
+# version "20": A bug has been fixed in gcc configuration.
+if [ ! -f $LDBOX_CONFIG_DIR/config-stamp.20 ]; then
+	update_toolchain_configs $LBINIT_COMPILERS
+
+	# DANGER: this will read in the complete old lb.config file => must
+	# be the last step!! (that file will set various variables...)
+	update_host_ld_library_path
+
+	# ...well, the previous one wasn't the last thing.
+	# "lb-config-debian" wants to execute the "lb" command,
+	# so this is the new must-be-the-last-thing:
+	update_debian_config
+fi
+
+log_config_action "Config updated to version #20"
+touch $LDBOX_CONFIG_DIR/config-stamp.20
+
