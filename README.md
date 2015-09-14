@@ -20,3 +20,5 @@ For example, a program for foreign architecture can be started inside an
 emulator (like `qemu`),
 and cross-compiler started instead of native compiler
 for foreign architecture.
+
+See [ldbox.org main site](https://ldbox.org/) for more information.
