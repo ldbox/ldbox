@@ -108,10 +108,10 @@ do-all: $(targets)
 		echo $(PACKAGE_VERSION) > .version; \
 	fi)
 
-include/ldbox_version.h: .version Makefile
-	echo "/* Automatically generated file. Do not edit. */" >include/ldbox_version.h
-	echo '#define LDBOX_VERSION "'`cat .version`'"' >>include/ldbox_version.h
-	echo '#define LIBLB_SONAME "'$(LIBLB_SONAME)'"' >>include/ldbox_version.h
+$(SRCDIR)/include/ldbox_version.h: .version Makefile
+	echo "/* Automatically generated file. Do not edit. */" >$(SRCDIR)/include/ldbox_version.h
+	echo '#define LDBOX_VERSION "'`cat .version`'"' >>$(SRCDIR)/include/ldbox_version.h
+	echo '#define LIBLB_SONAME "'$(LIBLB_SONAME)'"' >>$(SRCDIR)/include/ldbox_version.h
 
 regular: .configure .version
 	@$(MAKE) -f $(SRCDIR)/Makefile --include-dir=$(SRCDIR) SRCDIR=$(SRCDIR) do-all
