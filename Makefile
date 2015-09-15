@@ -84,7 +84,7 @@ else
 CONFIGURE_ARGS = 
 endif
 
-ifeq ($(MACH),x86_64)
+ifneq ($(lib32dir),)
 all: multilib
 else
 all: regular
@@ -119,8 +119,8 @@ regular: .configure .version
 multilib:
 	@mkdir -p obj-32
 	@mkdir -p obj-64
-	@$(MAKE) MACH_CFLAG=-m32 -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. regular
-	@$(MAKE) MACH_CFLAG=-m64 -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. regular
+	@$(MAKE) MACH_CFLAG=-m32 -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. libdir=$(lib32dir) regular
+	@$(MAKE) MACH_CFLAG=-m64 -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. libdir=$(libdir) regular
 
 
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
@@ -137,99 +137,99 @@ tarball:
 
 install-noarch: regular
 	$(P)INSTALL
-	@if [ -d $(prefix)/bin ] ; \
-	then echo "$(prefix)/bin present" ; \
-	else install -d -m 755 $(prefix)/bin ; \
+	@if [ -d $(DESTDIR)$(bindir) ] ; \
+	then echo "$(DESTDIR)$(bindir) present" ; \
+	else install -d -m 755 $(DESTDIR)$(bindir) ; \
 	fi
-	$(Q)install -d -m 755 $(prefix)/share/ldbox/lua_scripts
-	$(Q)install -d -m 755 $(prefix)/share/ldbox/modes
+	$(Q)install -d -m 755 $(DESTDIR)$(datadir)/ldbox/lua_scripts
+	$(Q)install -d -m 755 $(DESTDIR)$(datadir)/ldbox/modes
 	$(Q)(set -e; for d in $(lb_modes); do \
-		install -d -m 755 $(prefix)/share/ldbox/modes/$$d; \
+		install -d -m 755 $(DESTDIR)$(datadir)/ldbox/modes/$$d; \
 		for f in $(SRCDIR)/modes/$$d/*; do \
-			install -c -m 644 $$f $(prefix)/share/ldbox/modes/$$d; \
+			install -c -m 644 $$f $(DESTDIR)$(datadir)/ldbox/modes/$$d; \
 		done; \
 	done)
-	$(Q)install -d -m 755 $(prefix)/share/ldbox/net_rules
+	$(Q)install -d -m 755 $(DESTDIR)$(datadir)/ldbox/net_rules
 	$(Q)(set -e; for d in $(lb_net_modes); do \
-		install -d -m 755 $(prefix)/share/ldbox/net_rules/$$d; \
+		install -d -m 755 $(DESTDIR)$(datadir)/ldbox/net_rules/$$d; \
 		for f in $(SRCDIR)/net_rules/$$d/*; do \
-			install -c -m 644 $$f $(prefix)/share/ldbox/net_rules/$$d; \
+			install -c -m 644 $$f $(DESTDIR)$(datadir)/ldbox/net_rules/$$d; \
 		done; \
 	done)
 	# "accel" == "devel" mode in 2.3.x:
-	$(Q)ln -sf accel $(prefix)/share/ldbox/modes/devel
+	$(Q)ln -sf accel $(DESTDIR)$(datadir)/ldbox/modes/devel
 	# Rule libraries
-	$(Q)install -d -m 755 $(prefix)/share/ldbox/rule_lib
-	$(Q)install -d -m 755 $(prefix)/share/ldbox/rule_lib/fs_rules
+	$(Q)install -d -m 755 $(DESTDIR)$(datadir)/ldbox/rule_lib
+	$(Q)install -d -m 755 $(DESTDIR)$(datadir)/ldbox/rule_lib/fs_rules
 	$(Q)(set -e; for f in $(SRCDIR)/rule_lib/fs_rules/*; do \
-		install -c -m 644 $$f $(prefix)/share/ldbox/rule_lib/fs_rules; \
+		install -c -m 644 $$f $(DESTDIR)$(datadir)/ldbox/rule_lib/fs_rules; \
 	done)
 	# "scripts" and "wrappers" are visible to the user in some 
 	# mapping modes, "lib" is for ldbox's internal use
-	$(Q)install -d -m 755 $(prefix)/share/ldbox/lib
-	$(Q)install -d -m 755 $(prefix)/share/ldbox/scripts
-	$(Q)install -d -m 755 $(prefix)/share/ldbox/wrappers
-	$(Q)install -d -m 755 $(prefix)/share/ldbox/tests
-	@if [ -d $(prefix)/share/man/man1 ] ; \
-	then echo "$(prefix)/share/man/man1 present" ; \
-	else install -d -m 755 $(prefix)/share/man/man1 ; \
+	$(Q)install -d -m 755 $(DESTDIR)$(datadir)/ldbox/lib
+	$(Q)install -d -m 755 $(DESTDIR)$(datadir)/ldbox/scripts
+	$(Q)install -d -m 755 $(DESTDIR)$(datadir)/ldbox/wrappers
+	$(Q)install -d -m 755 $(DESTDIR)$(datadir)/ldbox/tests
+	@if [ -d $(DESTDIR)$(mandir)/man1 ] ; \
+	then echo "$(DESTDIR)$(mandir)/man1 present" ; \
+	else install -d -m 755 $(DESTDIR)$(mandir)/man1 ; \
 	fi
-	@if [ -d $(prefix)/share/man/man7 ] ; \
-	then echo "$(prefix)/share/man/man7 present" ; \
-	else install -d -m 755 $(prefix)/share/man/man7 ; \
+	@if [ -d $(DESTDIR)$(mandir)/man7 ] ; \
+	then echo "$(DESTDIR)$(mandir)/man7 present" ; \
+	else install -d -m 755 $(DESTDIR)$(mandir)/man7 ; \
 	fi
-	$(Q)echo "$(PACKAGE_VERSION)" > $(prefix)/share/ldbox/version
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb $(prefix)/bin/lb
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-init $(prefix)/bin/lb-init
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-config $(prefix)/bin/lb-config
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-session $(prefix)/bin/lb-session
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-build-libtool $(prefix)/bin/lb-build-libtool
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-start-qemuserver $(prefix)/bin/lb-start-qemuserver
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-qemu-gdbserver-prepare $(prefix)/bin/lb-qemu-gdbserver-prepare
+	$(Q)echo "$(PACKAGE_VERSION)" > $(DESTDIR)$(datadir)/ldbox/version
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb $(DESTDIR)$(bindir)/lb
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-init $(DESTDIR)$(bindir)/lb-init
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-config $(DESTDIR)$(bindir)/lb-config
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-session $(DESTDIR)$(bindir)/lb-session
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-build-libtool $(DESTDIR)$(bindir)/lb-build-libtool
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-start-qemuserver $(DESTDIR)$(bindir)/lb-start-qemuserver
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-qemu-gdbserver-prepare $(DESTDIR)$(bindir)/lb-qemu-gdbserver-prepare
 
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-cmp-checkbuilddeps-output.pl $(prefix)/share/ldbox/lib/lb-cmp-checkbuilddeps-output.pl
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-cmp-checkbuilddeps-output.pl $(DESTDIR)$(datadir)/ldbox/lib/lb-cmp-checkbuilddeps-output.pl
 
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-upgrade-config $(prefix)/share/ldbox/scripts/lb-upgrade-config
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-parse-lb-init-args $(prefix)/share/ldbox/scripts/lb-parse-lb-init-args
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-config-gcc-toolchain $(prefix)/share/ldbox/scripts/lb-config-gcc-toolchain
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-config-debian $(prefix)/share/ldbox/scripts/lb-config-debian
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-check-pkg-mappings $(prefix)/share/ldbox/scripts/lb-check-pkg-mappings
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-exitreport $(prefix)/share/ldbox/scripts/lb-exitreport
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-generate-locales $(prefix)/share/ldbox/scripts/lb-generate-locales
-	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-logz $(prefix)/bin/lb-logz
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/init*.lua $(prefix)/share/ldbox/lua_scripts/
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/rule_constants.lua $(prefix)/share/ldbox/lua_scripts/
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/exec_constants.lua $(prefix)/share/ldbox/lua_scripts/
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_gcc.lua $(prefix)/share/ldbox/lua_scripts/argvenvp_gcc.lua
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_misc.lua $(prefix)/share/ldbox/lua_scripts/argvenvp_misc.lua
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_reverse_rules.lua $(prefix)/share/ldbox/lua_scripts/create_reverse_rules.lua
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvmods_loader.lua $(prefix)/share/ldbox/lua_scripts/argvmods_loader.lua
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/add_rules_to_rule_tree.lua $(prefix)/share/ldbox/lua_scripts/add_rules_to_rule_tree.lua
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-upgrade-config $(DESTDIR)$(datadir)/ldbox/scripts/lb-upgrade-config
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-parse-lb-init-args $(DESTDIR)$(datadir)/ldbox/scripts/lb-parse-lb-init-args
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-config-gcc-toolchain $(DESTDIR)$(datadir)/ldbox/scripts/lb-config-gcc-toolchain
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-config-debian $(DESTDIR)$(datadir)/ldbox/scripts/lb-config-debian
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-check-pkg-mappings $(DESTDIR)$(datadir)/ldbox/scripts/lb-check-pkg-mappings
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-exitreport $(DESTDIR)$(datadir)/ldbox/scripts/lb-exitreport
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-generate-locales $(DESTDIR)$(datadir)/ldbox/scripts/lb-generate-locales
+	$(Q)install -c -m 755 $(SRCDIR)/utils/lb-logz $(DESTDIR)$(bindir)/lb-logz
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/init*.lua $(DESTDIR)$(datadir)/ldbox/lua_scripts/
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/rule_constants.lua $(DESTDIR)$(datadir)/ldbox/lua_scripts/
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/exec_constants.lua $(DESTDIR)$(datadir)/ldbox/lua_scripts/
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_gcc.lua $(DESTDIR)$(datadir)/ldbox/lua_scripts/argvenvp_gcc.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_misc.lua $(DESTDIR)$(datadir)/ldbox/lua_scripts/argvenvp_misc.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_reverse_rules.lua $(DESTDIR)$(datadir)/ldbox/lua_scripts/create_reverse_rules.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvmods_loader.lua $(DESTDIR)$(datadir)/ldbox/lua_scripts/argvmods_loader.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/add_rules_to_rule_tree.lua $(DESTDIR)$(datadir)/ldbox/lua_scripts/add_rules_to_rule_tree.lua
 
-	$(Q)install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/ldbox/tests
-	$(Q)chmod a+x $(prefix)/share/ldbox/tests/run.sh
+	$(Q)install -c -m 644 $(SRCDIR)/tests/* $(DESTDIR)$(datadir)/ldbox/tests
+	$(Q)chmod a+x $(DESTDIR)$(datadir)/ldbox/tests/run.sh
 
-	$(Q)install -c -m 644 $(SRCDIR)/docs/*.1 $(prefix)/share/man/man1
-	$(Q)install -c -m 644 $(OBJDIR)/preload/liblb_interface.7 $(prefix)/share/man/man7
-	$(Q)rm -f $(prefix)/share/ldbox/host_usr
-	$(Q)ln -sf /usr $(prefix)/share/ldbox/host_usr
+	$(Q)install -c -m 644 $(SRCDIR)/docs/*.1 $(DESTDIR)$(mandir)/man1
+	$(Q)install -c -m 644 $(OBJDIR)/preload/liblb_interface.7 $(DESTDIR)$(mandir)/man7
+	$(Q)rm -f $(DESTDIR)$(datadir)/ldbox/host_usr
+	$(Q)ln -sf /usr $(DESTDIR)$(datadir)/ldbox/host_usr
 	@# Wrappers:
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/ldbox/wrappers/dpkg
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/ldbox/wrappers/apt-get
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/ldconfig $(prefix)/share/ldbox/wrappers/ldconfig
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/texi2html $(prefix)/share/ldbox/wrappers/texi2html
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/dpkg-checkbuilddeps $(prefix)/share/ldbox/wrappers/dpkg-checkbuilddeps
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/debconf2po-update $(prefix)/share/ldbox/wrappers/debconf2po-update
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/host-gcc-tools-wrapper $(prefix)/share/ldbox/wrappers/host-gcc-tools-wrapper
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/gdb $(prefix)/share/ldbox/wrappers/gdb
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/ldd $(prefix)/share/ldbox/wrappers/ldd
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/pwd $(prefix)/share/ldbox/wrappers/pwd
-	$(Q)(set -e; cd $(prefix)/share/ldbox/wrappers; \
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(DESTDIR)$(datadir)/ldbox/wrappers/dpkg
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(DESTDIR)$(datadir)/ldbox/wrappers/apt-get
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/ldconfig $(DESTDIR)$(datadir)/ldbox/wrappers/ldconfig
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/texi2html $(DESTDIR)$(datadir)/ldbox/wrappers/texi2html
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/dpkg-checkbuilddeps $(DESTDIR)$(datadir)/ldbox/wrappers/dpkg-checkbuilddeps
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/debconf2po-update $(DESTDIR)$(datadir)/ldbox/wrappers/debconf2po-update
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/host-gcc-tools-wrapper $(DESTDIR)$(datadir)/ldbox/wrappers/host-gcc-tools-wrapper
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/gdb $(DESTDIR)$(datadir)/ldbox/wrappers/gdb
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/ldd $(DESTDIR)$(datadir)/ldbox/wrappers/ldd
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/pwd $(DESTDIR)$(datadir)/ldbox/wrappers/pwd
+	$(Q)(set -e; cd $(DESTDIR)$(datadir)/ldbox/wrappers; \
 	for f in $(host_prefixed_gcc_bins); do \
 		ln -sf host-gcc-tools-wrapper $$f; \
 	done)
 
-ifeq ($(MACH),x86_64)
+ifneq ($(lib32dir),)
 install: install-multilib
 else
 install: do-install
@@ -237,38 +237,36 @@ endif
 
 do-install: install-noarch
 	$(P)INSTALL
-	@if [ -d $(prefix)/lib ] ; \
-	then echo "$(prefix)/lib present" ; \
-	else install -d -m 755 $(prefix)/lib ; \
+	@if [ -d $(DESTDIR)$(libdir) ] ; \
+	then echo "$(DESTDIR)$(libdir) present" ; \
+	else install -d -m 755 $(DESTDIR)$(libdir) ; \
 	fi
-	$(Q)install -d -m 755 $(prefix)/lib/liblb
-	$(Q)install -d -m 755 $(prefix)/lib/liblb/wrappers
-	$(Q)install -c -m 755 $(OBJDIR)/wrappers/fakeroot $(prefix)/lib/liblb/wrappers/fakeroot
-	$(Q)install -c -m 755 $(OBJDIR)/preload/liblb.$(SHLIBEXT) $(prefix)/lib/liblb/liblb.so.$(PACKAGE_VERSION)
-	$(Q)install -c -m 755 $(OBJDIR)/utils/lbrdbdctl $(prefix)/lib/liblb/lbrdbdctl
-	$(Q)install -c -m 755 $(OBJDIR)/utils/lb-show $(prefix)/bin/lb-show
-	$(Q)install -c -m 755 $(OBJDIR)/utils/lb-monitor $(prefix)/bin/lb-monitor
-	$(Q)install -c -m 755 $(OBJDIR)/lbrdbd/lbrdbd $(prefix)/bin/lbrdbd
+	$(Q)install -d -m 755 $(DESTDIR)$(libdir)/liblb
+	$(Q)install -d -m 755 $(DESTDIR)$(libdir)/liblb/wrappers
+	$(Q)install -c -m 755 $(OBJDIR)/wrappers/fakeroot $(DESTDIR)$(libdir)/liblb/wrappers/fakeroot
+	$(Q)install -c -m 755 $(OBJDIR)/preload/liblb.$(SHLIBEXT) $(DESTDIR)$(libdir)/liblb/liblb.so.$(PACKAGE_VERSION)
+	$(Q)install -c -m 755 $(OBJDIR)/utils/lbrdbdctl $(DESTDIR)$(libdir)/liblb/lbrdbdctl
+	$(Q)install -c -m 755 $(OBJDIR)/utils/lb-show $(DESTDIR)$(bindir)/lb-show
+	$(Q)install -c -m 755 $(OBJDIR)/utils/lb-monitor $(DESTDIR)$(bindir)/lb-monitor
+	$(Q)install -c -m 755 $(OBJDIR)/lbrdbd/lbrdbd $(DESTDIR)$(bindir)/lbrdbd
 ifeq ($(OS),Linux)
-	$(Q)/sbin/ldconfig -n $(prefix)/lib/liblb
+	$(Q)/sbin/ldconfig -n $(DESTDIR)$(libdir)/liblb
 endif
 
-multilib_prefix=$(prefix)
-
 install-multilib: multilib
-	@$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-multilib bitness=32
+	@$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-lib32
 	@$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. do-install
 
-do-install-multilib:
+do-install-lib32:
 	$(P)INSTALL
-	@if [ -d $(multilib_prefix)/lib$(bitness) ] ; \
-	then echo "$(prefix)/lib$(bitness) present" ; \
-	else install -d -m 755 $(prefix)/lib$(bitness) ; \
+	@if [ -d $(DESTDIR)$(lib32dir) ] ; \
+	then echo "$(DESTDIR)$(lib32dir) present" ; \
+	else install -d -m 755 $(DESTDIR)$(lib32dir) ; \
 	fi
-	$(Q)install -d -m 755 $(multilib_prefix)/lib$(bitness)/liblb
-	$(Q)install -c -m 755 preload/liblb.$(SHLIBEXT) $(multilib_prefix)/lib$(bitness)/liblb/liblb.so.$(PACKAGE_VERSION)
+	$(Q)install -d -m 755 $(DESTDIR)$(lib32dir)/liblb
+	$(Q)install -c -m 755 preload/liblb.$(SHLIBEXT) $(DESTDIR)$(lib32dir)/liblb/liblb.so.$(PACKAGE_VERSION)
 ifeq ($(OS),Linux)
-	$(Q)/sbin/ldconfig -n $(multilib_prefix)/lib$(bitness)/liblb
+	$(Q)/sbin/ldconfig -n $(DESTDIR)$(lib32dir)/liblb
 endif
 
 CLEAN_FILES += $(targets) config.status config.log
@@ -283,7 +281,7 @@ clean-multilib:
 	-$(Q)$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-clean
 	-$(Q)$(MAKE) -C obj-64 --include-dir .. -f ../Makefile SRCDIR=.. do-clean
 
-ifeq ($(MACH),x86_64)
+ifneq ($(lib32dir),)
 clean: clean-multilib do-clean
 else
 clean: do-clean

@@ -28,14 +28,12 @@ ldbox preload library.
 
 %build
 ./autogen.sh
-./configure; touch .configure
-make regular
+%configure
+touch .configure
+make
 
 %install
-make do-install prefix=%{buildroot}%{_prefix}
-if [ "%{_libdir}" != "%{_prefix}/lib" ]; then
-  mv "%{buildroot}%{_prefix}/lib" "%{buildroot}%{_libdir}"
-fi
+make install DESTDIR=%{buildroot}
 
 install -D -m 644 utils/lb.bash %{buildroot}/etc/bash_completion.d/lb.bash
 
@@ -44,8 +42,8 @@ install -D -m 644 utils/lb.bash %{buildroot}/etc/bash_completion.d/lb.bash
 %{_bindir}/lb*
 %{_datadir}/ldbox
 %config %{_sysconfdir}/bash_completion.d/lb.bash
-%doc %attr(0444,root,root) /usr/share/man/man1/*
-%doc %attr(0444,root,root) /usr/share/man/man7/*
+%doc %attr(0444,root,root) %{_mandir}/man1/*
+%doc %attr(0444,root,root) %{_mandir}/man7/*
 
 %files -n liblb
 %defattr(-,root,root)

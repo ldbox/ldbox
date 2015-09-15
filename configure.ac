@@ -21,6 +21,26 @@ AC_CHECK_LIB([dl], [dlsym])
 
 #PKG_CHECK_MODULES(LUA51, lua5.1 >= 5.1.0)
 
+AC_ARG_ENABLE(lib32,
+              [AS_HELP_STRING([--enable-lib32[=lib32dir]],
+                              [build 32-bit liblb])])
+
+case "$enable_lib32" in
+yes)
+  case "$libdir" in
+  */lib64) lib32dir="`echo \"$libdir\" | sed 's|/lib64$|/lib|'`" ;;
+  */lib) lib32dir="`echo \"$libdir\" | sed 's|/lib$|/lib32|'`" ;;
+  *) AC_MSG_ERROR([Unable to guess directory for installing 32-bit libraries.
+Please specify argument to --enable-lib32 option.]) ;;
+  esac
+  ;;
+no|"") lib32dir= ;;
+/*|\$*) lib32dir="$enable_lib32" ;;
+*) lib32dir="\${exec_prefix}/$enable_lib32" ;;
+esac
+
+AC_SUBST(lib32dir)
+
 # Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
