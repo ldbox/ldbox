@@ -8,6 +8,16 @@
 # Copyright (C) 2009 Nokia Corporation.
 # Licensed under GPL version 2
 
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+bindir="@bindir@"
+libdir="@libdir@"
+datadir="@datadir@"
+LDBOX_DIR="${prefix}"
+LDBOX_BIN_DIR="${bindir}"
+LDBOX_LIBLB_DIR="${libdir}/liblb"
+LDBOX_SHARE_DIR="${datadir}/ldbox"
+
 my_path=$_
 if [ $(basename $my_path) != $(basename $0) ]; then
 	my_path=$0
@@ -17,7 +27,6 @@ if [ $(basename $my_path) != $(basename $0) ]; then
 fi
 
 LDBOX_SHARE_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
-LDBOX_DIR=$(readlink -f $LDBOX_SHARE_DIR/../..)
 LDBOX_TARGET=$1
 LDBOX_CONFIG_DIR=~/.ldbox/$LDBOX_TARGET/lb.config.d
 
@@ -92,7 +101,7 @@ function update_toolchain_configs()
 			$gccconfig_arch_option \
 			$gccconfig_arch_option2 \
 			-R "$LBINIT_TARGET_ROOT" \
-			-S "$LDBOX_SHARE_DIR/../.." \
+			-S "$LDBOX_DIR" \
 			-t "$LBINIT_TARGET" \
 			-m "$LBINIT_MAPPING_MODE" \
 			-C "$LBINIT_LDBOX_EXTRA_CROSS_COMPILER_ARGS" \
@@ -122,7 +131,7 @@ function update_host_ld_library_path()
 	# Prefix to be added (trailing colon is needed, if not empty!)
 	HOST_LD_LIBRARY_PATH_PREFIX=""
 
-	HOST_LD_LIBRARY_PATH_LIBLB="$LDBOX_DIR/lib/liblb:$LDBOX_DIR/lib64/liblb:$LDBOX_DIR/lib32/liblb:/emul/lib64/liblb:/emul/lib32/liblb"
+	HOST_LD_LIBRARY_PATH_LIBLB="$LDBOX_LIBLB_DIR:$LDBOX_DIR/lib/liblb:$LDBOX_DIR/lib64/liblb:$LDBOX_DIR/lib32/liblb:/emul/lib64/liblb:/emul/lib32/liblb"
 
 	# Suffix to be added (leading colon is needed, if not empty!)
 	HOST_LD_LIBRARY_PATH_SUFFIX=""
@@ -134,7 +143,7 @@ function update_host_ld_library_path()
 	fi
 	# Old version of the config file expects to see LD_LIBRARY_PATH set
 	# to the following:
-	old_cfg_file_expects_LDLBRPATH="$LDBOX_DIR/lib/liblb:$LDBOX_DIR/lib64/liblb:$LDBOX_DIR/lib32/liblb:/emul/lib64/liblb:/emul/lib32/liblb"
+	old_cfg_file_expects_LDLBRPATH="$LDBOX_LIBLB_DIR:$LDBOX_DIR/lib/liblb:$LDBOX_DIR/lib64/liblb:$LDBOX_DIR/lib32/liblb:/emul/lib64/liblb:/emul/lib32/liblb"
 	LD_LIBRARY_PATH="$old_cfg_file_expects_LDLBRPATH"
 	. $OLD_CONFIG_FILE
 	if [ "$LD_LIBRARY_PATH" != "$old_cfg_file_expects_LDLBRPATH" ]; then
@@ -159,7 +168,7 @@ function update_host_ld_library_path()
 
 function update_debian_config()
 {
-	$LDBOX_DIR/share/ldbox/scripts/lb-config-debian -t $LDBOX_TARGET
+	$LDBOX_SHARE_DIR/scripts/lb-config-debian -t $LDBOX_TARGET
 }
 
 if [ ! -d $LDBOX_CONFIG_DIR ]; then

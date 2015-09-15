@@ -21,6 +21,11 @@ preload/wrappers.c
 obj-32
 obj-64
 .configure*
+utils/lb
+utils/lb-config
+utils/lb-config-gcc-toolchain
+utils/lb-init
+utils/lb-upgrade-config
 utils/lb-show
 utils/lb-monitor
 utils/lb-interp-wrapper

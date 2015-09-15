@@ -5,15 +5,11 @@
 # "lb" script, the command-line interface to ldbox.
 #
 
-# This *must* be the first thing in this file:
-my_path=$_
-if [ $(basename $my_path) != $(basename $0) ]; then
-	my_path=$0
-	if [ $(basename $my_path) = $my_path ]; then
-		my_path=$(which $my_path)
-	fi
-fi
-
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+bindir="@bindir@"
+libdir="@libdir@"
+datadir="@datadir@"
 
 LDBOX_LIBLB="liblb.so.1"
 	
@@ -21,7 +17,7 @@ LDBOX_LIBLB="liblb.so.1"
 # (called to process a command-line option)
 function show_version()
 {
-	cat $LDBOX_DIR/share/ldbox/version
+	cat $LDBOX_SHARE_DIR/version
 }
 
 function show_usage_and_exit()
@@ -160,12 +156,12 @@ function locate_target_nsswitch_conf()
 {
 	__LB_BINARYNAME="lb:LocatingNsswitchConf" \
 	lb-monitor \
-		-L $LDBOX_LIBLB -- $LDBOX_DIR/bin/lb-show \
+		-L $LDBOX_LIBLB -- $LDBOX_BIN_DIR/lb-show \
 		which /etc/nsswitch.conf \
 		>$LDBOX_SESSION_DIR/path_to_nsswitch.conf
 	__LB_BINARYNAME="lb:LocatingNscdSocket" \
 	lb-monitor \
-		-L $LDBOX_LIBLB -- $LDBOX_DIR/bin/lb-show \
+		-L $LDBOX_LIBLB -- $LDBOX_BIN_DIR/lb-show \
 		which /var/run/nscd/socket \
 		>$LDBOX_SESSION_DIR/path_to_nscd_socket.conf
 	NSSWITCH_CONF_PATH=`cat $LDBOX_SESSION_DIR/path_to_nsswitch.conf`
@@ -272,7 +268,7 @@ function load_configuration()
 	# check if we need to upgrade configuration:
 	if [ -z "$OPT_DONT_UPGRADE_CONFIGURATION" ]; then
 		if [ ! -f ~/.ldbox/$LDBOX_TARGET/lb.config.d/config-stamp.20 ]; then
-			$LDBOX_DIR/share/ldbox/scripts/lb-upgrade-config \
+			$LDBOX_SHARE_DIR/scripts/lb-upgrade-config \
 				$LDBOX_TARGET
 			if [ $? != 0 ]; then
 				echo "Failed to upgrade configuration files" >&2
@@ -302,7 +298,7 @@ function load_configuration()
 			exit 1
 		fi
 		if [ -e "$_cputransp" ]; then
-			LDBOX_CPUTRANSPARENCY_CMD=$($LDBOX_DIR/bin/lb-show realpath $_cputransp)
+			LDBOX_CPUTRANSPARENCY_CMD=$($LDBOX_BIN_DIR/lb-show realpath $_cputransp)
 		fi
 	fi
 
@@ -320,7 +316,7 @@ function load_configuration()
 			exit 1
 		fi
 		if [ -e "$_cputransp" ]; then
-			LDBOX_CPUTRANSPARENCY_NATIVE_CMD=$($LDBOX_DIR/bin/lb-show realpath $_cputransp)
+			LDBOX_CPUTRANSPARENCY_NATIVE_CMD=$($LDBOX_BIN_DIR/lb-show realpath $_cputransp)
 			export LDBOX_NATIVE_HAS_CPUTRANSP=1
 		fi
 	fi
@@ -455,7 +451,7 @@ function ldboxify_environment()
 	    if [ ! -z "$CCACHE_TOOLS_PATH" ]; then
 		TMP_PATH=$TMP_PATH:$CCACHE_TOOLS_PATH
 	    fi
-	    export PATH=$TMP_PATH:$LDBOX_DIR/bin:$PATH:/sbin:/usr/sbin:$LDBOX_TARGET_ROOT/bin:$LDBOX_TARGET_ROOT/usr/bin:$LDBOX_TARGET_ROOT/usr/local/bin
+	    export PATH=$TMP_PATH:$LDBOX_BIN_DIR:$PATH:/sbin:/usr/sbin:$LDBOX_TARGET_ROOT/bin:$LDBOX_TARGET_ROOT/usr/bin:$LDBOX_TARGET_ROOT/usr/local/bin
 	else
 		export PATH=$LDBOX_MODE_PATH
 	fi
@@ -645,7 +641,7 @@ function write_ld_library_path_replacement_to_exec_config()
 
 	# ---- Step 2. Directories under $rootdir
 	# First, make sure that liblb is searched
-	liblocations="$LDBOX_DIR/lib/liblb /usr/lib/liblb"
+	liblocations="$LDBOX_LIBLB_DIR /usr/lib/liblb"
 
 	# Include directories listed in ld.so.conf
 	if [ -f $rootdir/etc/ld.so.conf ]; then
@@ -704,7 +700,7 @@ function write_ld_library_path_replacement_to_exec_config()
 # can be executed in the ldbox'ed environment.
 function check_qemu_features()
 {
-	qemu_path=$($LDBOX_DIR/bin/lb-show realpath $1)
+	qemu_path=$($LDBOX_BIN_DIR/lb-show realpath $1)
 	shift
 	qemu_options=$*
 
@@ -713,7 +709,7 @@ function check_qemu_features()
 	# use ld.so and libraries from tools)
 	__LB_BINARYNAME="lb:CheckingQemuExec" \
 	lb-monitor \
-		-L $LDBOX_LIBLB -- $LDBOX_DIR/bin/lb-show \
+		-L $LDBOX_LIBLB -- $LDBOX_BIN_DIR/lb-show \
 		-- exec-cmdline \
 		$qemu_path $qemu_options \
 		>$LDBOX_SESSION_DIR/qemu_cmdline
@@ -872,7 +868,7 @@ function check_ld_so_features()
 function locate_shell()
 {
 	__LB_BINARYNAME="lb:TestingBash" lb-monitor \
-		-L $LDBOX_LIBLB -- $LDBOX_DIR/bin/lb-show \
+		-L $LDBOX_LIBLB -- $LDBOX_BIN_DIR/lb-show \
 		which /bin/bash \
 		>$LDBOX_SESSION_DIR/path_to_shell.conf
 	SHELL_PATH=`cat $LDBOX_SESSION_DIR/path_to_shell.conf`
@@ -881,7 +877,7 @@ function locate_shell()
 		SHELL=/bin/bash
 	else
 		__LB_BINARYNAME="lb:LocatingShell" lb-monitor \
-			-L $LDBOX_LIBLB -- $LDBOX_DIR/bin/lb-show \
+			-L $LDBOX_LIBLB -- $LDBOX_BIN_DIR/lb-show \
 			which /bin/sh \
 			>$LDBOX_SESSION_DIR/path_to_shell.conf
 		# Default to /bin/sh
@@ -940,7 +936,7 @@ function write_liblb_and_ld_so_state_to_exec_config()
 	# Check if ld.so can be used from $rootdir by 
 	# checking that liblb has been installed to tools
 
-	if [ -d $rootdir/$LDBOX_DIR/lib/liblb ]; then
+	if [ -d $rootdir/$LDBOX_BIN_DIR/liblb ]; then
 		ldbox_dir_2=$rootdir/$LDBOX_DIR
 	elif [ -d $rootdir/usr/lib/liblb ]; then
 		ldbox_dir_2=$rootdir/usr
@@ -992,7 +988,7 @@ function write_liblb_and_ld_so_state_to_exec_config()
 			fi
 
 			if [ "$ld_so_argv_flag_works" != "true" ]; then
-				ld_so_candidate2=$LDBOX_DIR/lib/liblb/$ld_so_with_version
+				ld_so_candidate2=$LDBOX_LIBLB_DIR/$ld_so_with_version
 				if [ -f "$ld_so_candidate2" ]; then
 					check_ld_so_features $rootdir \
 						$ld_so_candidate2
@@ -1137,7 +1133,7 @@ END
 -- CPU transparency settings. Automatically generated file, do not edit.
 END
 
-	library_interface=`LD_LIBRARY_PATH=$LDBOX_DIR/lib/liblb:$LD_LIBRARY_PATH $LDBOX_DIR/bin/lb-show libraryinterface`
+	library_interface=`LD_LIBRARY_PATH=$LDBOX_LIBLB_DIR:$LD_LIBRARY_PATH $LDBOX_BIN_DIR/lb-show libraryinterface`
 
 	# 1. Exec settings for tools
 	if [ -n "$LDBOX_TOOLS_ROOT" -a "$LDBOX_TOOLS_ROOT" != "/" ]; then
@@ -1146,9 +1142,12 @@ END
 			$LDBOX_TOOLS_ROOT conf_tools_ld_so_library_path \
 			~/.ldbox/liblb/tools/$target_basename/$library_interface/liblb.so.1 \
 			~/.ldbox/liblb/tools/$library_interface/liblb.so.1 \
-			$LDBOX_DIR/lib/liblb/tools/$tools_basename/$library_interface/liblb.so.1 \
-			$LDBOX_DIR/lib/liblb/tools/$library_interface/liblb.so.1 \
-			$LDBOX_TOOLS_ROOT/usr/lib/liblb/liblb.so.1
+			$LDBOX_LIBLB_DIR/tools/$tools_basename/$library_interface/liblb.so.1 \
+			$LDBOX_LIBLB_DIR/tools/$library_interface/liblb.so.1 \
+			$LDBOX_TOOLS_ROOT$LDBOX_LIBLB_DIR/liblb.so.1 \
+			$LDBOX_TOOLS_ROOT/usr/lib/liblb/liblb.so.1 \
+			$LDBOX_TOOLS_ROOT/usr/lib32/liblb/liblb.so.1 \
+			$LDBOX_TOOLS_ROOT/usr/lib64/liblb/liblb.so.1
 
 		write_liblb_and_ld_so_state_to_exec_config \
 			$LDBOX_TOOLS_ROOT \
@@ -1206,9 +1205,12 @@ END
 			$LDBOX_TARGET_ROOT conf_target_ld_so_library_path \
 			~/.ldbox/liblb/targets/$target_basename/$library_interface/liblb.so.1 \
 			~/.ldbox/liblb/targets/$library_interface/liblb.so.1 \
-			$LDBOX_DIR/lib/liblb/targets/$target_basename/$library_interface/liblb.so.1 \
-			$LDBOX_DIR/lib/liblb/targets/$library_interface/liblb.so.1 \
-			$LDBOX_TARGET_ROOT/usr/lib/liblb/liblb.so.1
+			$LDBOX_LIBLB_DIR/targets/$target_basename/$library_interface/liblb.so.1 \
+			$LDBOX_LIBLB_DIR/targets/$library_interface/liblb.so.1 \
+			$LDBOX_TARGET_ROOT$LDBOX_LIBLB_DIR/liblb.so.1 \
+			$LDBOX_TARGET_ROOT/usr/lib/liblb/liblb.so.1 \
+			$LDBOX_TARGET_ROOT/usr/lib32/liblb/liblb.so.1 \
+			$LDBOX_TARGET_ROOT/usr/lib64/liblb/liblb.so.1
 
 		write_liblb_and_ld_so_state_to_exec_config \
 			$LDBOX_TARGET_ROOT \
@@ -1330,7 +1332,7 @@ function get_LDBOX_SESSION_DIR_from_file()
 # (called to process a command-line option)
 function add_map_mode()
 {
-	if [ ! -d "$LDBOX_DIR/share/ldbox/modes/$1" ]; then
+	if [ ! -d "$LDBOX_SHARE_DIR/modes/$1" ]; then
 		exit_error "Invalid mode '$1', aborting."
 	fi
 
@@ -1428,12 +1430,12 @@ function initialize_new_lb_session()
 	# For mknod() simulation in some modes:
 	mkdir $LDBOX_SESSION_DIR/dev
 
-	ln -s $LDBOX_DIR/bin $LDBOX_SESSION_DIR/bin
-	ln -s $LDBOX_DIR/share $LDBOX_SESSION_DIR/share
+	ln -s $LDBOX_BIN_DIR $LDBOX_SESSION_DIR/bin
+	ln -s $LDBOX_DATA_DIR $LDBOX_SESSION_DIR/share
 	# FIXME: This should link only selected modes, not all:
-	ln -s $LDBOX_DIR/share/ldbox/modes/* $LDBOX_SESSION_DIR/modes
+	ln -s $LDBOX_SHARE_DIR/modes/* $LDBOX_SESSION_DIR/modes
 
-	ln -s $LDBOX_DIR/share/ldbox/rule_lib $LDBOX_SESSION_DIR
+	ln -s $LDBOX_SHARE_DIR/rule_lib $LDBOX_SESSION_DIR
 
 	if [ -n "$LDBOX_WRITE_SESSION_INFO_TO_FILE" ]; then
 		cat >$LDBOX_WRITE_SESSION_INFO_TO_FILE <<END
@@ -1445,7 +1447,7 @@ END
 	fi
 
 	if [ -z "$LDBOX_LUA_SCRIPTS" ]; then
-		LDBOX_LUA_SCRIPTS="$LDBOX_DIR/share/ldbox/lua_scripts"
+		LDBOX_LUA_SCRIPTS="$LDBOX_SHARE_DIR/lua_scripts"
 	fi
 	ln -s $LDBOX_LUA_SCRIPTS $LDBOX_SESSION_DIR/lua_scripts
 }
@@ -1498,17 +1500,17 @@ function link_wrappers_for_mapmode()
 			mkdir $LDBOX_SESSION_DIR/wrappers.$w_mode
 
 			if [ "$LDBOX_WRAPPERS" == 'ALL' ]; then
-				ln -s $LDBOX_DIR/share/ldbox/wrappers/* \
+				ln -s $LDBOX_SHARE_DIR/wrappers/* \
 					$LDBOX_SESSION_DIR/wrappers.$w_mode 2>/dev/null
-				ln -s $LDBOX_DIR/lib/liblb/wrappers/* \
+				ln -s $LDBOX_LIBLB_DIR/wrappers/* \
 					$LDBOX_SESSION_DIR/wrappers.$w_mode 2>/dev/null
 			else
 				for ammw in $LDBOX_WRAPPERS; do
-					if [ -f $LDBOX_DIR/share/ldbox/wrappers/$ammw ]; then
-						ln -s $LDBOX_DIR/share/ldbox/wrappers/$ammw \
+					if [ -f $LDBOX_SHARE_DIR/wrappers/$ammw ]; then
+						ln -s $LDBOX_SHARE_DIR/wrappers/$ammw \
 							$LDBOX_SESSION_DIR/wrappers.$w_mode
-					elif [ -f $LDBOX_DIR/lib/liblb/wrappers/$ammw ]; then
-						ln -s $LDBOX_DIR/lib/liblb/wrappers/$ammw \
+					elif [ -f $LDBOX_LIBLB_DIR/wrappers/$ammw ]; then
+						ln -s $LDBOX_LIBLB_DIR/wrappers/$ammw \
 							$LDBOX_SESSION_DIR/wrappers.$w_mode
 					else
 						exit_error "There is no wrapper for $ammw"
@@ -1542,13 +1544,13 @@ function write_configfiles_and_rules_for_new_session()
 
 	LB_ALL_NET_MODES=""
 	# Create links to network rules
-	for netr in $LDBOX_DIR/share/ldbox/net_rules/*; do
+	for netr in $LDBOX_SHARE_DIR/net_rules/*; do
 		ln -s $netr $LDBOX_SESSION_DIR/net_rules
 		netr_b=`basename $netr`
 		LB_ALL_NET_MODES="$LB_ALL_NET_MODES $netr_b"
 	done
 	# Create a link to the default mode
-	ln -s $LDBOX_DIR/share/ldbox/net_rules/$LDBOX_DEFAULT_NETWORK_MODE $LDBOX_SESSION_DIR/net_rules/Default
+	ln -s $LDBOX_SHARE_DIR/net_rules/$LDBOX_DEFAULT_NETWORK_MODE $LDBOX_SESSION_DIR/net_rules/Default
 
 	##if [ -n "$LB_EXTERNAL_RULEFILES" ]; then
 	##	for ammf in $LB_EXTERNAL_RULEFILES; do
@@ -1606,7 +1608,11 @@ LDBOX_MAPMODE=""
 NUM_MAPMODES=0
 LB_INTERNAL_MAPMODES=""
 
-LDBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
+LDBOX_DIR="$prefix"
+LDBOX_BIN_DIR="${bindir}"
+LDBOX_LIBLB_DIR="${libdir}/liblb"
+LDBOX_DATA_DIR="${datadir}"
+LDBOX_SHARE_DIR="${datadir}/ldbox"
 LDBOX_WORKDIR=$(readlink -f "$PWD")
 LDBOX_ROOT_SIMULATION=""
 LDBOX_MODE_SPECIFIC_OPTIONS=""
@@ -1702,7 +1708,7 @@ if [ -n "$LDBOX_LOG_AND_GRAPH_DIR" ]; then
 	else
 		exit_error "directory $LDBOX_LOG_AND_GRAPH_DIR already exists"
 	fi
-	LDBOX_LOG_AND_GRAPH_DIR=$($LDBOX_DIR/bin/lb-show realpath $LDBOX_LOG_AND_GRAPH_DIR)
+	LDBOX_LOG_AND_GRAPH_DIR=$($LDBOX_BIN_DIR/lb-show realpath $LDBOX_LOG_AND_GRAPH_DIR)
 	export LDBOX_LOG_AND_GRAPH_DIR
 	export LDBOX_COLLECT_ACCT_DATA
 
@@ -1715,12 +1721,12 @@ if [ -n "$LDBOX_LOG_AND_GRAPH_DIR" ]; then
 	if [ -n "$LDBOX_COLLECT_ACCT_DATA" ]; then
 		# First try to activate it directly
 		touch $LDBOX_LOG_AND_GRAPH_DIR/acct-data
-		$LDBOX_DIR/bin/lb-show acct_on $LDBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null
+		$LDBOX_BIN_DIR/lb-show acct_on $LDBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null
 		if [ $? != 0 ]; then
 			if [ -z "$LDBOX_QUIET" ];  then
 				echo "WARNING: Can't activate process accounting. Retrying with 'sudo', password may be needed."
 			fi
-			sudo $LDBOX_DIR/bin/lb-show acct_on $LDBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null
+			sudo $LDBOX_BIN_DIR/lb-show acct_on $LDBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null
 			if [ $? != 0 ]; then
 				if [ -z "$LDBOX_QUIET" ];  then
 					echo "WARNING: Failed to activate process accounting. Acct data won't be included in the graphs."
@@ -1743,7 +1749,7 @@ else
 fi
 
 if [ -n "$LDBOX_NETWORK_MODE" ]; then
-	if [ ! -d "$LDBOX_DIR/share/ldbox/net_rules/$LDBOX_NETWORK_MODE" ]; then
+	if [ ! -d "$LDBOX_SHARE_DIR/net_rules/$LDBOX_NETWORK_MODE" ]; then
 		exit_error "'$LDBOX_NETWORK_MODE' is not a valid networking mode."
 	fi
 fi
@@ -1916,7 +1922,7 @@ if [ -z "$LDBOX_JOIN_SESSION_FILE" ]; then
 	# to the rule tree.
 	# (this step needs to be syncronous; lbrdbdctl won't return
 	# before init2.lua is completed)
-	ctl_result=`$LDBOX_DIR/lib/liblb/lbrdbdctl -n -s $LDBOX_SESSION_DIR init2`
+	ctl_result=`$LDBOX_LIBLB_DIR/lbrdbdctl -n -s $LDBOX_SESSION_DIR init2`
 
 	case "$ctl_result" in
 	*OK*)	# Startup OK
@@ -2005,15 +2011,15 @@ if [ $# -gt 0 -o "$STDIN" = true ]; then
 	orig_args_array=("$@")
 	exec lb-monitor $OPTS_FOR_LB_MONITOR \
 		-L $LDBOX_LIBLB \
-		-X $LDBOX_DIR/share/ldbox/scripts/lb-exitreport \
+		-X $LDBOX_SHARE_DIR/scripts/lb-exitreport \
 		-e $LDBOX_CONFIG_DIR/env_vars \
 		-- \
-		$LDBOX_DIR/bin/lb-show start -- $binary "${orig_args_array[@]}"
+		$LDBOX_BIN_DIR/lb-show start -- $binary "${orig_args_array[@]}"
 else
 	exec lb-monitor $OPTS_FOR_LB_MONITOR \
 		-L $LDBOX_LIBLB \
-		-X $LDBOX_DIR/share/ldbox/scripts/lb-exitreport \
+		-X $LDBOX_SHARE_DIR/scripts/lb-exitreport \
 		-e $LDBOX_CONFIG_DIR/env_vars \
 		-- \
-		$LDBOX_DIR/bin/lb-show start -- $SHELL --noprofile --norc
+		$LDBOX_BIN_DIR/lb-show start -- $SHELL --noprofile --norc
 fi

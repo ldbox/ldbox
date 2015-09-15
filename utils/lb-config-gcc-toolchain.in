@@ -5,13 +5,12 @@
 # Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under GPL version 2
 
-my_path=$_
-if [ $(basename $my_path) != $(basename $0) ]; then
-	my_path=$0
-	if [ $(basename $my_path) = $my_path ]; then
-		my_path=$(which $my_path)
-	fi
-fi
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+bindir="@bindir@"
+libdir="@libdir@"
+datadir="@datadir@"
+LDBOX_SHARE_DIR="${datadir}/ldbox"
 
 function log_config_action()
 {
@@ -39,7 +38,6 @@ Options:
     -A arch           manually override target architecture
     -h                print this help
     -m mapping_mode   target uses mapping_mode as default mode
-    -S LDBOX_DIR       define value for LDBOX_DIR
     -R TARGET_ROOT    define value for LDBOX_TARGET_ROOT
     -V                this toolchain is a secondary toolchain,
                       tools require version numbers in pathnames
@@ -148,7 +146,7 @@ do
 	(m) MAPPING_MODE=$OPTARG ;;
 	(C) LDBOX_EXTRA_CROSS_COMPILER_ARGS="$LDBOX_EXTRA_CROSS_COMPILER_ARGS $OPTARG " ;;
 	(L) LDBOX_EXTRA_CROSS_LD_ARGS="$LDBOX_EXTRA_CROSS_LD_ARGS $OPTARG " ;;
-	(S) LDBOX_DIR=$OPTARG ;;
+	(S) ;;
 	(R) LDBOX_TARGET_ROOT=$OPTARG ;;
 	(V) SECONDARY_COMPILER=yes ;;
 	(v) verbose=yes ;;
@@ -168,10 +166,6 @@ case "$1" in
 esac
 
 # ---------- Check parameters
-
-if [ -z "$LDBOX_DIR" ]; then
-	LDBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
-fi
 
 if [ -z "$TARGET" ]; then
         echo "Error: no target given"
@@ -195,7 +189,7 @@ if [ -z "$MAPPING_MODE" ]; then
         exit 1
 fi
 
-if [ ! -d $LDBOX_DIR/share/ldbox/modes/$MAPPING_MODE ]; then
+if [ ! -d $LDBOX_SHARE_DIR/modes/$MAPPING_MODE ]; then
 	echo "Invalid mapping mode: $MAPPING_MODE"
 	exit 1
 fi
@@ -286,21 +280,21 @@ fi
 LDBOX_CROSS_GCC_SPECS_FILE=""
 LDBOX_EXTRA_CROSS_COMPILER_STDINC=""
 
-# FIXME: LDBOX_CROSS_GCC_SPECS_FILE may point to $LDBOX_DIR/share/ldbox/modes
+# FIXME: LDBOX_CROSS_GCC_SPECS_FILE may point to $LDBOX_SHARE_DIR/modes
 # after this. It should point to a session-specific location, but we don't have any
 # mechanism for that currently.
 if [ -n "$GCC_SPECS" ]; then
 	# the file was specified on the command line
 	LDBOX_CROSS_GCC_SPECS_FILE="$GCC_SPECS"
 # else try to locate a specs file which was provided with gcc
-elif [ -f $LDBOX_DIR/share/ldbox/modes/$MAPPING_MODE/gcc-$LDBOX_CROSS_GCC_VERSION-specs-$ARCH ]; then
-	LDBOX_CROSS_GCC_SPECS_FILE="$LDBOX_DIR/share/ldbox/modes/$MAPPING_MODE/gcc-$LDBOX_CROSS_GCC_VERSION-specs-$ARCH"
-elif [ -f $LDBOX_DIR/share/ldbox/modes/$MAPPING_MODE/gcc-$LDBOX_CROSS_GCC_VERSION-specs ]; then
-	LDBOX_CROSS_GCC_SPECS_FILE="$LDBOX_DIR/share/ldbox/modes/$MAPPING_MODE/gcc-$LDBOX_CROSS_GCC_VERSION-specs"
-elif [ -f $LDBOX_DIR/share/ldbox/modes/$MAPPING_MODE/gcc-$LDBOX_CROSS_GCC_SHORTVERSION-specs ]; then
-	LDBOX_CROSS_GCC_SPECS_FILE="$LDBOX_DIR/share/ldbox/modes/$MAPPING_MODE/gcc-$LDBOX_CROSS_GCC_SHORTVERSION-specs"
-elif [ -f $LDBOX_DIR/share/ldbox/modes/$MAPPING_MODE/gcc-specs ]; then
-	LDBOX_CROSS_GCC_SPECS_FILE="$LDBOX_DIR/share/ldbox/modes/$MAPPING_MODE/gcc-specs"
+elif [ -f $LDBOX_SHARE_DIR/modes/$MAPPING_MODE/gcc-$LDBOX_CROSS_GCC_VERSION-specs-$ARCH ]; then
+	LDBOX_CROSS_GCC_SPECS_FILE="$LDBOX_SHARE_DIR/modes/$MAPPING_MODE/gcc-$LDBOX_CROSS_GCC_VERSION-specs-$ARCH"
+elif [ -f $LDBOX_SHARE_DIR/modes/$MAPPING_MODE/gcc-$LDBOX_CROSS_GCC_VERSION-specs ]; then
+	LDBOX_CROSS_GCC_SPECS_FILE="$LDBOX_SHARE_DIR/modes/$MAPPING_MODE/gcc-$LDBOX_CROSS_GCC_VERSION-specs"
+elif [ -f $LDBOX_SHARE_DIR/modes/$MAPPING_MODE/gcc-$LDBOX_CROSS_GCC_SHORTVERSION-specs ]; then
+	LDBOX_CROSS_GCC_SPECS_FILE="$LDBOX_SHARE_DIR/modes/$MAPPING_MODE/gcc-$LDBOX_CROSS_GCC_SHORTVERSION-specs"
+elif [ -f $LDBOX_SHARE_DIR/modes/$MAPPING_MODE/gcc-specs ]; then
+	LDBOX_CROSS_GCC_SPECS_FILE="$LDBOX_SHARE_DIR/modes/$MAPPING_MODE/gcc-specs"
 else
 	LDBOX_EXTRA_CROSS_COMPILER_STDINC="-I/usr/include"
 fi
@@ -321,7 +315,7 @@ case "$txt" in
 		;;
 esac
 
-##### HOST_GCC_INC=$(echo "#include <stdio.h>" | gcc -M -E - | LDBOX_DIR=$LDBOX_DIR perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{LDBOX_DIR}/share/ldbox/host_usr$k"};')
+##### HOST_GCC_INC=$(echo "#include <stdio.h>" | gcc -M -E - | LDBOX_SHARE_DIR=$LDBOX_SHARE_DIR perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{LDBOX_SHARE_DIR}/host_usr$k"};')
 
 if [ -z "$SECONDARY_COMPILER" ] ; then
 	write_gcc_config

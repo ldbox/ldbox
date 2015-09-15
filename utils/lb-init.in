@@ -2,13 +2,13 @@
 # lb-init - Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under GPL version 2
 
-my_path=$_
-if [ $(basename $my_path) != $(basename $0) ]; then
-	my_path=$0
-	if [ $(basename $my_path) = $my_path ]; then
-		my_path=$(which $my_path)
-	fi
-fi
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+bindir="@bindir@"
+libdir="@libdir@"
+datadir="@datadir@"
+LDBOX_BIN_DIR="${bindir}"
+LDBOX_SHARE_DIR="${datadir}/ldbox"
 
 function log_config_action()
 {
@@ -102,7 +102,7 @@ EOF
 
 function version()
 {
-	cat $LDBOX_DIR/share/ldbox/version
+	cat $LDBOX_DATA_DIR/version
 	exit 0
 }
 
@@ -216,7 +216,6 @@ function configure_toolchains()
 			$gccconfig_arch_option \
 			$gccconfig_arch_option2 \
 			-R "$LDBOX_TARGET_ROOT" \
-			-S "$LDBOX_DIR" \
 			-t "$TARGET" \
 			-m "$MAPPING_MODE" \
 			-C "$LBINIT_LDBOX_EXTRA_CROSS_COMPILER_ARGS" \
@@ -231,11 +230,6 @@ function configure_toolchains()
 		secondary_compiler="-V"
 	done
 }
-
-if [ -z "$LDBOX_DIR" ]; then
-	LDBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
-fi
-LDBOX_SHARE_DIR=$LDBOX_DIR/share/ldbox
 
 # Use an array to preserve spaces in original arguments:
 declare -a init_orig_args_array
@@ -302,7 +296,7 @@ if [ -z "$MAPPING_MODE" ]; then
 	echo "Info: Mapping mode not specified, using default ($MAPPING_MODE)"
 fi
 
-if [ ! -d $LDBOX_DIR/share/ldbox/modes/$MAPPING_MODE ]; then
+if [ ! -d $LDBOX_SHARE_DIR/modes/$MAPPING_MODE ]; then
 	echo "Invalid mapping mode: $MAPPING_MODE"
 	exit 1
 fi
@@ -453,7 +447,7 @@ fi
 
 mkdir -p $HOME/.ldbox
 
-if [ -z "$($LDBOX_DIR/bin/lb-config -l)" ]; then
+if [ -z "$($LDBOX_BIN_DIR/lb-config -l)" ]; then
 	# force this as default anyway as there are no
 	# other existing targets
 	LBINIT_SET_AS_DEFAULT=1
@@ -470,7 +464,7 @@ fi
 
 _host_gcc=$(which gcc)
 if [ -n "$_host_gcc" -a -e "$_host_gcc" ]; then
-	HOST_GCC_INC=$(echo "#include <stdio.h>" | gcc -M -E - | LDBOX_DIR=$LDBOX_DIR perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{LDBOX_DIR}/share/ldbox/host_usr$k"};')
+	HOST_GCC_INC=$(echo "#include <stdio.h>" | gcc -M -E - | LDBOX_SHARE_DIR=$LDBOX_SHARE_DIR perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{LDBOX_SHARE_DIR}/host_usr$k"};')
 	LBINIT_LDBOX_HOST_GCC_NAME=host-gcc
 	LBINIT_LDBOX_HOST_GCC_PREFIX_LIST=host-
 else
@@ -498,13 +492,13 @@ fi
 # finalize the configuration by running programs in the new environment.
 
 if [ $LBINIT_SET_AS_DEFAULT == 1 ]; then
-	$LDBOX_DIR/bin/lb-config -d $TARGET
+	$LDBOX_BIN_DIR/lb-config -d $TARGET
 fi
 
 # if the target system is (based on) debian,
 # DEB_* environment variables are needed. We'll set them in any case:
 echo "lb-init: Creating Debian build system settings for this target:"
-$LDBOX_DIR/share/ldbox/scripts/lb-config-debian -t $TARGET
+$LDBOX_SHARE_DIR/scripts/lb-config-debian -t $TARGET
 if [ $? != 0 ]; then
 	log_config_action "lb-init: failed run lb-config-debian"
 	echo "lb-init: lb-config-debian failed."
@@ -521,25 +515,25 @@ fi
 #
 if [ $LBINIT_WITH_LOCALES == 1 ]; then
 	if [ -n "$LBINIT_TOOLS_ROOT" ]; then
-		$LDBOX_DIR/bin/lb -t $TARGET \
-		    $LDBOX_DIR/share/ldbox/scripts/lb-generate-locales -T
+		$LDBOX_BIN_DIR/lb -t $TARGET \
+		    $LDBOX_SHARE_DIR/scripts/lb-generate-locales -T
 	fi
 
 	if [ -z "$LBINIT_CPUTRANSP" ]; then
-		$LDBOX_DIR/bin/lb -t $TARGET \
-		    $LDBOX_DIR/share/ldbox/scripts/lb-generate-locales
+		$LDBOX_BIN_DIR/lb -t $TARGET \
+		    $LDBOX_SHARE_DIR/scripts/lb-generate-locales
 	fi
 fi
 
 if [ $LBINIT_WITH_LIBTOOL == 1 ]; then
 	echo "lb-init: configuring libtool for this target:"
-	$LDBOX_DIR/bin/lb -t $TARGET $LDBOX_DIR/bin/lb-build-libtool
+	$LDBOX_BIN_DIR/lb -t $TARGET $LDBOX_BIN_DIR/lb-build-libtool
 	TEST=$?
 	printf "\n\n"
 	if [ $TEST == 0 ]; then
 		echo "lb-init completed successfully, have fun!"
 	else
-		echo "Running $LDBOX_DIR/bin/lb-build-libtool failed"
+		echo "Running $LDBOX_BIN_DIR/lb-build-libtool failed"
 		echo "You can run this manually later, otherwise your"
 		echo "ldbox environment is correctly setup and ready to use"
 	fi

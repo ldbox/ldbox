@@ -9,7 +9,14 @@ AC_INIT([ldbox], [2.3.90], [ol@infoserver.lv])
 #AM_MAINTAINER_MODE
 #AC_CONFIG_SRCDIR([src/libfakechroot.c])
 AC_CONFIG_HEADER([include/config.h])
-AC_CONFIG_FILES([config.mak])
+AC_CONFIG_FILES([
+  config.mak
+  utils/lb-config-gcc-toolchain
+  utils/lb-config
+  utils/lb-init
+  utils/lb-upgrade-config
+  utils/lb
+])
 AC_PROG_CC
 AC_PROG_CXX
 

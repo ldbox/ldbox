@@ -275,6 +275,7 @@ superclean: clean
 	$(P)CLEAN
 	$(Q)rm -rf obj-32 obj-64 .configure-multilib .configure
 	$(Q)rm -rf include/config.h config.mak
+	$(Q)rm -rf utils/lb-config-gcc-toolchain utils/lb-config utils/lb-init utils/lb-upgrade-config utils/lb
 
 clean-multilib:
 	$(P)CLEAN

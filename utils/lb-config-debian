@@ -9,14 +9,6 @@
 # been stamped, so "lb" must be invoked with "-u" always from
 # this script!
 
-my_path=$_
-if [ $(basename $my_path) != $(basename $0) ]; then
-	my_path=$0
-	if [ $(basename $my_path) = $my_path ]; then
-		my_path=$(which $my_path)
-	fi
-fi
-
 mapping_mode_for_dpkg_utils=accel
 
 function log_config_action()
@@ -69,10 +61,6 @@ if [ -n "$*" ]; then
 fi
 
 # ---------- Check parameters
-
-if [ -z "$LDBOX_DIR" ]; then
-	LDBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
-fi
 
 if [ -z "$TARGET" ]; then
         echo "Error: no target given"
