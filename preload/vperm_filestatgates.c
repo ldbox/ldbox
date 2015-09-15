@@ -1246,8 +1246,74 @@ static int vperm_do_open(
 		    (vperm_geteuid() == 0) &&
             	    vperm_simulate_root_fs_permissions()) {
 			/* simulated root user. */
-			if (target_exists_beforehand &&
-			    S_ISREG(orig_stat.st_mode)) {
+			if (!target_exists_beforehand) {
+				/* the file did not exist. */
+				LB_LOG(LB_LOGLEVEL_DEBUG,
+				       "%s: failed to %s file, simulated 'root', errno=%d (%s)",
+					realfnname,
+				        (flags & O_CREAT) ? "create new" : "open nonexistent",
+				        open_errno, mapped_pathname->mres_result_path);
+				if ((flags & O_CREAT) &&
+				    (open_errno == EACCES ||
+				     open_errno == EPERM)) {
+					/* Looks like directory permissions
+					   prevent creating a file. */
+					char *p = strrchr(mapped_pathname->mres_result_path, '/');
+					char *dirname;
+					struct stat dir_stat;
+					uid_t real_euid = vperm_get_real_euid();
+
+					if (p == NULL) {
+						dirname = ".";
+					} else {
+						unsigned int len = p - mapped_pathname->mres_result_path;
+						dirname = alloca(len + 1);
+						memcpy(dirname, mapped_pathname->mres_result_path, len);
+						dirname[len] = '\0';
+
+					}
+					if (real_fstatat(dirfd, dirname,
+					                 &dir_stat, 0) == 0 &&
+					    real_euid == dir_stat.st_uid) {
+						int tmpmode =
+							dir_stat.st_mode |
+							S_IRUSR | S_IWUSR;
+						/* owner matches, temporarily change the mode..
+						 * Warning: race conditions are possible here,
+						 * but this can't be done atomically. */
+						LB_LOG(LB_LOGLEVEL_DEBUG, "%s: trying to temporarily change "
+							"the directory %s mode to 0%o (orig.mode=0%o)",
+							realfnname, dirname, tmpmode, dir_stat.st_mode);
+
+						if (fchmodat_nomap_nolog(dirfd,
+							dirname, tmpmode, 0) == 0) {
+							/* NO LOGGING IN THIS BLOCK. TRY TO BE QUICK. */
+							/* mode was set to tmpmode.
+							 * try again; if it won't open now,
+							 * we just can't do it. */
+							res_fd = vperm_multiopen(0, realfnname,
+								open_2va_ptr, open_3va_ptr, creat_ptr,
+								open_2_ptr, openat_3_ptr,
+								fopen_ptr, freopen_ptr, file_ptr, file_mode,
+								dirfd, mapped_pathname->mres_result_path,
+								flags, modebits);
+							open_errno = errno;
+							/* Hopefully the file is open now.
+							 * in any case restore orig. mode */
+							fchmodat_nomap_nolog(dirfd,
+								dirname,
+								dir_stat.st_mode, 0);
+						}
+						if (res_fd < 0) {
+							LB_LOG(LB_LOGLEVEL_DEBUG, "%s: failed to create it for 'root'",
+								realfnname);
+						} else {
+							LB_LOG(LB_LOGLEVEL_DEBUG, "%s: file is now created, fd=%d",
+								realfnname, res_fd);
+						}
+					}
+				}
+			} else if (S_ISREG(orig_stat.st_mode)) {
 				/* file exist, but can not be opened.
 				 * try if it was a matter of insufficient
 				 * permissions. */
@@ -1305,12 +1371,8 @@ static int vperm_do_open(
 					break;
 				}
 			} else {
-				/* the file did not exist, or not a regular file. */
-				/* FIXME: Here we should see if the open
-				 * failed due to insufficient access
-				 * rights to the directory. Not implemented
-				 * yet. */
-				LB_LOG(LB_LOGLEVEL_DEBUG, "%s: failed to open/create file, simulated 'root', errno=%d (%s)",
+				/* the file is not a regular file. */
+				LB_LOG(LB_LOGLEVEL_DEBUG, "%s: failed to open non-regular file, simulated 'root', errno=%d (%s)",
 					realfnname, open_errno, mapped_pathname->mres_result_path);
 			}
 		}
