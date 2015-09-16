@@ -333,10 +333,11 @@ WRAP: int chflags(const char *path, u_int flags) : \
 
 GATE: int chmod(const char *path, mode_t mode) : \
 	create_nomap_nolog_version \
-	map(path) fail_if_readonly(path,-1,EROFS)
+	map(path) fail_if_readonly(path,-1,EROFS) \
+	class(CHMOD)
 
 GATE: int chown(const char *path, uid_t owner, gid_t group) : \
-	map(path) fail_if_readonly(path,-1,EROFS)
+	map(path) fail_if_readonly(path,-1,EROFS) class(CHOWN)
 
 GATE: int creat(const char *pathname, mode_t mode) : \
 	create_nomap_nolog_version \
@@ -378,24 +379,28 @@ GATE: int faccessat(int dirfd, const char *pathname, int mode, int flags) : \
 
 -- FIXME: fchmod() should be handled when -at-functions can be handled 
 -- properly, now just introduce the wrapper (we'll get the calls to logger!)
-GATE: int fchmod(int fildes, mode_t mode)
+GATE: int fchmod(int fildes, mode_t mode) : \
+	class(CHMOD)
 
 #ifdef AT_SYMLINK_NOFOLLOW
 GATE: int fchmodat(int dirfd, const char *pathname, mode_t mode, int flags) : \
 	create_nomap_nolog_version \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) \
-	fail_if_readonly(pathname,-1,EROFS)
+	fail_if_readonly(pathname,-1,EROFS) \
+	class(CHMOD)
 
 GATE: int fchownat(int dirfd, const char *pathname, uid_t owner, gid_t group, \
 	int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) \
-	fail_if_readonly(pathname,-1,EROFS)
+	fail_if_readonly(pathname,-1,EROFS) \
+	class(CHOWN)
 #endif
 
 -- FIXME: fchown() should fail_if_readonly(...,-1,EROFS)
-GATE: int fchown(int fd, uid_t owner, gid_t group)
+GATE: int fchown(int fd, uid_t owner, gid_t group) : \
+	class(CHOWN)
 
 GATE: FILE *fopen(const char *path, const char *mode) : \
 	map(path) \
@@ -459,10 +464,12 @@ WRAP: int inotify_add_watch(int fd, const char *pathname, uint32_t mask) : \
 	map(pathname)
 
 WRAP: int lchmod(const char *path, mode_t mode) : \
-	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS)
+	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS) \
+	class(CHMOD)
 
 GATE: int lchown(const char *path, uid_t owner, gid_t group) : \
-	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS)
+	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS) \
+	class(CHOWN)
 
 #ifdef HAVE_LGETXATTR
 WRAP: ssize_t lgetxattr(const char *path, const char *name, void *value, size_t size) : \

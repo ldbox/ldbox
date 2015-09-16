@@ -189,6 +189,10 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		       printf("remove ");
 		if (rule->rtree_fsr_func_class & LB_INTERFACE_CLASS_CHROOT)
 		       printf("chroot ");
+		if (rule->rtree_fsr_func_class & LB_INTERFACE_CLASS_CHOWN)
+		       printf("chown ");
+		if (rule->rtree_fsr_func_class & LB_INTERFACE_CLASS_CHMOD)
+		       printf("chmod ");
 		printf(")\n");
 	}
 	
