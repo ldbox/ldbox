@@ -195,6 +195,8 @@ emulate_mode_rules_usr_bin = {
 		    use_orig_path = true, protection = readonly_fs_always},
 		{path = "/usr/bin/lb-session", use_orig_path = true,
 		 protection = readonly_fs_always},
+		{path = "/usr/bin/lb-ruletree", use_orig_path = true,
+		 protection = readonly_fs_always},
 
 		-- rpm rules
 		{prefix = "/usr/bin/rpm",

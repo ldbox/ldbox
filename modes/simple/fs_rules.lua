@@ -20,6 +20,8 @@ qemu_binary_name = basename(ldbox_cputransparency_cmd)
 simple_rules_usr = {
 		{path = "/usr/bin/lb-show",
 		 use_orig_path = true, readonly = true},
+		{path = "/usr/bin/lb-ruletree",
+		 use_orig_path = true, readonly = true},
 		{dir = "/usr/lib/liblb", use_orig_path = true,
 		 readonly = true},
 

@@ -181,6 +181,8 @@ emulate_mode_rules_usr_bin = {
 		    use_orig_path = true, protection = readonly_fs_always},
 		{path = "/usr/bin/lb-session", use_orig_path = true,
 		 protection = readonly_fs_always},
+		{path = "/usr/bin/lb-ruletree", use_orig_path = true,
+		 protection = readonly_fs_always},
 
 		{ path = "/usr/bin/scratchbox-launcher.sh",
                   rules = emulate_mode_map_to_sb1compat_unless_dpkg},

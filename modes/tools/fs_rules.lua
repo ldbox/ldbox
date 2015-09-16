@@ -43,6 +43,8 @@ tools_in_subdir_mapping_rules = {
 
 		{path = "/usr/bin/lb-show", use_orig_path = true,
 		 readonly = true},
+		{path = "/usr/bin/lb-ruletree", use_orig_path = true,
+		 readonly = true},
 		{dir = "/usr/lib/liblb", use_orig_path = true,
 		 readonly = true},
 

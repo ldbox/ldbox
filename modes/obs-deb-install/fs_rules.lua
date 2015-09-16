@@ -193,6 +193,8 @@ emulate_mode_rules_usr_bin = {
 		    use_orig_path = true, protection = readonly_fs_always},
 		{path = "/usr/bin/lb-session", use_orig_path = true,
 		 protection = readonly_fs_always},
+		{path = "/usr/bin/lb-ruletree", use_orig_path = true,
+		 protection = readonly_fs_always},
 
 		-- debian tools: rules are not yet enabled.
 		-- Installing packages will be slow.
