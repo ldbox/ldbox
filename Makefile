@@ -248,6 +248,7 @@ do-install: install-noarch
 	$(Q)install -c -m 755 $(OBJDIR)/utils/lbrdbdctl $(DESTDIR)$(libdir)/liblb/lbrdbdctl
 	$(Q)install -c -m 755 $(OBJDIR)/utils/lb-show $(DESTDIR)$(bindir)/lb-show
 	$(Q)install -c -m 755 $(OBJDIR)/utils/lb-monitor $(DESTDIR)$(bindir)/lb-monitor
+	$(Q)install -c -m 755 $(OBJDIR)/utils/lb-ruletree $(DESTDIR)$(bindir)/lb-ruletree
 	$(Q)install -c -m 755 $(OBJDIR)/lbrdbd/lbrdbd $(DESTDIR)$(bindir)/lbrdbd
 ifeq ($(OS),Linux)
 	$(Q)/sbin/ldconfig -n $(DESTDIR)$(libdir)/liblb
