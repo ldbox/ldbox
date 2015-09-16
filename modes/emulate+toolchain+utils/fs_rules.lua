@@ -62,7 +62,9 @@ rootdir_rules = {
 
 		-- All other programs:
 		{path = "/",
-		    func_class = FUNC_CLASS_STAT + FUNC_CLASS_OPEN + FUNC_CLASS_SET_TIMES,
+		    func_class = FUNC_CLASS_STAT + FUNC_CLASS_OPEN +
+		                 FUNC_CLASS_SET_TIMES +
+		                 FUNC_CLASS_CHOWN + FUNC_CLASS_CHMOD,
                     map_to = target_root, protection = readonly_fs_if_not_root },
 
 		-- Default: Map to real root.
