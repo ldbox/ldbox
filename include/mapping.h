@@ -188,6 +188,8 @@ extern char *prep_union_dir(const char *dst_path,
 #define LB_INTERFACE_CLASS_CHOWN	0x20000	/* [fl]?chown, fchownat */
 #define LB_INTERFACE_CLASS_CHMOD	0x40000	/* [fl]?chmod, fchmodat */
 
+#define LB_INTERFACE_CLASS_DLOPEN	0x80000	/* dlopen */
+
 /* interface funtion ->  class(es) mapping table, 
  * created by gen-interface.c */
 typedef struct {

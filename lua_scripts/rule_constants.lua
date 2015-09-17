@@ -36,6 +36,7 @@ FUNC_CLASS_REMOVE	= 0x8000
 FUNC_CLASS_CHROOT	= 0x10000
 FUNC_CLASS_CHOWN	= 0x20000
 FUNC_CLASS_CHMOD	= 0x40000
+FUNC_CLASS_DLOPEN	= 0x80000
 
 -- "protection" attribute:
 readonly_fs_if_not_root = 1

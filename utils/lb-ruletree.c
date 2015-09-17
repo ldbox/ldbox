@@ -193,6 +193,8 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		       printf("chown ");
 		if (rule->rtree_fsr_func_class & LB_INTERFACE_CLASS_CHMOD)
 		       printf("chmod ");
+		if (rule->rtree_fsr_func_class & LB_INTERFACE_CLASS_DLOPEN)
+		       printf("dlopen ");
 		printf(")\n");
 	}
 	
