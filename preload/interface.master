@@ -404,20 +404,25 @@ GATE: int fchown(int fd, uid_t owner, gid_t group) : \
 
 GATE: FILE *fopen(const char *path, const char *mode) : \
 	map(path) \
+	postprocess(path) \
 	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,EROFS) \
 	class(OPEN)
 GATE: FILE *fopen64(const char *path, const char *mode) : \
 	map(path) \
+	postprocess(path) \
 	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,EROFS) \
 	class(OPEN)
 GATE: FILE *freopen(const char *path, const char *mode, FILE *stream) : \
 	map(path) \
+	postprocess(path) \
 	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,freopen_errno(stream)) \
 	class(OPEN)
 GATE: FILE *freopen64(const char *path, const char *mode, FILE *stream) : \
 	map(path) \
+	postprocess(path) \
 	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,freopen_errno(stream)) \
 	class(OPEN)
+GATE: int fclose(FILE *fp)
 
 GATE: int fstat(int fd, struct stat *buf) : class(STAT) \
 	create_nomap_nolog_version

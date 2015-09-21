@@ -378,4 +378,55 @@ void fcntl64_postprocess_(const char *realfnname, int ret,
 	fcntl_postprocess_(realfnname, ret, fd, cmd, arg);
 }
 
+void fopen_postprocess_path(
+	const char *realfnname, FILE *ret, mapping_results_t *res,
+	const char *path, const char *mode)
+{
+	(void)mode;
+	if (ret)
+		fdpathdb_register_mapping_result(realfnname, fileno(ret), res, path);
+}
+
+void fopen64_postprocess_path(
+	const char *realfnname, FILE *ret, mapping_results_t *res,
+	const char *path, const char *mode)
+{
+	(void)mode;
+	if (ret)
+		fdpathdb_register_mapping_result(realfnname, fileno(ret), res, path);
+}
+
+void freopen_postprocess_path(
+	const char *realfnname, FILE *ret, mapping_results_t *res,
+	const char *path, const char *mode, FILE *stream)
+{
+	(void)mode;
+	(void)stream;
+	if (ret)
+		fdpathdb_register_mapping_result(realfnname, fileno(ret), res, path);
+}
+
+void freopen64_postprocess_path(
+	const char *realfnname, FILE *ret, mapping_results_t *res,
+	const char *path, const char *mode, FILE *stream)
+{
+	(void)mode;
+	(void)stream;
+	if (ret)
+		fdpathdb_register_mapping_result(realfnname, fileno(ret), res, path);
+}
+
+int fclose_gate(int *result_errno_ptr,
+                int (*real_fclose_ptr)(FILE *fp),
+                const char *realfnname, FILE *fp)
+{
+	int fd = fileno(fp);
+	int ret = (*real_fclose_ptr)(fp);
+	if (ret == 0)
+		fdpathdb_register_mapped_path(realfnname, fd, NULL, NULL);
+	else
+		*result_errno_ptr = errno;
+	return(ret);
+}
+
 
