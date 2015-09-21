@@ -52,11 +52,10 @@ static void vperm_clear_all_if_virtualized(
         const char *realfnname,
 	struct stat *statbuf)
 {
-	ruletree_inodestat_handle_t	handle;
 	inodesimu_t			istat_struct;
 
-	ruletree_init_inodestat_handle(&handle, statbuf->st_dev, statbuf->st_ino);
-	if (ruletree_find_inodestat(&handle, &istat_struct) == 0) {
+	if (ruletree_rpc__get_inodestat(statbuf->st_dev, statbuf->st_ino,
+	                                &istat_struct) > 0) {
 		/* vperms exist for this inode */
 		if (istat_struct.inodesimu_active_fields != 0) {
 			LB_LOG(LB_LOGLEVEL_DEBUG, "%s: clear dev=%llu ino=%llu",
@@ -474,11 +473,10 @@ static int vperm_chmod_if_simulated_device(
 	mode_t mode,
 	mode_t suid_sgid_bits)
 {
-	ruletree_inodestat_handle_t	handle;
 	inodesimu_t			istat_struct;
 
-	ruletree_init_inodestat_handle(&handle, statbuf->st_dev, statbuf->st_ino);
-	if (ruletree_find_inodestat(&handle, &istat_struct) == 0) {
+	if (ruletree_rpc__get_inodestat(statbuf->st_dev, statbuf->st_ino,
+	                                &istat_struct) > 0) {
 		/* vperms exist for this inode */
 		if (istat_struct.inodesimu_active_fields & RULETREE_INODESTAT_SIM_DEVNODE) {
 			/* A simulated device; never set real mode for this,

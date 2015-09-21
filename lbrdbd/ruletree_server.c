@@ -216,6 +216,32 @@ static void ruletree_cmd_init2(ruletree_rpc_msg_reply_t *reply)
 	reply->hdr.rimr_message_type = RULETREE_RPC_MESSAGE_REPLY__MESSAGE;
 }
 
+static void ruletree_cmd_getfileinfo(
+	ruletree_rpc_msg_command_t *command,
+	ruletree_rpc_msg_reply_t *reply)
+{
+        inodesimu_t			istat_in_db;
+	ruletree_inodestat_handle_t	handle;
+
+	istat_in_db = command->rim_message.rimm_fileinfo;
+	LB_LOG(LB_LOGLEVEL_DEBUG, "getfileinfo dev=%lld ino=%lld",
+		(long long)istat_in_db.inodesimu_dev,
+		(long long)istat_in_db.inodesimu_ino);
+
+	ruletree_init_inodestat_handle(&handle,
+		command->rim_message.rimm_fileinfo.inodesimu_dev,
+		command->rim_message.rimm_fileinfo.inodesimu_ino);
+
+	if (ruletree_find_inodestat(&handle, &istat_in_db) < 0) {
+		/* not found. don't have to do anything. */
+		LB_LOG(LB_LOGLEVEL_DEBUG, "getfileinfo: not found");
+		reply->hdr.rimr_message_type = RULETREE_RPC_MESSAGE_REPLY__OK;
+	} else {
+		reply->msg.rimr_fileinfo = istat_in_db;
+		reply->hdr.rimr_message_type = RULETREE_RPC_MESSAGE_REPLY__FILEINFO;
+	}
+}
+
 void ruletree_server(void)
 {
 	ruletree_rpc_msg_command_t	command;
@@ -253,6 +279,12 @@ void ruletree_server(void)
 
 				case RULETREE_RPC_MESSAGE_COMMAND__SETFILEINFO:
 					ruletree_cmd_setfileinfo(&command,&reply);
+					break;
+
+				case RULETREE_RPC_MESSAGE_COMMAND__GETFILEINFO:
+					ruletree_cmd_getfileinfo(&command,&reply);
+					if (reply.hdr.rimr_message_type == RULETREE_RPC_MESSAGE_REPLY__FILEINFO)
+						reply_size += sizeof(inodesimu_t);
 					break;
 
 				case RULETREE_RPC_MESSAGE_COMMAND__RELEASEFILEINFO:

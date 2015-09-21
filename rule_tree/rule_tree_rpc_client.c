@@ -440,4 +440,28 @@ void ruletree_rpc__vperm_set_dev_node(uint64_t dev, uint64_t ino,
 	send_command_receive_reply(&command, &reply);
 }
 
+int ruletree_rpc__get_inodestat(uint64_t dev, uint64_t ino,
+        inodesimu_t *istat_in_db)
+{
+	ruletree_rpc_msg_command_t	command;
+	ruletree_rpc_msg_reply_t	reply;
+
+	memset(&command, 0, sizeof(command));
+	memset(&reply, 0, sizeof(reply));
+	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__GETFILEINFO;
+	command.rim_message.rimm_fileinfo.inodesimu_dev = dev;
+	command.rim_message.rimm_fileinfo.inodesimu_ino = ino;
+	assert(send_command_receive_reply(&command, &reply) >= 0);
+
+	switch(reply.hdr.rimr_message_type) {
+	case RULETREE_RPC_MESSAGE_REPLY__OK:
+		return(0);
+	case RULETREE_RPC_MESSAGE_REPLY__FILEINFO:
+		*istat_in_db = reply.msg.rimr_fileinfo;
+		return(1);
+	default:
+		return(-1);
+	}
+}
+
 

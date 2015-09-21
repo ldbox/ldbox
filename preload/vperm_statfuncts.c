@@ -13,6 +13,7 @@
 #include "lb_vperm.h"
 
 #include "rule_tree.h"
+#include "rule_tree_rpc.h"
 #include "liblb.h"
 #include "exported.h"
 
@@ -73,20 +74,13 @@ int i_virtualize_struct_stat(
 	struct stat64 *buf64)
 {
 	int				res = 0;
-	ruletree_inodestat_handle_t	handle;
 	inodesimu_t      		istat_in_db;
 	uid_t				uf_uid;
 	gid_t				uf_gid;
 
-	ruletree_clear_inodestat_handle(&handle);
-	if (buf) {
-		ruletree_init_inodestat_handle(&handle, buf->st_dev, buf->st_ino);
-	} else {
-		ruletree_init_inodestat_handle(&handle, buf64->st_dev, buf64->st_ino);
-	}
-
-	if ((get_vperm_num_active_inodestats() > 0) &&
-	    (ruletree_find_inodestat(&handle, &istat_in_db) == 0)) {
+	if (ruletree_rpc__get_inodestat(buf ? buf->st_dev : buf64->st_dev,
+	                                buf ? buf->st_ino : buf64->st_ino,
+	                                &istat_in_db) > 0) {
 		int set_uid_gid_of_unknown = vperm_set_owner_and_group_of_unknown_files(
 			&uf_uid, &uf_gid);
 

@@ -14,7 +14,7 @@
  *   information to the rule tree.
 */
 
-#define RULETREE_RPC_PROTOCOL_VERSION	2
+#define RULETREE_RPC_PROTOCOL_VERSION	3
 
 /* Commands: Client -> server messages */
 typedef struct ruletree_rpc_msg_command_s {
@@ -35,6 +35,7 @@ typedef struct ruletree_rpc_msg_command_s {
 #define RULETREE_RPC_MESSAGE_COMMAND__RELEASEFILEINFO	3
 #define RULETREE_RPC_MESSAGE_COMMAND__CLEARFILEINFO	4
 #define RULETREE_RPC_MESSAGE_COMMAND__INIT2		5
+#define RULETREE_RPC_MESSAGE_COMMAND__GETFILEINFO	6
 
 /* Replies: Server -> Client messages */
 typedef struct ruletree_rpc_msg_reply_hdr_s {
@@ -49,6 +50,7 @@ typedef struct ruletree_rpc_msg_reply_s {
 	ruletree_rpc_msg_reply_hdr_t	hdr;
 	union {
 		char	rimr_str[RULETREE_RPC_REPLY_MAX_STR_SIZE];	/* Variable size, max RULETREE_RPC_REPLY_MAX_STR_SIZE */
+		inodesimu_t	rimr_fileinfo;
 	} msg;
 } ruletree_rpc_msg_reply_t;
 
@@ -57,6 +59,7 @@ typedef struct ruletree_rpc_msg_reply_s {
 #define RULETREE_RPC_MESSAGE_REPLY__UNKNOWNCMD	3	/* unknown command */
 #define RULETREE_RPC_MESSAGE_REPLY__PROTOVRSERR	4	/* wrong protocol version */
 #define RULETREE_RPC_MESSAGE_REPLY__MESSAGE	5	/* string message */
+#define RULETREE_RPC_MESSAGE_REPLY__FILEINFO	6	/* fileinfo message */
 
 /* client-side RPC library: */
 extern void ruletree_rpc__ping(void);
@@ -74,5 +77,8 @@ extern void ruletree_rpc__vperm_set_dev_node(uint64_t dev, uint64_t ino,
 extern void ruletree_rpc__vperm_set_mode(uint64_t dev, uint64_t ino,
 	mode_t real_mode, mode_t virt_mode, mode_t suid_sgid_bits);
 extern void ruletree_rpc__vperm_release_mode(uint64_t dev, uint64_t ino);
+
+extern int ruletree_rpc__get_inodestat(uint64_t dev, uint64_t ino,
+	inodesimu_t *istat_in_db);
 
 #endif /* LB_RULETREE_H__ */
