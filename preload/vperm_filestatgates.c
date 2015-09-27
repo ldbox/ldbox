@@ -1099,7 +1099,7 @@ int mkdirat_gate(int *result_errno_ptr,
 	int forced_owner_rights = 0;
 
 	vperm_mkdir_prepare(realfnname, mode, &forced_owner_rights);	
-	res = (*real_mkdirat_ptr)(dirfd, mapped_pathname->mres_result_path, mode);
+	res = (*real_mkdirat_ptr)(dirfd, mapped_pathname->mres_result_path, mode | forced_owner_rights);
 	e = errno;
 
 	if (res == 0) {
