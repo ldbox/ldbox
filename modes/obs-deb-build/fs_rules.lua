@@ -466,6 +466,13 @@ emulate_mode_rules_usr_bin = {
 		 func_class = FUNC_CLASS_EXEC,
 		 actions=accelerated_program_actions},
 
+		{path = "/usr/bin/tar",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = accelerated_program_actions},
+		{path = "/usr/bin/less",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = accelerated_program_actions},
+
 		{path = "/usr/bin/lb-show", use_orig_path = true,
 		 protection = readonly_fs_always},
 		{path = "/usr/bin/lb-qemu-gdbserver-prepare",
