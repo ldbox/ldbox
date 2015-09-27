@@ -602,10 +602,11 @@ static int vperm_chmod_done_update_state(
 			vperm_chmod(realfnname, &statbuf, mode, suid_sgid_bits);
 			res = 0;
 		} else { /* real fn didn't work, and can't stat */
-			*result_errno_ptr = e;
 			res = -1;
 		}
 	}
+	if (res < 0)
+		*result_errno_ptr = e;
 	return(res);
 }
 
