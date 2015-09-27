@@ -195,6 +195,8 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		       printf("chmod ");
 		if (rule->rtree_fsr_func_class & LB_INTERFACE_CLASS_DLOPEN)
 		       printf("dlopen ");
+		if (rule->rtree_fsr_func_class & LB_INTERFACE_CLASS_MKDIR)
+		       printf("mkdir ");
 		printf(")\n");
 	}
 	

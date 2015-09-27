@@ -190,6 +190,8 @@ extern char *prep_union_dir(const char *dst_path,
 
 #define LB_INTERFACE_CLASS_DLOPEN	0x80000	/* dlopen */
 
+#define LB_INTERFACE_CLASS_MKDIR	0x100000 /* mkdir(), mkdirat() */
+
 /* interface funtion ->  class(es) mapping table, 
  * created by gen-interface.c */
 typedef struct {

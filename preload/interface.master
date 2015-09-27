@@ -528,10 +528,10 @@ WRAP: int lutimes(const char *filename, const struct timeval tv[2]) : \
 	fail_if_readonly(filename,-1,EROFS) class(SET_TIMES)
 
 GATE: int mkdir(const char *pathname, mode_t mode) : \
-	map(pathname) fail_if_readonly(pathname,-1,EROFS) \
+	map(pathname) fail_if_readonly(pathname,-1,EROFS) class(MKDIR) \
 	create_nomap_nolog_version
 GATE: int mkdirat(int dirfd, const char *pathname, mode_t mode) : \
-	map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS)
+	map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS) class(MKDIR)
 
 WRAP: int mkfifo(const char *pathname, mode_t mode) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
