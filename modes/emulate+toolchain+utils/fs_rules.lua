@@ -254,7 +254,20 @@ emulate_mode_rules_var = {
 		protection = readonly_fs_always},
 
 		--
+		{path = "/var/run",
+		 func_class = FUNC_CLASS_SYMLINK + FUNC_CLASS_MKDIR +
+		              FUNC_CLASS_STAT + FUNC_CLASS_SET_TIMES +
+		              FUNC_CLASS_CHOWN + FUNC_CLASS_CHMOD,
+		 map_to = target_root,
+		 protection = readonly_fs_if_not_root},
 		{prefix = "/var/run", map_to = session_dir},
+
+		{path = "/var/tmp",
+		 func_class = FUNC_CLASS_SYMLINK + FUNC_CLASS_MKDIR +
+		              FUNC_CLASS_STAT + FUNC_CLASS_SET_TIMES +
+		              FUNC_CLASS_CHOWN + FUNC_CLASS_CHMOD,
+		 map_to = target_root,
+		 protection = readonly_fs_if_not_root},
 		{prefix = "/var/tmp", replace_by = var_tmp_dir_dest},
 
 		{dir = "/var", map_to = target_root,

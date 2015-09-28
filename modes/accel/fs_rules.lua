@@ -384,6 +384,12 @@ devel_mode_rules_var = {
 		{prefix = "/var/run/resolvconf", force_orig_path = true,
 		 readonly = true},
 
+		{path = "/var/run",
+		 func_class = FUNC_CLASS_SYMLINK + FUNC_CLASS_MKDIR +
+		              FUNC_CLASS_STAT + FUNC_CLASS_SET_TIMES +
+		              FUNC_CLASS_CHOWN + FUNC_CLASS_CHMOD,
+		 map_to = target_root,
+		 protection = readonly_fs_if_not_root},
 		{prefix = "/var/run", map_to = session_dir},
 
 		-- files from package "xkbutils":
@@ -408,6 +414,12 @@ devel_mode_rules_var = {
 		{prefix = "/var/log", map_to = target_root,
 		 readonly = true},
 
+		{path = "/var/tmp",
+		 func_class = FUNC_CLASS_SYMLINK + FUNC_CLASS_MKDIR +
+		              FUNC_CLASS_STAT + FUNC_CLASS_SET_TIMES +
+		              FUNC_CLASS_CHOWN + FUNC_CLASS_CHMOD,
+		 map_to = target_root,
+		 protection = readonly_fs_if_not_root},
 		{dir = "/var/tmp", map_to = session_dir},
 
 		-- default rules:
