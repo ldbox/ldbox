@@ -21,4 +21,7 @@ emulator (like `qemu`),
 and cross-compiler started instead of native compiler
 for foreign architecture.
 
+`ldbox` is a fork of Scratchbox 2 (`sb2`),
+but has nothing to do with old Scratchbox that existed before `sb2`.
+
 See [ldbox.org main site](https://ldbox.org/) for more information.
