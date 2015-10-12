@@ -260,7 +260,19 @@ end
 
 function print_one_rule(ofile, rule)
 	if (rule.fatal_error) then
-		ofile:write(string.format("\t-- \t%s\n", rule.fatal_error))
+		local pos = 1
+		while true do
+			local b, e = string.find(rule.fatal_error, '\n', pos)
+			if b == nil then
+				ofile:write(string.format("\t-- \t%s\n",
+					string.sub(rule.fatal_error, pos)))
+				break
+			else
+				ofile:write(string.format("\t-- \t%s\n",
+					string.sub(rule.fatal_error, pos, b-1)))
+			end
+			pos = e + 1
+		end
 		return
 	end
 
