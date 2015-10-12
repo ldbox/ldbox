@@ -38,7 +38,7 @@ function is_identical_reverse_rule(r1,r2)
 	return false
 end
 
-function reverse_conditional_actions(output_rules, rev_rule_name, rule, n, forward_path, modename)
+function reverse_conditional_actions(output_rules, rev_rule_name, rule, n, forward_path, selector, modename)
 	local actions = rule.actions
 
 	if actions == nil then
@@ -47,53 +47,49 @@ function reverse_conditional_actions(output_rules, rev_rule_name, rule, n, forwa
 
 	local a
         for a = 1, table.maxn(actions) do
-		-- actions are only partial rules; the "selector" is in
-		-- "rule", but we must copy it temporarily to action[a],
-		-- otherwise reverse_one_rule_xxxx() won't be able to
-		-- process it completely. Also, invent a better 
-		-- temporary name for it.
-		actions[a].prefix = rule.prefix
-		actions[a].path = rule.path
-		actions[a].dir = rule.dir
-		actions[a].name = string.format("%s/Act.%d", rev_rule_name, a)
-		reverse_one_rule_xxxx(output_rules, actions[a], a, forward_path, modename)
-		actions[a].prefix = nil
-		actions[a].path = nil
-		actions[a].dir = nil
-		actions[a].name = nil
+		local name = string.format("%s/Act.%d", rev_rule_name, a)
+		reverse_one_rule(output_rules, actions[a], a, forward_path, selector, modename, name)
 	end
 end
 
-function reverse_one_rule(output_rules, rule, n, modename)
-		local forward_path
+function reverse_one_rule(output_rules, rule, n, forward_path, selector, modename, name)
 		if (rule.prefix) then
 			forward_path = rule.prefix
+			selector = 'prefix'
 		elseif (rule.path) then
 			forward_path = rule.path
+			selector = 'path'
 		elseif (rule.dir) then
 			forward_path = rule.dir
-		else
-			forward_path = nil
+			selector = 'dir'
 		end
-		reverse_one_rule_xxxx(output_rules, rule, n, forward_path, modename)
+		if rule.rules then
+			reverse_rules(output_rules, rule.rules, modename, forward_path, selector)
+		else
+			reverse_one_rule_xxxx(output_rules, rule, n, forward_path, selector, modename, name)
+		end
 end
 
-function reverse_one_rule_xxxx(output_rules, rule, n, forward_path, modename)
+function reverse_one_rule_xxxx(output_rules, rule, n, forward_path, selector, modename, name)
 
 		local new_rule = {}
 		new_rule.comments = {}
 
-		if rule.name then
+		if name == nil then
+			name = rule.name
+		end
+
+		if name then
 			new_rule.name = string.format(
-				"Rev(%s): %s <%d>", modename, rule.name, n)
+				"Rev(%s): %s <%d>", modename, name, n)
 		else
 			local auto_name = "??"
-			if (rule.prefix) then
-				auto_name = "prefix="..rule.prefix
-			elseif (rule.dir) then
-				auto_name = "dir="..rule.dir
-			elseif (rule.path) then
-				auto_name = "path="..rule.path
+			if (selector == 'prefix') then
+				auto_name = "prefix="..forward_path
+			elseif (selector == 'dir') then
+				auto_name = "dir="..forward_path
+			elseif (selector == 'path') then
+				auto_name = "path="..forward_path
 			end
 			new_rule.name = string.format(
 				"Rev(%s): %s <%d>", modename, auto_name, n)
@@ -124,11 +120,11 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path, modename)
 			d_path = forward_path
 		elseif (rule.actions) then
 			reverse_conditional_actions(output_rules, new_rule.name,
-				rule, n, forward_path, modename)
+				rule, n, forward_path, selector, modename)
 			return
 		elseif (rule.then_actions) then
 			reverse_conditional_actions(output_rules, new_rule.name,
-				rule, n, forward_path, modename)
+				rule, n, forward_path, selector, modename)
 			return
 		elseif (rule.map_to) then
 			d_path = rule.map_to .. forward_path
@@ -165,16 +161,16 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path, modename)
 
 		local idx = nil
 		if (d_path ~= nil) then
-			if (rule.prefix) then
+			if (selector == 'prefix') then
 				new_rule.prefix = d_path
-				new_rule.orig_prefix = rule.prefix
+				new_rule.orig_prefix = forward_path
 				idx = test_rev_rule_position(output_rules, d_path..":")
-			elseif (rule.dir) then
+			elseif (selector == 'dir') then
 				new_rule.dir = d_path
-				new_rule.orig_path = rule.dir
+				new_rule.orig_path = forward_path
 				idx = test_rev_rule_position(output_rules, d_path)
-			elseif (rule.path) then
-				if (rule.path == "/") then
+			elseif (selector == 'path') then
+				if (forward_path == "/") then
 					-- Root directory rule.
 					if rule.map_to then
 						new_rule.path = rule.map_to
@@ -184,7 +180,7 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path, modename)
 				else
 					new_rule.path = d_path
 				end
-				new_rule.orig_path = rule.path
+				new_rule.orig_path = forward_path
 				idx = test_rev_rule_position(output_rules, d_path)
 			end
 		end
@@ -237,7 +233,7 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path, modename)
 		end
 end
 
-function reverse_rules(output_rules, input_rules, modename)
+function reverse_rules(output_rules, input_rules, modename, forward_path, selector)
         local n
         for n=1,table.maxn(input_rules) do
 		local rule = input_rules[n]
@@ -248,8 +244,6 @@ function reverse_rules(output_rules, input_rules, modename)
 				fatal_error =
 				string.format("virtual_path set, not reversing\t%d", n)
 			})
-		elseif rule.rules then
-			reverse_rules(output_rules, rule.rules, modename)
 		elseif rule.union_dir then
 			-- FIXME
 			table.insert(output_rules, {
@@ -257,7 +251,7 @@ function reverse_rules(output_rules, input_rules, modename)
 				string.format("WARNING: Skipping union_dir rule\t%d", n)
 			})
 		else
-			reverse_one_rule(output_rules, rule, n, modename)
+			reverse_one_rule(output_rules, rule, n, forward_path, selector, modename)
 		end
 
 	end
