@@ -237,19 +237,25 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path, modename)
 		end
 end
 
-function reverse_rules(ofile, output_rules, input_rules, modename)
+function reverse_rules(output_rules, input_rules, modename)
         local n
         for n=1,table.maxn(input_rules) do
 		local rule = input_rules[n]
 
 		if rule.virtual_path then
 			-- don't reverse virtual paths
-			ofile:write(string.format("-- virtual_path set, not reversing\t%d\n", n))
+			table.insert(output_rules, {
+				fatal_error =
+				string.format("virtual_path set, not reversing\t%d", n)
+			})
 		elseif rule.rules then
-			reverse_rules(ofile, output_rules, rule.rules, modename)
+			reverse_rules(output_rules, rule.rules, modename)
 		elseif rule.union_dir then
 			-- FIXME
-			ofile:write(string.format("-- WARNING: Skipping union_dir rule\t%d\n", n))
+			table.insert(output_rules, {
+				fatal_error =
+				string.format("WARNING: Skipping union_dir rule\t%d", n)
+			})
 		else
 			reverse_one_rule(output_rules, rule, n, modename)
 		end
@@ -258,69 +264,76 @@ function reverse_rules(ofile, output_rules, input_rules, modename)
 	return(output_rules)
 end
 
+function print_one_rule(ofile, rule)
+	if (rule.fatal_error) then
+		ofile:write(string.format("\t-- \t%s\n", rule.fatal_error))
+		return
+	end
+
+	ofile:write(string.format("\t{name=\"%s\",\n", rule.name))
+
+	local k
+	for k=1,table.maxn(rule.comments) do
+		ofile:write(rule.comments[k].."\n")
+	end
+
+	if (rule.orig_prefix) then
+		ofile:write("\t -- orig_prefix\t"..rule.orig_prefix.."\n")
+	end
+	if (rule.orig_path) then
+		ofile:write("\t -- orig_path\t".. rule.orig_path.."\n")
+	end
+
+	if (rule.prefix) then
+		ofile:write("\t prefix=\""..rule.prefix.."\",\n")
+	end
+	if (rule.path) then
+		ofile:write("\t path=\""..rule.path.."\",\n")
+	end
+	if (rule.dir) then
+		ofile:write("\t dir=\""..rule.dir.."\",\n")
+	end
+
+	if (rule.use_orig_path) then
+		ofile:write("\t use_orig_path=true,\n")
+	end
+	if (rule.force_orig_path) then
+		ofile:write("\t force_orig_path=true,\n")
+	end
+	if (rule.force_orig_path_unless_chroot) then
+		ofile:write("\t force_orig_path_unless_chroot=true,\n")
+	end
+	if (rule.binary_name) then
+		ofile:write("\t binary_name=\""..rule.binary_name.."\",\n")
+	end
+	if (rule.optional_rule) then
+		ofile:write("\t optional_rule=true,\n")
+	end
+
+	-- FIXME: To be implemented. See the "TODO" list at top.
+	-- elseif (rule.actions) then
+	--	ofile:write("\t -- FIXME: handle 'actions'\n")
+	--	ofile:write(string.format(
+	--		"\t %s=\"%s\",\n\t use_orig_path=true},\n",
+	--		sel, fwd_target))
+	if (rule.map_to) then
+		ofile:write("\t map_to=\""..rule.map_to.."\",\n")
+	end
+	if (rule.replace_by) then
+		ofile:write("\t replace_by=\""..rule.replace_by.."\",\n")
+	end
+	if (rule.error) then
+		ofile:write(string.format("\t -- \t%s\n",rule.error))
+		allow_reversing = false
+		reversing_disabled_message = rule.error
+	end
+	ofile:write("\t},\n")
+end
+
 function print_rules(ofile, rules)
-        local n
         for n=1,table.maxn(rules) do
 		local rule = rules[n]
-
-		ofile:write(string.format("\t{name=\"%s\",\n", rule.name))
-
-		local k
-		for k=1,table.maxn(rule.comments) do
-			ofile:write(rule.comments[k].."\n")
-		end
-
-		if (rule.orig_prefix) then
-			ofile:write("\t -- orig_prefix\t"..rule.orig_prefix.."\n")
-		end
-		if (rule.orig_path) then
-			ofile:write("\t -- orig_path\t".. rule.orig_path.."\n")
-		end
-
-		if (rule.prefix) then
-			ofile:write("\t prefix=\""..rule.prefix.."\",\n")
-		end
-		if (rule.path) then
-			ofile:write("\t path=\""..rule.path.."\",\n")
-		end
-		if (rule.dir) then
-			ofile:write("\t dir=\""..rule.dir.."\",\n")
-		end
-
-		if (rule.use_orig_path) then
-			ofile:write("\t use_orig_path=true,\n")
-		end
-		if (rule.force_orig_path) then
-			ofile:write("\t force_orig_path=true,\n")
-		end
-		if (rule.force_orig_path_unless_chroot) then
-			ofile:write("\t force_orig_path_unless_chroot=true,\n")
-		end
-		if (rule.binary_name) then
-			ofile:write("\t binary_name=\""..rule.binary_name.."\",\n")
-		end
-		if (rule.optional_rule) then
-			ofile:write("\t optional_rule=true,\n")
-		end
-
-		-- FIXME: To be implemented. See the "TODO" list at top.
-		-- elseif (rule.actions) then
-		--	ofile:write("\t -- FIXME: handle 'actions'\n")
-		--	ofile:write(string.format(
-		--		"\t %s=\"%s\",\n\t use_orig_path=true},\n",
-		--		sel, fwd_target))
-		if (rule.map_to) then
-			ofile:write("\t map_to=\""..rule.map_to.."\",\n")
-		end
-		if (rule.replace_by) then
-			ofile:write("\t replace_by=\""..rule.replace_by.."\",\n")
-		end
-		if (rule.error) then
-			ofile:write(string.format("\t -- \t%s\n",rule.error))
-			allow_reversing = false
-			reversing_disabled_message = rule.error
-		end
-		ofile:write("\t},\n")
+		print_one_rule(ofile, rule)
 	end
         ofile:write(string.format("-- Printed\t%d\trules\n",table.maxn(rules)))
 end
@@ -375,7 +388,7 @@ for m_index,m_name in pairs(all_modes) do
 	output_file:write("-- Reversed rules from "..rule_file_path.."\n")
 
 	local output_rules = {}
-	local rev_rules = reverse_rules(output_file, output_rules, fs_mapping_rules, m_name)
+	local rev_rules = reverse_rules(output_rules, fs_mapping_rules, m_name)
 	if (allow_reversing) then
 		output_file:write("reverse_fs_mapping_rules={\n")
 		print_rules(output_file, rev_rules)
