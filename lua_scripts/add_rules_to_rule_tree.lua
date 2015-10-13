@@ -45,7 +45,7 @@ local RULE_FLAGS_FORCE_ORIG_PATH_UNLESS_CHROOT = 32
 
 -- ================= Mapping rules =================
 
-function get_rule_tree_offset_for_rule_list(rules, modename)
+function get_rule_tree_offset_for_rule_list(rules, modename, prefix)
 	if #rules < 1 then
 		if debug_messages_enabled then
 			print ("-- NO RULES!")
@@ -53,7 +53,7 @@ function get_rule_tree_offset_for_rule_list(rules, modename)
 		return 0
 	elseif rules[1]._rule_tree_offset == nil then
 		-- Not yet in the tree, add it.
-		rules[1]._rule_tree_offset = add_list_of_rules(rules, modename)
+		rules[1]._rule_tree_offset = add_list_of_rules(rules, modename, prefix)
 	else
 		if debug_messages_enabled then
 			print ("get..Return existing at ", rules[1]._rule_tree_offset)
@@ -62,7 +62,7 @@ function get_rule_tree_offset_for_rule_list(rules, modename)
 	return rules[1]._rule_tree_offset
 end
 
-function get_rule_tree_offset_for_union_dir_list(union_dir_list)
+function get_rule_tree_offset_for_union_dir_list(union_dir_list, prefix)
 	if #union_dir_list < 1 then
 		if debug_messages_enabled then
 			print ("-- NO DIRS FOR UNION_DIR!")
@@ -74,6 +74,9 @@ function get_rule_tree_offset_for_union_dir_list(union_dir_list)
 
 	for n=1,table.maxn(union_dir_list) do
 		local component_path = union_dir_list[n]
+		if string.sub(component_path, 1, 1) ~= '/' then
+			component_path = prefix .. component_path
+		end
 		local new_str_index = ruletree.new_string(component_path)
 
 		ruletree.objectlist_set(union_dir_rule_list_index, n-1, new_str_index)
@@ -86,7 +89,7 @@ function get_rule_tree_offset_for_union_dir_list(union_dir_list)
 end
 
 -- Add a rule to the rule tree, return rule offset in the file.
-function add_one_rule_to_rule_tree(rule, modename)
+function add_one_rule_to_rule_tree(rule, modename, prefix)
 	local action_type = 0
 	local action_str = nil
 	local name
@@ -100,6 +103,46 @@ function add_one_rule_to_rule_tree(rule, modename)
 
 	if debug_messages_enabled then
 		print(string.format("\t-- name=\"%s\",", name))
+	end
+
+	-- Selectors.
+	local selector_type = 0
+	local selector = nil
+	local newprefix = ''
+	if (rule.dir) then
+		selector_type = RULE_SELECTOR_DIR
+		selector = rule.dir
+	elseif (rule.prefix) then
+		selector_type = RULE_SELECTOR_PREFIX
+		selector = rule.prefix
+	elseif (rule.path) then
+		selector_type = RULE_SELECTOR_PATH
+		selector = rule.path
+	end
+
+	if selector ~= nil then
+		if string.sub(selector, 1, 1) ~= '/' then
+			selector = prefix .. selector
+		end
+		if selector_type ~= RULE_SELECTOR_PATH then
+			newprefix = selector
+		end
+		if selector_type == RULE_SELECTOR_DIR and string.sub(newprefix, -1) ~= '/' then
+			newprefix = newprefix .. '/'
+		end
+	end
+
+	if selector_type == 0 then
+		if rule.optional_rule ~= true then
+			-- TODO: This is warning, but should be changed to an error
+			-- once the rule files have been converted.
+			local msg = string.format(
+				"Rule loader(%s): rule %s does not have a selector (dir,prefix or path), and is "..
+				"not marked with 'optional_rule = true'\n", modename, name)
+			lblib.log("warning", msg)
+			-- Should be: io.stderr:write("Error:" .. msg)
+		end
+		-- return 0
 	end
 
 	-- Actions
@@ -127,7 +170,7 @@ function add_one_rule_to_rule_tree(rule, modename)
 		action_str = rule.replace_by_value_of_env_var
 	elseif (rule.union_dir) then
 		action_type = RULE_ACTION_UNION_DIR
-		rule_list_link = get_rule_tree_offset_for_union_dir_list(rule.union_dir)
+		rule_list_link = get_rule_tree_offset_for_union_dir_list(rule.union_dir, newprefix)
 	else
 		-- conditional actions
 		if (rule.if_exists_then_map_to) then
@@ -150,12 +193,12 @@ function add_one_rule_to_rule_tree(rule, modename)
 	if (rule.actions) then
 		action_type = RULE_ACTION_CONDITIONAL_ACTIONS
 --		This call was the only one with node_type_is_ordinary_rule = "false"
-		rule_list_link = get_rule_tree_offset_for_rule_list(rule.actions, modename)
+		rule_list_link = get_rule_tree_offset_for_rule_list(rule.actions, modename, newprefix)
 	elseif (rule.rules) then
 		action_type = RULE_ACTION_SUBTREE
-		rule_list_link = get_rule_tree_offset_for_rule_list(rule.rules, modename)
+		rule_list_link = get_rule_tree_offset_for_rule_list(rule.rules, modename, newprefix)
        elseif (rule.then_actions) then
-               rule_list_link = get_rule_tree_offset_for_rule_list(rule.then_actions, modename)
+               rule_list_link = get_rule_tree_offset_for_rule_list(rule.then_actions, modename, newprefix)
 	end
 
 	-- Aux.conditions. these can be used in conditional actions.
@@ -179,33 +222,6 @@ function add_one_rule_to_rule_tree(rule, modename)
 	elseif (rule.if_exists_in) then
 		condition_type = RULE_CONDITION_IF_EXISTS_IN
 		condition_str = rule.if_exists_in
-	end
-
-	-- Selectors. 
-	local selector_type = 0
-	local selector = nil
-	if (rule.dir) then
-		selector_type = RULE_SELECTOR_DIR
-		selector = rule.dir
-	elseif (rule.prefix) then
-		selector_type = RULE_SELECTOR_PREFIX
-		selector = rule.prefix
-	elseif (rule.path) then
-		selector_type = RULE_SELECTOR_PATH
-		selector = rule.path
-	end
-
-	if selector_type == 0 then
-		if rule.optional_rule ~= true then
-			-- TODO: This is warning, but should be changed to an error
-			-- once the rule files have been converted.
-			local msg = string.format(
-				"Rule loader(%s): rule %s does not have a selector (dir,prefix or path), and is "..
-				"not marked with 'optional_rule = true'\n", modename, name)
-			lblib.log("warning", msg)
-			-- Should be: io.stderr:write("Error:" .. msg)
-		end
-		-- return 0
 	end
 
 	-- flags:
@@ -271,7 +287,7 @@ function add_one_rule_to_rule_tree(rule, modename)
 	return rule_offs
 end
 
-function add_list_of_rules(rules, modename)
+function add_list_of_rules(rules, modename, prefix)
         local n
 
 	if debug_messages_enabled then
@@ -289,7 +305,7 @@ function add_list_of_rules(rules, modename)
 				local rule = rules[n]
 				local new_rule_index
 
-				new_rule_index = add_one_rule_to_rule_tree(rule, modename)
+				new_rule_index = add_one_rule_to_rule_tree(rule, modename, prefix)
 				ruletree.objectlist_set(rule_list_index, n-1, new_rule_index)
 			end
 			if debug_messages_enabled then
@@ -347,7 +363,7 @@ function add_to_exec_policy(modename_in_ruletree, ep_name, key, t, val)
 end
 
 function add_mapping_rules_to_exec_policy(modename_in_ruletree, ep_name, key, val)
-	local ri = add_list_of_rules(val,  modename_in_ruletree)
+	local ri = add_list_of_rules(val,  modename_in_ruletree, '')
 	ruletree.catalog_vset("exec_policy", modename_in_ruletree, ep_name,
 		key, ri)
 end
@@ -434,13 +450,13 @@ for m_index,m_name in pairs(all_modes) do
 	end
 
 	local ri
-	ri = add_list_of_rules(fs_mapping_rules, m_name) -- add ordinary (forward) rules
+	ri = add_list_of_rules(fs_mapping_rules, m_name, '') -- add ordinary (forward) rules
 	if debug_messages_enabled then
 		print("-- Added ruleset fwd rules")
 	end
 	ruletree.catalog_set("fs_rules", modename_in_ruletree, ri)
 
-	ri = add_list_of_rules(reverse_fs_mapping_rules, "reverse "..m_name) -- add reverse  rules
+	ri = add_list_of_rules(reverse_fs_mapping_rules, "reverse "..m_name, '') -- add reverse  rules
 	if debug_messages_enabled then
 		print("-- Added ruleset rev.rules")
 	end

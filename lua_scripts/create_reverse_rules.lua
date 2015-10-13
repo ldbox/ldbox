@@ -53,20 +53,29 @@ function reverse_conditional_actions(output_rules, rev_rule_name, rule, n, forwa
 end
 
 function reverse_one_rule(output_rules, rule, n, forward_path, selector, modename, name)
+		local new_forward_path = forward_path
+		local new_selector = selector
 		if (rule.prefix) then
-			forward_path = rule.prefix
-			selector = 'prefix'
+			new_forward_path = rule.prefix
+			new_selector = 'prefix'
 		elseif (rule.path) then
-			forward_path = rule.path
-			selector = 'path'
+			new_forward_path = rule.path
+			new_selector = 'path'
 		elseif (rule.dir) then
-			forward_path = rule.dir
-			selector = 'dir'
+			new_forward_path = rule.dir
+			new_selector = 'dir'
+		end
+		if string.sub(new_forward_path, 1, 1) ~= '/' then
+			local prefix = forward_path
+			if selector == 'dir' and string.sub(prefix, -1) ~= '/' then
+				prefix = prefix .. '/'
+			end
+			new_forward_path = prefix .. new_forward_path
 		end
 		if rule.rules then
-			reverse_rules(output_rules, rule.rules, modename, forward_path, selector)
+			reverse_rules(output_rules, rule.rules, modename, new_forward_path, new_selector)
 		else
-			reverse_one_rule_xxxx(output_rules, rule, n, forward_path, selector, modename, name)
+			reverse_one_rule_xxxx(output_rules, rule, n, new_forward_path, new_selector, modename, name)
 		end
 end
 
