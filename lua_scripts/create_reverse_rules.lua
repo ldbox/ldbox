@@ -65,17 +65,40 @@ function reverse_one_rule(output_rules, rule, n, forward_path, selector, modenam
 			new_forward_path = rule.dir
 			new_selector = 'dir'
 		end
-		if string.sub(new_forward_path, 1, 1) ~= '/' then
-			local prefix = forward_path
-			if selector == 'dir' and string.sub(prefix, -1) ~= '/' then
-				prefix = prefix .. '/'
+
+		local fplist = {}
+		-- Unfortunately, this doesn't work if new_forward_path == nil:
+		--
+		-- if type(new_forward_path) == 'table' then
+		--     fplist = new_forward_path
+		-- else
+		--     fplist = {new_forward_path}
+		-- end
+		--
+		-- Hence, we need more complex container for sequence
+		-- that can contain nils.
+		if type(new_forward_path) == 'table' then
+			for i=1,table.maxn(new_forward_path) do
+				table.insert(fplist, {x = new_forward_path[i]})
 			end
-			new_forward_path = prefix .. new_forward_path
-		end
-		if rule.rules then
-			reverse_rules(output_rules, rule.rules, modename, new_forward_path, new_selector)
 		else
-			reverse_one_rule_xxxx(output_rules, rule, n, new_forward_path, new_selector, modename, name)
+			table.insert(fplist, {x = new_forward_path})
+		end
+
+		for i=1,table.maxn(fplist) do
+			local fp = fplist[i].x
+			if string.sub(fp, 1, 1) ~= '/' then
+				local prefix = forward_path
+				if selector == 'dir' and string.sub(prefix, -1) ~= '/' then
+					prefix = prefix .. '/'
+				end
+				fp = prefix .. fp
+			end
+			if rule.rules then
+				reverse_rules(output_rules, rule.rules, modename, fp, new_selector)
+			else
+				reverse_one_rule_xxxx(output_rules, rule, n, fp, new_selector, modename, name)
+			end
 		end
 end
 

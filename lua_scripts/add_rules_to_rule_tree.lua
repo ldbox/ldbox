@@ -88,8 +88,20 @@ function get_rule_tree_offset_for_union_dir_list(union_dir_list, prefix)
 	return union_dir_rule_list_index
 end
 
+function get_rule_selector(rule)
+	if (rule.dir) then
+		return RULE_SELECTOR_DIR, rule.dir
+	elseif (rule.prefix) then
+		return RULE_SELECTOR_PREFIX, rule.prefix
+	elseif (rule.path) then
+		return RULE_SELECTOR_PATH, rule.path
+	else
+		return 0, nil
+	end
+end
+
 -- Add a rule to the rule tree, return rule offset in the file.
-function add_one_rule_to_rule_tree(rule, modename, prefix)
+function add_one_rule_to_rule_tree(rule, modename, prefix, selector_type, selector)
 	local action_type = 0
 	local action_str = nil
 	local name
@@ -106,20 +118,7 @@ function add_one_rule_to_rule_tree(rule, modename, prefix)
 	end
 
 	-- Selectors.
-	local selector_type = 0
-	local selector = nil
 	local newprefix = ''
-	if (rule.dir) then
-		selector_type = RULE_SELECTOR_DIR
-		selector = rule.dir
-	elseif (rule.prefix) then
-		selector_type = RULE_SELECTOR_PREFIX
-		selector = rule.prefix
-	elseif (rule.path) then
-		selector_type = RULE_SELECTOR_PATH
-		selector = rule.path
-	end
-
 	if selector ~= nil then
 		if string.sub(selector, 1, 1) ~= '/' then
 			selector = prefix .. selector
@@ -296,17 +295,37 @@ function add_list_of_rules(rules, modename, prefix)
 	local rule_list_index = 0
 
 	if rules ~= nil then
-		local num_rules = table.maxn(rules)
+		local num_rules = 0
+		for n=1,table.maxn(rules) do
+			local rule = rules[n]
+			local selector_type, selector = get_rule_selector(rule)
+			if type(selector) == 'table' then
+				num_rules = num_rules + table.maxn(selector)
+			else
+				num_rules = num_rules + 1
+			end
+		end
 
 		if num_rules > 0 then
 			rule_list_index = ruletree.objectlist_create(num_rules)
 
-			for n=1,table.maxn(rules) do
-				local rule = rules[n]
+			local n = 0
+			for i=1,table.maxn(rules) do
+				local rule = rules[i]
+				local selector_type, selector = get_rule_selector(rule)
 				local new_rule_index
 
-				new_rule_index = add_one_rule_to_rule_tree(rule, modename, prefix)
-				ruletree.objectlist_set(rule_list_index, n-1, new_rule_index)
+				if type(selector) == 'table' then
+					for j=1,table.maxn(selector) do
+						new_rule_index = add_one_rule_to_rule_tree(rule, modename, prefix, selector_type, selector[j])
+						ruletree.objectlist_set(rule_list_index, n, new_rule_index)
+						n = n + 1
+					end
+				else
+					new_rule_index = add_one_rule_to_rule_tree(rule, modename, prefix, selector_type, selector)
+					ruletree.objectlist_set(rule_list_index, n, new_rule_index)
+					n = n + 1
+				end
 			end
 			if debug_messages_enabled then
 				print("-- Added to rule db: ",table.maxn(rules),"rules, idx=", rule_list_index)
