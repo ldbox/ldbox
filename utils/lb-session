@@ -244,7 +244,7 @@ case "$command" in
 			exit 1
 		fi
 
-		. $LDBOX_SESSION_DIR/lb-session.conf
+		. $LDBOX_SESSION_DIR/lb-session.conf.sh
 
 		save_session
 		;;

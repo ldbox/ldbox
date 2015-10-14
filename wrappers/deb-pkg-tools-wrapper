@@ -33,7 +33,7 @@ then
 	error_not_inside_lb
 fi
 
-. $LDBOX_SESSION_DIR/lb-session.conf
+. $LDBOX_SESSION_DIR/lb-session.conf.sh
 
 if [ -z "$ldbox_mapmode" -o -z "$ldbox_dir" ]
 then

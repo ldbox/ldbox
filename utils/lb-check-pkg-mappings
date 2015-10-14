@@ -54,7 +54,7 @@ if [ -z "$LDBOX_SESSION_DIR" ]; then
 	error_not_inside_lb
 fi
 
-. $LDBOX_SESSION_DIR/lb-session.conf
+. $LDBOX_SESSION_DIR/lb-session.conf.sh
 
 check_all_pkgs="no"
 check_if_out_of_date="no"

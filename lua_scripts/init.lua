@@ -67,7 +67,7 @@ function basename(path)
 end
 
 -- Load session-specific settings
-do_file(session_dir .. "/lb-session.conf")
+do_file(session_dir .. "/lb-session.conf.lua")
 
 target_root = ldbox_target_root
 if (not target_root or target_root == "") then
@@ -91,7 +91,7 @@ else
 end
 
 -- Load session configuration, and add variables to ruletree.
-do_file(session_dir .. "/lb-session.conf")
+do_file(session_dir .. "/lb-session.conf.lua")
 
 ruletree.catalog_set("config", "ldbox_cpu",
         ruletree.new_string(ldbox_cpu))

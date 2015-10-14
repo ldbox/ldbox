@@ -35,7 +35,7 @@ end
 session_dir = lb.get_session_dir()
 
 -- Load session-specific settings
-do_file(session_dir .. "/lb-session.conf")
+do_file(session_dir .. "/lb-session.conf.lua")
 
 -- Set global variables: Config file paths, etc.
 

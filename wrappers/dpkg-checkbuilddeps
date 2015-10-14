@@ -78,7 +78,7 @@ then
 	error_not_inside_lb
 fi
 
-. $LDBOX_SESSION_DIR/lb-session.conf
+. $LDBOX_SESSION_DIR/lb-session.conf.sh
 
 # A generated, temporary package db which only contains packages that
 # are usable thru the current mapping mode:

@@ -130,7 +130,7 @@ if [ -z "$LDBOX_SESSION_DIR" ]; then
 	error_not_inside_lb
 fi
 
-. $LDBOX_SESSION_DIR/lb-session.conf
+. $LDBOX_SESSION_DIR/lb-session.conf.sh
 
 args=`getopt hfT $*`
 if [ $? -ne 0 ]; then

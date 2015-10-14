@@ -530,58 +530,84 @@ function initialize_lb_logging()
 	fi
 }
 
+function comment_sh()
+{
+	echo "# $*"
+}
+
+function var_sh()
+{
+	printf '%s=%q\n' "$1" "$2"
+}
+
+function comment_lua()
+{
+	echo "-- $*"
+}
+
+function var_lua()
+{
+	local var="$1"
+	local val="$2"
+	val="${val//\\/\\\\}"
+	val="${val//\"/\\\"}"
+	val="${val//$'\n'/\\n}"
+	val="${val//$'\r'/\\r}"
+	val="${val//$'\t'/\\t}"
+	echo "$var = \"$val\""
+}
+
 #
-# Write variables to $LDBOX_SESSION_DIR/lb-session.conf
-# NOTE: this file will be read by lua interpreter and the shell,
-# so only simple string assignments are allowed! 
-# (even comments are different in Lua and shell scripts..)
+# Write variables to $LDBOX_SESSION_DIR/lb-session.conf.{sh,lua}
+# (language specified by the first argument).
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function create_common_lb_conf_file_for_session()
+function create_lb_conf_file_for_session()
 {
+	local l="$1"
 	ldbox_user_home_dir=$HOME
 	if [ -z "$HOME" ]; then
 		ldbox_user_home_dir="/home/unknown_user"
 	fi
 
-	cat <<END >>$LDBOX_SESSION_DIR/lb-session.conf
-comment_1=" Common configuration file for Lua and Shell scripts."
-comment_2=" Automatically generated file, do not edit."
+	cat <<END >>"$LDBOX_SESSION_DIR/lb-session.conf.$l"
+$(comment_$l "Configuration file for $l scripts.")
+$(comment_$l "Automatically generated file, do not edit.")
 
-ldbox_target="$LDBOX_TARGET"
+$(var_$l ldbox_target "$LDBOX_TARGET")
 
-ldbox_dir="$LDBOX_DIR"
-ldbox_workdir="$LDBOX_WORKDIR"
-ldbox_user_home_dir="$ldbox_user_home_dir"
-ldbox_target_toolchain_dir="$LDBOX_TARGET_TOOLCHAIN_DIR"
+$(var_$l ldbox_dir "$LDBOX_DIR")
+$(var_$l ldbox_workdir "$LDBOX_WORKDIR")
+$(var_$l ldbox_user_home_dir "$ldbox_user_home_dir")
+$(var_$l ldbox_target_toolchain_dir "$LDBOX_TARGET_TOOLCHAIN_DIR")
 
-ldbox_mapmode="$LDBOX_MAPMODE"
-ldbox_mode_specific_options="$LDBOX_MODE_SPECIFIC_OPTIONS"
-ldbox_target_root="$LDBOX_TARGET_ROOT"
-ldbox_cloned_target_root="$LDBOX_CLONED_TARGET_ROOT"
-ldbox_tools_root="$LDBOX_TOOLS_ROOT"
-ldbox_temp_dpkg_admin_dir="$LB_TEMP_DPKG_ADMIN_DIR"
+$(var_$l ldbox_mapmode "$LDBOX_MAPMODE")
+$(var_$l ldbox_mode_specific_options "$LDBOX_MODE_SPECIFIC_OPTIONS")
+$(var_$l ldbox_target_root "$LDBOX_TARGET_ROOT")
+$(var_$l ldbox_cloned_target_root "$LDBOX_CLONED_TARGET_ROOT")
+$(var_$l ldbox_tools_root "$LDBOX_TOOLS_ROOT")
+$(var_$l ldbox_temp_dpkg_admin_dir "$LB_TEMP_DPKG_ADMIN_DIR")
 
-ldbox_cpu="$LDBOX_CPU"
-ldbox_cputransparency_method="$LDBOX_CPUTRANSPARENCY_METHOD"
-ldbox_cputransparency_cmd="$LDBOX_CPUTRANSPARENCY_CMD"
-ldbox_cputransparency_args="$LDBOX_CPUTRANSPARENCY_ARGS"
-ldbox_cputransparency_native_method="$LDBOX_CPUTRANSPARENCY_NATIVE_METHOD"
-ldbox_cputransparency_native_cmd="$LDBOX_CPUTRANSPARENCY_NATIVE_CMD"
-ldbox_cputransparency_native_args="$LDBOX_CPUTRANSPARENCY_NATIVE_ARGS"
-ldbox_sbrsh_config="$SBRSH_CONFIG"
+$(var_$l ldbox_cpu "$LDBOX_CPU")
+$(var_$l ldbox_cputransparency_method "$LDBOX_CPUTRANSPARENCY_METHOD")
+$(var_$l ldbox_cputransparency_cmd "$LDBOX_CPUTRANSPARENCY_CMD")
+$(var_$l ldbox_cputransparency_args "$LDBOX_CPUTRANSPARENCY_ARGS")
+$(var_$l ldbox_cputransparency_native_method "$LDBOX_CPUTRANSPARENCY_NATIVE_METHOD")
+$(var_$l ldbox_cputransparency_native_cmd "$LDBOX_CPUTRANSPARENCY_NATIVE_CMD")
+$(var_$l ldbox_cputransparency_native_args "$LDBOX_CPUTRANSPARENCY_NATIVE_ARGS")
+$(var_$l ldbox_sbrsh_config "$SBRSH_CONFIG")
 
-ldbox_host_gcc_prefix_list="$LDBOX_HOST_GCC_PREFIX_LIST"
-ldbox_host_gcc_dir="$LDBOX_HOST_GCC_DIR"
-ldbox_extra_host_compiler_args="$LDBOX_EXTRA_HOST_COMPILER_ARGS"
-ldbox_host_gcc_subst_prefix="$LDBOX_HOST_GCC_SUBST_PREFIX"
-ldbox_block_host_compiler_args="$LDBOX_BLOCK_HOST_COMPILER_ARGS"
+$(var_$l ldbox_host_gcc_prefix_list "$LDBOX_HOST_GCC_PREFIX_LIST")
+$(var_$l ldbox_host_gcc_dir "$LDBOX_HOST_GCC_DIR")
+$(var_$l ldbox_extra_host_compiler_args "$LDBOX_EXTRA_HOST_COMPILER_ARGS")
+$(var_$l ldbox_host_gcc_subst_prefix "$LDBOX_HOST_GCC_SUBST_PREFIX")
+$(var_$l ldbox_block_host_compiler_args "$LDBOX_BLOCK_HOST_COMPILER_ARGS")
 
-ldbox_uname_machine="$LDBOX_UNAME_MACHINE"
-ldbox_liblb="$LDBOX_LIBLB"
+$(var_$l ldbox_uname_machine "$LDBOX_UNAME_MACHINE")
+$(var_$l ldbox_liblb "$LDBOX_LIBLB")
 
-ldbox_emulate_sb1_bugs="$LDBOX_EMULATE_SB1_BUGS"
+$(var_$l ldbox_emulate_sb1_bugs "$LDBOX_EMULATE_SB1_BUGS")
 END
 }
 
@@ -1565,7 +1591,8 @@ function write_configfiles_and_rules_for_new_session()
 	##fi
 
 	create_exec_config_file
-	create_common_lb_conf_file_for_session
+	create_lb_conf_file_for_session sh
+	create_lb_conf_file_for_session lua
 	create_gcc_conf_file_for_session
 
 	# Copy intial contents of /var/run from the rootstrap:
@@ -1973,7 +2000,7 @@ locate_shell
 
 # ------------ cleanup:
 # Unset variables which used to be passed in environment,
-# but have been moved to lb-session.conf.
+# but have been moved to lb-session.conf.sh.
 unset LDBOX_MAPMODE
 unset LDBOX_TARGET_ROOT
 unset LDBOX_CLONED_TARGET_ROOT
