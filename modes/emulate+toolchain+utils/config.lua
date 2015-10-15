@@ -13,7 +13,7 @@ exec_policy_selection = {
 		{prefix = tools_root, exec_policy_name = "Tools"},
 
                 -- the toolchain, if not from Tools:
-                {dir = ldbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
+                {prefix = ldbox_target_toolchain_prefix, exec_policy_name = "Toolchain"},
 
 		-- ldbox binaries are expected from Host
 		{dir = ldbox_dir .. "/bin", exec_policy_name = "Host"},

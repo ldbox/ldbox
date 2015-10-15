@@ -318,7 +318,7 @@ emulate_mode_rules = {
 		{path = ldbox_cputransparency_cmd, use_orig_path = true,
 		 protection = readonly_fs_always},
 
-		{dir = ldbox_target_toolchain_dir, use_orig_path = true,
+		{prefix = ldbox_target_toolchain_prefix, use_orig_path = true,
 		 protection = readonly_fs_always},
 
 		{prefix = target_root, use_orig_path = true,

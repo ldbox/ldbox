@@ -39,6 +39,7 @@ Options:
     -h                print this help
     -m mapping_mode   target uses mapping_mode as default mode
     -R TARGET_ROOT    define value for LDBOX_TARGET_ROOT
+    -P PREFIX         define toolchain prefix (may be used multiple times)
     -V                this toolchain is a secondary toolchain,
                       tools require version numbers in pathnames
     -v                verbose operation
@@ -80,6 +81,7 @@ LDBOX_CROSS_GCC_SUBST_PREFIX=$LDBOX_CROSS_GCC_SUBST_PREFIX
 LDBOX_CROSS_GCC_SPECS_FILE="$LDBOX_CROSS_GCC_SPECS_FILE"
 LDBOX_CROSS_GCC_DIR=$LDBOX_CROSS_GCC_DIR
 LDBOX_CROSS_GCC_LD_ARGS=
+LDBOX_TARGET_TOOLCHAIN_PREFIX=($([ ${#LDBOX_TARGET_TOOLCHAIN_PREFIX[@]} -gt 0 ] && printf ' %q' "${LDBOX_TARGET_TOOLCHAIN_PREFIX[@]}") )
 
 LDBOX_EXTRA_CROSS_COMPILER_ARGS="$LDBOX_EXTRA_CROSS_COMPILER_ARGS"
 LDBOX_EXTRA_CROSS_COMPILER_STDINC="$LDBOX_EXTRA_CROSS_COMPILER_STDINC"
@@ -135,8 +137,9 @@ if [ -z "$*" ]; then
 fi
 
 verbose=""
+declare -a LDBOX_TARGET_TOOLCHAIN_PREFIX=()
 
-while getopts t:m:C:L:A:M:hS:R:Vv option
+while getopts t:m:C:L:A:M:hS:R:P:Vv option
 do
 	case $option in
 	(A) ARCH=$OPTARG ;;
@@ -148,6 +151,7 @@ do
 	(L) LDBOX_EXTRA_CROSS_LD_ARGS="$LDBOX_EXTRA_CROSS_LD_ARGS $OPTARG " ;;
 	(S) ;;
 	(R) LDBOX_TARGET_ROOT=$OPTARG ;;
+	(P) LDBOX_TARGET_TOOLCHAIN_PREFIX[${#LDBOX_TARGET_TOOLCHAIN_PREFIX[@]}]="$OPTARG" ;;
 	(V) SECONDARY_COMPILER=yes ;;
 	(v) verbose=yes ;;
 	(*) usage ;;
@@ -224,6 +228,10 @@ LDBOX_CROSS_GCC_DIR=$(dirname $(which $GCC))
 if [ $GCC -v > /dev/null 2>&1 != 0 ]; then
 	echo "Invalid compiler specified: $GCC"
 	exit 1
+fi
+
+if [ ${#LDBOX_TARGET_TOOLCHAIN_PREFIX[@]} -eq 0 ]; then
+	LDBOX_TARGET_TOOLCHAIN_PREFIX=("$(dirname "$LDBOX_CROSS_GCC_DIR")/")
 fi
 
 # ---------- end of parameter checks

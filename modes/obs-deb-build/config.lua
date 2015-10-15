@@ -25,7 +25,7 @@ exec_policy_selection = {
 		{prefix = tools_root, exec_policy_name = "Tools"},
 
                 -- the toolchain, if not from Tools:
-                {dir = ldbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
+                {prefix = ldbox_target_toolchain_prefix, exec_policy_name = "Toolchain"},
 
                 -- the home directory is expected to contain target binaries:
                 {dir = ldbox_user_home_dir, exec_policy_name = "Target"},

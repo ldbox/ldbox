@@ -95,6 +95,17 @@ manually override target architecture
 manually override machine name (see uname(2)). This
 defaults to the target architecture (see option -A)
 .TP
+\-P prefix
+define toolchain prefix explicitly.
+This option may be used multiple times to specify multiple prefixes
+that are treated by rules as belonging to target toolchain.
+If there are no
+.I -P
+options specified, toolchain prefix is set to be a directory containing
+a directory containing compiler specified by
+.I COMPILER
+argument.
+.TP
 \-v
 display version
 

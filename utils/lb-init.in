@@ -88,6 +88,7 @@ Options:
     -A arch           manually override target architecture
     -M arch           manually override machine name (see uname(2)). This
                       defaults to the target architecture (see option -A)
+    -P PREFIX         define toolchain prefix (may be used multiple times)
     -v                display version
 
 Examples:
@@ -197,6 +198,7 @@ you can re-run this script."
 function configure_toolchains()
 {
 	secondary_compiler=""
+	local -a toolchain_prefix_args=()
 
 	if [ -n "$LBINIT_ARCH" ]; then
 		gccconfig_arch_option="-A $LBINIT_ARCH"
@@ -208,6 +210,10 @@ function configure_toolchains()
 	else
 		gccconfig_arch_option2=""
 	fi
+	for prefix in "${LBINIT_TARGET_TOOLCHAIN_PREFIX[@]}"; do
+		toolchain_prefix_args[${#toolchain_prefix_args[@]}]=-P
+		toolchain_prefix_args[${#toolchain_prefix_args[@]}]="$prefix"
+	done
 	for compiler_path in $*; do
 		log_config_action "lb-init: configuring toolchain, compiler $compiler_path"
 		$LDBOX_SHARE_DIR/scripts/lb-config-gcc-toolchain \
@@ -215,6 +221,7 @@ function configure_toolchains()
 			$secondary_compiler \
 			$gccconfig_arch_option \
 			$gccconfig_arch_option2 \
+			"${toolchain_prefix_args[@]}" \
 			-R "$LDBOX_TARGET_ROOT" \
 			-t "$TARGET" \
 			-m "$MAPPING_MODE" \
@@ -259,7 +266,7 @@ fi
 # because a) name of the target is currently unknown, b) there might be 
 # errors in the parameters, or c) if the user is just requesting help or
 # version and we are not actually going to configure anything.
-eval `$LDBOX_SHARE_DIR/scripts/lb-parse-lb-init-args "${init_orig_args_array[@]}"`
+eval "$($LDBOX_SHARE_DIR/scripts/lb-parse-lb-init-args "${init_orig_args_array[@]}")"
 
 TARGET=$LBINIT_TARGET
 LDBOX_TARGET_ROOT=$LBINIT_TARGET_ROOT

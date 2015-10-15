@@ -81,6 +81,7 @@ function get_lb_init_arguments_from_old_config_file()
 function update_toolchain_configs()
 {
 	secondary_compiler=""
+	local -a toolchain_prefix_args=()
 
 	if [ -n "$LBINIT_ARCH" ]; then
 		gccconfig_arch_option="-A $LBINIT_ARCH"
@@ -92,6 +93,10 @@ function update_toolchain_configs()
 	else
 		gccconfig_arch_option2=""
 	fi
+	for prefix in "${LBINIT_TARGET_TOOLCHAIN_PREFIX[@]}"; do
+		toolchain_prefix_args[${#toolchain_prefix_args[@]}]=-P
+		toolchain_prefix_args[${#toolchain_prefix_args[@]}]="$prefix"
+	done
 	for compiler_path in $*; do
 		# echo "Updating compiler $compiler_path"
 		log_config_action "Config upgrade: settings for compiler $compiler_path"
@@ -99,6 +104,7 @@ function update_toolchain_configs()
 			$secondary_compiler \
 			$gccconfig_arch_option \
 			$gccconfig_arch_option2 \
+			"${toolchain_prefix_args[@]}" \
 			-R "$LBINIT_TARGET_ROOT" \
 			-S "$LDBOX_DIR" \
 			-t "$LBINIT_TARGET" \

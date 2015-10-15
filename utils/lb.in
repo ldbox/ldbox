@@ -321,6 +321,13 @@ function load_configuration()
 		fi
 	fi
 
+	# Set LDBOX_TARGET_TOOLCHAIN_PREFIX if it's not defined
+	# in primary toolchain config for compatibility with targets
+	# initialised with older versions of lb-init.
+	if [ ${#LDBOX_TARGET_TOOLCHAIN_PREFIX[@]} -eq 0 ]; then
+		LDBOX_TARGET_TOOLCHAIN_PREFIX=("$(dirname "$LDBOX_CROSS_GCC_DIR")/")
+	fi
+
 	#-----------
 	# Time to set LD_LIBRARY_PATH for host-compatible programs:
 
@@ -540,6 +547,17 @@ function var_sh()
 	printf '%s=%q\n' "$1" "$2"
 }
 
+function array_sh()
+{
+	local var="$1"
+	shift
+	if [ $# -gt 0 ]; then
+		echo "$var=($(printf ' %q' "$@") )"
+	else
+		echo "$var=( )"
+	fi
+}
+
 function comment_lua()
 {
 	echo "-- $*"
@@ -555,6 +573,23 @@ function var_lua()
 	val="${val//$'\r'/\\r}"
 	val="${val//$'\t'/\\t}"
 	echo "$var = \"$val\""
+}
+
+function array_lua()
+{
+	local var="$1"
+	shift
+	val=""
+	for v in "$@"; do
+		v="${v//\\/\\\\}"
+		v="${v//\"/\\\"}"
+		v="${v//$'\n'/\\n}"
+		v="${v//$'\r'/\\r}"
+		v="${v//$'\t'/\\t}"
+		[ -n "$val" ] && val="${val}, "
+		val="${val}\"$v\""
+	done
+	echo "$var = {$val}"
 }
 
 #
@@ -581,6 +616,7 @@ $(var_$l ldbox_dir "$LDBOX_DIR")
 $(var_$l ldbox_workdir "$LDBOX_WORKDIR")
 $(var_$l ldbox_user_home_dir "$ldbox_user_home_dir")
 $(var_$l ldbox_target_toolchain_dir "$LDBOX_TARGET_TOOLCHAIN_DIR")
+$(array_$l ldbox_target_toolchain_prefix "${LDBOX_TARGET_TOOLCHAIN_PREFIX[@]}")
 
 $(var_$l ldbox_mapmode "$LDBOX_MAPMODE")
 $(var_$l ldbox_mode_specific_options "$LDBOX_MODE_SPECIFIC_OPTIONS")
@@ -1656,6 +1692,8 @@ VPERM_UIDGID_FOR_UNKNOWN_FILES=""
 VPERM_ROOT_PRIVILEGE_FLAG=""
 LBRDBD_OPTIONS=""
 OPT_DONT_DELETE_SESSION=""
+
+declare -a LDBOX_TARGET_TOOLCHAIN_PREFIX=()
 
 while getopts vdht:em:n:s:L:Q:M:ZrRU:pS:J:D:P:W:O:cC:T:uf:gG:B:b:qx:N foo
 do
