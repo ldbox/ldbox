@@ -370,7 +370,8 @@ emulate_mode_rules = {
 		 -- protection = readonly_fs_if_not_root
 		},
 
-		{path = os.getenv("SSH_AUTH_SOCK"), use_orig_path = true},
+		{if_true = os.getenv("SSH_AUTH_SOCK") ~= nil,
+		 path = os.getenv("SSH_AUTH_SOCK"), use_orig_path = true},
 
 		-- ldconfig is static binary, and needs to be wrapped
 		-- Gdb needs some special parameters before it
