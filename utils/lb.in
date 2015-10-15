@@ -664,6 +664,18 @@ function create_gcc_conf_file_for_session()
 	fi
 }
 
+# create $LDBOX_SESSION_DIR/cpuinfo
+#
+# Used by /proc/cpuinfo emulation
+function create_cpuinfo_file_for_session()
+{
+	if [ -f "$HOME/.ldbox/$LDBOX_TARGET/lb.config.d/cpuinfo" ]; then
+		cp "$HOME/.ldbox/$LDBOX_TARGET/lb.config.d/cpuinfo" \
+		   "$LDBOX_SESSION_DIR/cpuinfo"
+		chmod 0444 "$LDBOX_SESSION_DIR/cpuinfo"
+	fi
+}
+
 # write_ld_library_path_replacement_to_exec_config():
 #
 # Create replacement for LD_LIBRARY_PATH and write it to the created config
@@ -1630,6 +1642,7 @@ function write_configfiles_and_rules_for_new_session()
 	create_lb_conf_file_for_session sh
 	create_lb_conf_file_for_session lua
 	create_gcc_conf_file_for_session
+	create_cpuinfo_file_for_session
 
 	# Copy intial contents of /var/run from the rootstrap:
 	if [ -d $LDBOX_TARGET_ROOT/var/run ]; then

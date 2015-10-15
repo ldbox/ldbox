@@ -17,6 +17,15 @@ rule_lib_proc_rules = {
 	 func_class = FUNC_CLASS_SET_TIMES,
 	 set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
 
+	{path = "/proc/cpuinfo",
+	 actions = {
+	  {if_exists_then_replace_by = session_dir.."/cpuinfo",
+	   protection = readonly_fs_always},
+	  {use_orig_path = true,
+	   protection = readonly_fs_always},
+	 }
+	},
+
 	-- Default:
 	{dir = "/proc", custom_map_funct = lb_procfs_mapper,
 	 virtual_path = true},
