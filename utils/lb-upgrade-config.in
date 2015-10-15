@@ -8,6 +8,14 @@
 # Copyright (C) 2009 Nokia Corporation.
 # Licensed under GPL version 2
 
+my_path="$_"
+if [ $(basename "$my_path") != $(basename "$0") ]; then
+	my_path="$0"
+	if [ "$(basename "$my_path")" = "$my_path" ]; then
+		my_path="$(which "$my_path")"
+	fi
+fi
+
 prefix="@prefix@"
 exec_prefix="@exec_prefix@"
 bindir="@bindir@"
@@ -18,15 +26,6 @@ LDBOX_BIN_DIR="${bindir}"
 LDBOX_LIBLB_DIR="${libdir}/liblb"
 LDBOX_SHARE_DIR="${datadir}/ldbox"
 
-my_path=$_
-if [ $(basename $my_path) != $(basename $0) ]; then
-	my_path=$0
-	if [ $(basename $my_path) = $my_path ]; then
-		my_path=$(which $my_path)
-	fi
-fi
-
-LDBOX_SHARE_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 LDBOX_TARGET=$1
 LDBOX_CONFIG_DIR=~/.ldbox/$LDBOX_TARGET/lb.config.d
 
