@@ -89,6 +89,29 @@ function get_rule_tree_offset_for_union_dir_list(union_dir_list, prefix)
 end
 
 function get_rule_selector(rule)
+	local cond = nil
+	-- Conditional rule.
+	if rule.if_false ~= nil then
+		cond = rule.if_false
+	elseif rule.if_true ~= nil then
+		cond = rule.if_true
+	end
+	if type(cond) == 'function' then
+		-- Condition is function: call it.
+		cond = cond()
+	elseif type(cond) == 'string' then
+		-- Condition is string: evaluate it.
+		cond = loadstring('return ' .. cond)()
+	end
+	if rule.if_false ~= nil and cond then
+		-- Condition is true, return empty selector list.
+		return 0, {}
+	end
+	if rule.if_true ~= nil and not cond then
+		-- Condition is not true, return empty selector list.
+		return 0, {}
+	end
+
 	if (rule.dir) then
 		return RULE_SELECTOR_DIR, rule.dir
 	elseif (rule.prefix) then

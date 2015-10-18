@@ -53,6 +53,29 @@ function reverse_conditional_actions(output_rules, rev_rule_name, rule, n, forwa
 end
 
 function reverse_one_rule(output_rules, rule, n, forward_path, selector, modename, name)
+		local cond = nil
+		-- Conditional rule.
+		if rule.if_false ~= nil then
+			cond = rule.if_false
+		elseif rule.if_true ~= nil then
+			cond = rule.if_true
+		end
+		if type(cond) == 'function' then
+			-- Condition is function: call it.
+			cond = cond()
+		elseif type(cond) == 'string' then
+			-- Condition is string: evaluate it.
+			cond = loadstring('return ' .. cond)()
+		end
+		if rule.if_false ~= nil and cond then
+			-- Condition is true, return immediately.
+			return
+		end
+		if rule.if_true ~= nil and not cond then
+			-- Condition is not true, return immediately.
+			return
+		end
+
 		local new_forward_path = forward_path
 		local new_selector = selector
 		if (rule.prefix) then
