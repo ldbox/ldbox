@@ -19,32 +19,58 @@ for m_index,m_name in pairs(all_modes) do
 
 	-- Exec policy selection table
 	if exec_policy_selection ~= nil then
-		local epsrule_list_index = ruletree.objectlist_create(table.maxn(exec_policy_selection))
-		for i = 1, table.maxn(exec_policy_selection) do
-			local epsrule = exec_policy_selection[i]
-			local ruletype = 0
-			local selectorstr = 0
+		local ruletype
+		local selector
+		local function get_rule_selector(epsrule)
 			-- Recycling:
 			-- LB_RULETREE_FSRULE_SELECTOR_PATH               101
 			-- LB_RULETREE_FSRULE_SELECTOR_PREFIX             102
 			-- LB_RULETREE_FSRULE_SELECTOR_DIR                103
 			if epsrule.path then
-				ruletype = 101
-				selectorstr = epsrule.path
+				return 101, epsrule.path
 			elseif epsrule.prefix then
-				ruletype = 102
-				selectorstr = epsrule.prefix
+				return 102, epsrule.prefix
 			elseif epsrule.dir then
-				ruletype = 103
-				selectorstr = epsrule.dir
+				return 103, epsrule.dir
 			else
-				print("-- Skipping eps rule ["..i.."]")
+				return 0, nil
 			end
+		end
+		local num_rules = 0
+		for i = 1, table.maxn(exec_policy_selection) do
+			local epsrule = exec_policy_selection[i]
+			ruletype, selector = get_rule_selector(epsrule)
 			if ruletype ~= 0 then
-				local offs = ruletree.add_exec_policy_selection_rule_to_ruletree(
-					ruletype, selectorstr, epsrule.exec_policy_name,
-					0)
-				ruletree.objectlist_set(epsrule_list_index, i-1, offs)
+				if type(selector) == 'table' then
+					num_rules = num_rules + table.maxn(selector)
+				else
+					num_rules = num_rules + 1
+				end
+			end
+		end
+		local epsrule_list_index = ruletree.objectlist_create(num_rules)
+		local n = 0
+		for i = 1, table.maxn(exec_policy_selection) do
+			local epsrule = exec_policy_selection[i]
+			ruletype, selector = get_rule_selector(epsrule)
+			if ruletype == 0 then
+				print("-- Skipping eps rule ["..i.."]")
+			else
+				if type(selector) == 'table' then
+					for j=1, table.maxn(selector) do
+						local offs = ruletree.add_exec_policy_selection_rule_to_ruletree(
+							ruletype, selector[j], epsrule.exec_policy_name,
+							0)
+						ruletree.objectlist_set(epsrule_list_index, n, offs)
+						n = n + 1
+					end
+				else
+					local offs = ruletree.add_exec_policy_selection_rule_to_ruletree(
+						ruletype, selector, epsrule.exec_policy_name,
+						0)
+					ruletree.objectlist_set(epsrule_list_index, n, offs)
+					n = n + 1
+				end
 			end
 		end
 		ruletree.catalog_set("exec_policy_selection", m_name,
